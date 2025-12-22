@@ -1,0 +1,271 @@
+
+/* General */
+body {
+    margin: 0;
+    padding: 0;
+}
+
+.main {
+    width: 100%;
+    background-color: #f4f9ff;
+    background-position: center;
+    background-size: cover;
+    height: 100%;
+}
+
+/* Navbar Container */
+.nav-bar {
+    width: 100%;
+    height: 75px;
+    margin: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    
+}
+
+/* Logo */
+.icon {
+    width: 200px;
+}
+.logo {
+    color: #431405;
+    font-size: 30px;
+    font-family: Cinzel Decorative;
+    padding-left: 20px;
+    padding-top: 20px;   
+    line-height: 15px;
+    padding-bottom: 0px;
+    margin-bottom: 0px;
+}
+/* Logo tagline  */
+.logotag {
+    color: #431405;
+    font-size: 15px;
+    font-family: playfair;
+    padding-left: 20px;
+    line-height: 20px;
+    padding-top: 0px;
+    margin-top: 0px;
+        
+}
+
+
+/* Right side (search + icons) */
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+/* Search bar */
+.search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.search-container input {
+    padding: 8px 35px 8px 10px;
+    border-radius: 20px;
+    border: none;
+    outline: none;
+}
+.search-container .search-btn {
+    position: absolute;
+    right: 5px;
+    background: none;
+    border: none;
+    color: #555;
+    cursor: pointer;
+}
+.search-container .clear-btn {
+    display: none;
+    position: absolute;
+    right: 30px;
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+}
+
+/* Icons */
+.nav-icons a {
+    color: #2f3e46;
+    font-size: 20px;
+    margin-left: 15px;
+    transition: 0.3s;
+}
+.nav-icons a:hover {
+    color: #02a6fe;
+}
+
+
+/* Sidebar styles */
+.sidebar {
+    width: 220px;
+    height: calc(100vh - 75px); 
+    background-color: #f4f9ff;  
+    position: fixed;
+    top: 95px; /* below navbar */
+    left: 0;
+    overflow-y: auto;
+    padding-top: 20px; 
+  
+    /* background-color: #f4f9ff; */
+}
+
+.sidebar ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.sidebar ul li {
+    margin: 5px 0;
+    
+}
+
+.sidebar ul li a {
+    display: block;
+    color: #1f456e; 
+    padding: 12px 20px;
+    text-decoration: none;
+    font-family: Arial, sans-serif;
+    font-size: 15px;
+    transition: 0.3s;
+    border-radius: 8px; 
+    
+} 
+
+.sidebar ul li a i {
+    /* box-shadow: 2px 0 5px rgba(0,0,0,0.1); */
+    margin-right: 10px; /* space between icon and text */
+}
+
+/* Hover effect */
+.sidebar ul li a:hover {
+    background-color: #1f456e; /* dark blue */
+    color: #ffffff;
+    font-weight: bold;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+}
+
+/* Main content area (right side of sidebar) */
+.main-content {
+    margin-left: 240px; /* leave space for sidebar */
+    padding: 20px;
+}
+
+/* static/css/style.css --category*/
+.add-catesty {
+    font-size: 24px;
+    font-weight: bold;
+    color: black;   /* Purple shade */
+    text-align: left;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    letter-spacing: 1px;
+}
+
+/* Labels */
+.form-label {
+    font-weight: 600;
+    color: #444;
+    font-size: 14px;
+}
+
+
+/* Thumbnail box */
+.thumbnail-box {
+    background: #f9f9f9;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;width: 18%;
+}
+
+/* Make form fields smaller */
+form .form-control, 
+form .form-select, 
+form textarea {
+    margin-top: 10px;
+    width: 40% !important;
+    border-radius: 6px !important;
+    padding: 10px 
+}
+
+/* Cancel button style */
+.btn-outline-secondary {
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-weight: 500;
+}
+
+.stack-lab {
+  display: flex;
+  flex-direction: column;  /* stack label on top of input */
+}
+
+.lab-inp-space {
+  margin-bottom: 5px; /* spacing between label and input */
+}
+
+.button-col {
+    background-color: #02a6fe; /* main blue color */
+    color: white;              /* text color */
+    padding: 10px 20px;        /* spacing inside button */
+    border: none;              /* remove default border */
+    border-radius: 8px;        /* rounded corners */
+    cursor: pointer;           /* pointer on hover */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+  
+    
+}
+
+.button-container {
+  
+    margin-left: 40%;
+}
+
+
+___________________
+.table-container {
+  width: 95%; /* almost full screen */
+  margin: 20px auto;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.styled-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 16px;
+}
+
+.styled-table thead {
+  background-color: #f4f6f9;
+  color: #333;
+  font-weight: bold;
+}
+
+.styled-table th, .styled-table td {
+  padding: 15px 20px;
+  text-align: left;
+}
+
+.styled-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9; /* light gray */
+}
+
+.styled-table tbody tr:nth-child(odd) {
+  background-color: #ffffff; /* white */
+}
+
+.styled-table tbody tr:hover {
+  background-color: #eef6ff; /* highlight on hover */
+  transition: 0.3s;
+}
