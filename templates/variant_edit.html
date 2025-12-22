@@ -1,0 +1,126 @@
+<!-- templates/variant_edit.html -->
+{% extends "common_admin.html" %}
+{% load static %}
+
+{% block page_title %}Edit Variant{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="admin-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">
+                <i class="fas fa-edit me-2"></i>
+                Edit Variant - {{ product.name }}
+            </h3>
+            <div class="variant-badges">
+                <span class="badge bg-primary">#{{ variant.id }}</span>
+                <span class="badge {% if variant.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                    {% if variant.is_active %}Active{% else %}Inactive{% endif %}
+                </span>
+                <span class="badge bg-info">{{ variant.sku }}</span>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="admin-card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Variant Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    {% for field in form %}
+                                        {% if field.name != "DELETE" %}
+                                        <div class="col-md-6 mb-3">
+                                            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                            {{ field }}
+                                            {% if field.help_text %}
+                                                <div class="form-text">{{ field.help_text }}</div>
+                                            {% endif %}
+                                            {% if field.errors %}
+                                                <div class="text-danger small mt-1">{{ field.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <!-- Variant Summary -->
+                        <div class="admin-card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Variant Summary</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="variant-info">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="text-muted">Product:</span>
+                                        <strong>{{ product.name }}</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="text-muted">SKU:</span>
+                                        <code>{{ variant.sku }}</code>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="text-muted">Volume:</span>
+                                        <strong>{{ variant.volume_ml }}ml</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="text-muted">Gender:</span>
+                                        <strong>{{ variant.gender }}</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="text-muted">Price:</span>
+                                        <strong>₹{{ variant.price }}</strong>
+                                    </div>
+                                    {% if variant.discount_price %}
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="text-muted">Discounted:</span>
+                                        <strong class="text-danger">₹{{ variant.discount_price }}</strong>
+                                    </div>
+                                    {% endif %}
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">Stock:</span>
+                                        <span class="badge {% if variant.stock > 10 %}bg-success{% elif variant.stock > 0 %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ variant.stock }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="admin-card">
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>
+                                        Update Variant
+                                    </button>
+                                    <a href="{% url 'product_edit' product.pk %}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-arrow-left me-2"></i>Back to Product
+                                    </a>
+                                    {% if not variant.is_deleted %}
+                                    <a href="{% url 'variant_soft_delete' product.pk variant.pk %}" 
+                                       class="btn btn-outline-danger"
+                                       onclick="return confirm('Are you sure you want to move this variant to trash?')">
+                                        <i class="fas fa-trash me-2"></i>Move to Trash
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

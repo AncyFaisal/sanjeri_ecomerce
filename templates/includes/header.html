@@ -1,0 +1,175 @@
+<!-- Header Navigation -->
+<header class="sticky-top">
+    <div class="nav-bar">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-sm-4 col-lg-4">
+                    <div class="main-logo">
+                        <div class="icon">
+                            <h2 class="logo">SANJERI</h2>
+                            <p class="logotag">A Scent Beyond the Soul</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-8 col-lg-8">
+                    <div class="nav-right">
+                        <div class="nav-icons">
+                            <!-- User Info Section -->
+                            <div class="user-info">
+                                {% if user.is_authenticated %}
+                                <div class="dropdown">
+                                    <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle"
+                                        data-bs-toggle="dropdown" aria-expanded="false"
+                                        style="color: var(--primary-color);">
+                                        <i class="fas fa-user me-2"></i>
+                                        <span>{{ user.username }}</span>
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="{% url 'user_logout' %}"><i
+                                                    class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                                    </ul>
+                                </div>
+                                {% else %}
+                                <a href="{% url 'user_login' %}" class="d-flex align-items-center text-decoration-none"
+                                    style="color: var(--primary-color);">
+                                    <i class="fas fa-user me-2"></i>
+                                    <span>Login</span>
+                                </a>
+                                {% endif %}
+                            </div>
+
+                            <a href="{% url 'wishlist' %}" class="icon-btn">
+                                <i class="far fa-heart"></i>
+                                <span class="wishlist-count">0</span>
+                            </a>
+
+                            <!-- SINGLE CART ICON -->
+                            <a href="{% url 'cart' %}" class="icon-btn position-relative text-decoration-none">
+                                <i class="fas fa-shopping-cart"></i>
+                                <span class="cart-count badge bg-danger" 
+                                      style="{% if not cart_item_count %}display: none;{% endif %}">
+                                    {{ cart_item_count|default:0 }}
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Navigation -->
+    <nav class="category-nav">
+        <div class="container">
+            <div class="d-flex justify-content-center">
+                <a href="{% url 'homepage' %}"
+                    class="nav-link {% if request.resolver_match.url_name == 'homepage' %}active{% endif %}">Home</a>
+                <a href="{% url 'men' %}"
+                    class="nav-link {% if request.resolver_match.url_name == 'men' %}active{% endif %}">Men</a>
+                <a href="{% url 'women' %}"
+                    class="nav-link {% if request.resolver_match.url_name == 'women' %}active{% endif %}">Women</a>
+                <a href="{% url 'unisex' %}"
+                    class="nav-link {% if request.resolver_match.url_name == 'unisex' %}active{% endif %}">Unisex</a>
+            </div>
+        </div>
+    </nav>
+</header>
+<style>
+/* Navbar alignment fixes */
+.nav-bar .row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* This ensures logo left, icons right */
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+    height: 100%;
+}
+
+.nav-icons {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    justify-content: flex-end;
+    height: 75px; /* Match navbar height */
+}
+
+/* User info styling */
+.user-info {
+    display: flex;
+    align-items: center;
+}
+
+/* Icon buttons styling */
+.icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #2f3e46;
+    font-size: 20px;
+    transition: 0.3s;
+    position: relative;
+    padding: 8px;
+}
+
+.icon-btn:hover {
+    color: #02a6fe;
+}
+
+/* Ensure logo and icons are vertically aligned */
+.main-logo {
+    display: flex;
+    align-items: center;
+    height: 75px; /* Match navbar height */
+}
+
+.icon {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+}
+
+/* Cart badge styling */
+.cart-count {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: #dc3545;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Wishlist count styling */
+.wishlist-count {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: #dc3545;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Remove the old margin that was pushing it down */
+.nav-right {
+    margin-bottom: 0 !important; /* Remove the 100px margin */
+}
+
+</style>

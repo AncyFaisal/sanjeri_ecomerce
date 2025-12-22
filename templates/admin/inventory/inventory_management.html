@@ -1,0 +1,286 @@
+<!-- templates/admin/inventory/inventory_management.html -->
+{% extends 'common_admin.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    <div class="admin-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3>Inventory Management</h3>
+            <div class="inventory-stats">
+                <span class="badge bg-primary me-2">Total: {{ total_variants }}</span>
+                <span class="badge bg-warning me-2">Low Stock: {{ low_stock_count }}</span>
+                <span class="badge bg-danger">Out of Stock: {{ out_of_stock_count }}</span>
+            </div>
+        </div>
+        
+        <div class="card-body">
+            <!-- Search and Filter Section -->
+            <div class="filter-section mb-4">
+                <form method="GET" class="row g-3">
+                    <!-- Search -->
+                    <div class="col-md-4">
+                        <input type="text" name="search" class="form-control" 
+                               placeholder="Search products..." value="{{ search_query }}">
+                    </div>
+                    
+                    <!-- Filters -->
+                    <div class="col-md-2">
+                        <select name="low_stock" class="form-select">
+                            <option value="">All Stock</option>
+                            <option value="true" {% if low_stock_filter %}selected{% endif %}>Low Stock (≤10)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <select name="out_of_stock" class="form-select">
+                            <option value="">Stock Status</option>
+                            <option value="true" {% if out_of_stock_filter %}selected{% endif %}>Out of Stock</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                    <div class="col-md-2">
+                        <a href="{% url 'admin_inventory_management' %}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-times"></i> Clear
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Inventory Table -->
+            {% if page_obj %}
+            <div class="table-responsive">
+                <table class="styled-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Variant</th>
+                            <th>SKU</th>
+                            <th>Price</th>
+                            <th>Current Stock</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for variant in page_obj %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if variant.variant_image %}
+                                    <img src="{{ variant.variant_image.url }}" alt="{{ variant.product.name }}" 
+                                         class="rounded me-2" width="40" height="40" style="object-fit: cover;">
+                                    {% elif variant.product.main_image %}
+                                    <img src="{{ variant.product.main_image.url }}" alt="{{ variant.product.name }}" 
+                                         class="rounded me-2" width="40" height="40" style="object-fit: cover;">
+                                    {% endif %}
+                                    <div>
+                                        <strong>{{ variant.product.name }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ variant.product.brand }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ variant.volume_ml }}ml - {{ variant.gender }}</td>
+                            <td><code>{{ variant.sku }}</code></td>
+                            <td>₹{{ variant.display_price }}</td>
+                            <td>
+                                <form class="stock-update-form" data-variant-id="{{ variant.id }}">
+                                    {% csrf_token %}
+                                    <div class="input-group input-group-sm" style="width: 120px;">
+                                        <input type="number" name="stock" value="{{ variant.stock }}" 
+                                               min="0" class="form-control stock-input">
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </div>
+                                </form>
+                            </td>
+                            <td>
+                                {% if variant.stock == 0 %}
+                                <span class="badge bg-danger">Out of Stock</span>
+                                {% elif variant.stock <= 10 %}
+                                <span class="badge bg-warning">Low Stock</span>
+                                {% else %}
+                                <span class="badge bg-success">In Stock</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="{% url 'product_edit' variant.product.id %}" class="action-btn view" 
+                                       title="Edit Product">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination-container mt-4">
+                <div class="pagination-info">
+                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} variants
+                </div>
+                <nav>
+                    <ul class="pagination">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Previous</a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                            <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                            {% else %}
+                            <li class="page-item"><a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-boxes fa-3x text-muted mb-3"></i>
+                <h5>No products found</h5>
+                <p class="text-muted">
+                    {% if search_query %}
+                    Try adjusting your search
+                    {% else %}
+                    No products in inventory.
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.stock-input {
+    text-align: center;
+}
+
+.inventory-stats .badge {
+    font-size: 0.9rem;
+    padding: 8px 12px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.action-btn {
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+}
+
+.action-btn.view {
+    background-color: #17a2b8;
+    color: white;
+}
+</style>
+
+<script>
+// AJAX stock updates
+document.addEventListener('DOMContentLoaded', function() {
+    const stockForms = document.querySelectorAll('.stock-update-form');
+    
+    stockForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const variantId = this.dataset.variantId;
+            const url = "{% url 'update_stock' 0 %}".replace('0', variantId);
+            const stockInput = this.querySelector('.stock-input');
+            
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    showNotification(data.message, 'success');
+                    
+                    // Update stock status badge if needed
+                    const row = this.closest('tr');
+                    const statusBadge = row.querySelector('.badge');
+                    
+                    if (data.new_stock == 0) {
+                        statusBadge.className = 'badge bg-danger';
+                        statusBadge.textContent = 'Out of Stock';
+                    } else if (data.new_stock <= 10) {
+                        statusBadge.className = 'badge bg-warning';
+                        statusBadge.textContent = 'Low Stock';
+                    } else {
+                        statusBadge.className = 'badge bg-success';
+                        statusBadge.textContent = 'In Stock';
+                    }
+                } else {
+                    showNotification(data.message, 'error');
+                    // Reset input to original value on error
+                    stockInput.value = data.new_stock || stockInput.defaultValue;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Error updating stock', 'error');
+                stockInput.value = stockInput.defaultValue;
+            });
+        });
+    });
+    
+    function showNotification(message, type) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 3000);
+    }
+});
+</script>
+{% endblock %}

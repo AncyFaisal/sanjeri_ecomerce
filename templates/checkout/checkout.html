@@ -1,0 +1,593 @@
+<!-- templates/checkout/checkout.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Checkout - Sanjeri{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="container mt-3">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'homepage' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'cart' %}">Cart</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Checkout</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="container py-4">
+    <div class="row">
+        <!-- Left Column - Address & Payment -->
+        <div class="col-lg-8">
+            <!-- Address Selection -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-map-marker-alt me-2 text-primary"></i>
+                        Delivery Address
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if addresses %}
+                        <div class="address-selection">
+                            {% for address in addresses %}
+                            <div class="address-option border rounded p-3 mb-3 {% if address.is_default %}border-primary{% endif %}" 
+                                 data-address-id="{{ address.id }}">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="address" 
+                                           id="address{{ address.id }}" 
+                                           value="{{ address.id }}"
+                                           {% if address.is_default %}checked{% endif %}>
+                                    <label class="form-check-label w-100" for="address{{ address.id }}">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <strong>{{ address.full_name }}</strong>
+                                                <span class="badge bg-primary ms-2">{{ address.get_address_type_display }}</span>
+                                                {% if address.is_default %}
+                                                <span class="badge bg-success ms-1">Default</span>
+                                                {% endif %}
+                                                <p class="mb-1 mt-2">{{ address.phone }}</p>
+                                                <p class="mb-1 text-muted small">
+                                                    {{ address.address_line1 }}{% if address.address_line2 %}, {{ address.address_line2 }}{% endif %}
+                                                    {% if address.landmark %}, Landmark: {{ address.landmark }}{% endif %}
+                                                </p>
+                                                <p class="mb-0 text-muted small">
+                                                    {{ address.city }}, {{ address.state }} - {{ address.postal_code }}, {{ address.country }}
+                                                </p>
+                                            </div>
+                                            <a href="{% url 'user_edit_address' address.id %}" class="btn btn-sm btn-outline-secondary">
+                                                Edit
+                                            </a>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- Add New Address Button -->
+                     <div class="text-center mt-3">
+    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addAddressModal">
+        <i class="fas fa-plus me-1"></i> Add New Address
+    </button>
+</div>
+                    {% else %}
+                      <div class="text-center py-4">
+    <i class="fas fa-map-marker-alt fa-3x text-muted mb-3"></i>
+    <h5>No addresses found</h5>
+    <p class="text-muted">Please add a delivery address to continue with your order.</p>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAddressModal">
+        Add Your First Address
+    </button>
+</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Payment Method -->
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-credit-card me-2 text-primary"></i>
+                        Payment Method
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="payment-options">
+                        <div class="payment-option border rounded p-3 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="payment_method" 
+                                       id="payment_cod" value="cod" checked>
+                                <label class="form-check-label w-100" for="payment_cod">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>Cash on Delivery</strong>
+                                            <p class="mb-0 text-muted small">Pay when you receive your order</p>
+                                        </div>
+                                        <i class="fas fa-money-bill-wave text-success fa-2x"></i>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- You can add more payment methods here later -->
+                        <div class="payment-option border rounded p-3 opacity-50">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="payment_method" 
+                                       id="payment_online" value="online" disabled>
+                                <label class="form-check-label w-100" for="payment_online">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>Online Payment</strong>
+                                            <p class="mb-0 text-muted small">Pay securely with your card or UPI</p>
+                                            <small class="text-warning"><i class="fas fa-clock"></i> Coming Soon</small>
+                                        </div>
+                                        <i class="fas fa-credit-card text-primary fa-2x"></i>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Order Summary -->
+        <div class="col-lg-4">
+            <div class="card sticky-top" style="top: 100px;">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Order Summary</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Order Items -->
+                    <div class="order-items mb-3">
+                        {% for item in cart_items %}
+                        <div class="order-item d-flex align-items-center mb-2 pb-2 border-bottom">
+                            <img src="{% if item.variant.product.main_image %}{{ item.variant.product.main_image.url }}{% else %}https://via.placeholder.com/60x60?text=No+Image{% endif %}" 
+                                 alt="{{ item.variant.product.name }}" 
+                                 class="rounded me-2" 
+                                 style="width: 50px; height: 50px; object-fit: cover;">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-0 small">{{ item.variant.product.name }}</h6>
+                                <p class="mb-0 text-muted small">{{ item.variant.volume_ml }}ml - {{ item.variant.gender }}</p>
+                                <p class="mb-0 small">Qty: {{ item.quantity }} × ₹{{ item.variant.display_price }}</p>
+                            </div>
+                            <strong class="small">₹{{ item.total_price }}</strong>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Price Breakdown -->
+                    <div class="price-breakdown">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal ({{ cart.total_items }} items):</span>
+                            <span>₹{{ subtotal }}</span>
+                        </div>
+                        {% if discount_amount > 0 %}
+<div class="d-flex justify-content-between mb-2 text-success">
+    <span>Discount:</span>
+    <span>-₹{{ discount_amount }}</span>
+</div>
+{% endif %}
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Shipping:</span>
+                            <span class="{% if shipping_charge == 0 %}text-success{% endif %}">
+                                {% if shipping_charge == 0 %}FREE{% else %}₹{{ shipping_charge }}{% endif %}
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Tax (18% GST):</span>
+                            <span>₹{{ tax_amount|floatformat:2 }}</span>
+                        </div>
+                      {% if shipping_charge > 0 %}
+<div class="alert alert-info small mb-2">
+    <i class="fas fa-info-circle me-1"></i>
+    Add ₹499 more for FREE shipping!
+</div>
+{% endif %}
+
+
+                        <hr>
+                        <div class="d-flex justify-content-between mb-3">
+                            <strong>Total Amount:</strong>
+                            <strong class="text-primary">₹{{ total_amount|floatformat:2 }}</strong>
+                        </div>
+                    </div>
+
+                    <!-- Place Order Button -->
+                    {% if addresses %}
+                        <button type="button" id="placeOrderBtn" class="btn btn-primary w-100 btn-lg">
+                            <i class="fas fa-shopping-bag me-2"></i>
+                            Place Order
+                        </button>
+                        <p class="text-muted small text-center mt-2">
+                            By placing your order, you agree to our 
+                            <a href="#">Terms & Conditions</a>
+                        </p>
+                    {% else %}
+                        <button type="button" class="btn btn-primary w-100 btn-lg" disabled>
+                            Add Address to Continue
+                        </button>
+                    {% endif %}
+
+                    <!-- Security Badges -->
+                    <div class="text-center mt-3">
+                        <div class="row">
+                            <div class="col-4">
+                                <i class="fas fa-shield-alt text-primary mb-1"></i>
+                                <p class="small mb-0">Secure</p>
+                            </div>
+                            <div class="col-4">
+                                <i class="fas fa-lock text-primary mb-1"></i>
+                                <p class="small mb-0">SSL</p>
+                            </div>
+                            <div class="col-4">
+                                <i class="fas fa-truck text-primary mb-1"></i>
+                                <p class="small mb-0">Fast Delivery</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Address Modal -->
+<div class="modal fade" id="addAddressModal" tabindex="-1" aria-labelledby="addAddressModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addAddressModalLabel">Add New Address</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addAddressForm">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="address_type" class="form-label">Address Type</label>
+                            <select class="form-select" id="address_type" name="address_type" required>
+                                <option value="">Select Address Type</option>
+                                <option value="home">Home</option>
+                                <option value="work">Work</option>
+                                <option value="other">Other</option>
+                            </select>
+                            <div class="invalid-feedback" id="address_type_error"></div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="full_name" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="full_name" name="full_name" required>
+                            <div class="invalid-feedback" id="full_name_error"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone Number</label>
+                        <input type="text" class="form-control" id="phone" name="phone" required>
+                        <div class="invalid-feedback" id="phone_error"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="address_line1" class="form-label">Address Line 1</label>
+                        <input type="text" class="form-control" id="address_line1" name="address_line1" required>
+                        <div class="invalid-feedback" id="address_line1_error"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="address_line2" class="form-label">Address Line 2 (Optional)</label>
+                        <input type="text" class="form-control" id="address_line2" name="address_line2">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="landmark" class="form-label">Landmark (Optional)</label>
+                        <input type="text" class="form-control" id="landmark" name="landmark">
+                        <div class="form-text">Nearby landmark for easy location identification</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="city" class="form-label">City</label>
+                            <input type="text" class="form-control" id="city" name="city" required>
+                            <div class="invalid-feedback" id="city_error"></div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="state" class="form-label">State</label>
+                            <input type="text" class="form-control" id="state" name="state" required>
+                            <div class="invalid-feedback" id="state_error"></div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="postal_code" class="form-label">Postal Code</label>
+                            <input type="text" class="form-control" id="postal_code" name="postal_code" required>
+                            <div class="invalid-feedback" id="postal_code_error"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="country" class="form-label">Country</label>
+                        <input type="text" class="form-control" id="country" name="country" value="India" required>
+                        <div class="invalid-feedback" id="country_error"></div>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="is_default" name="is_default">
+                        <label for="is_default" class="form-check-label">
+                            Set as default address
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveAddressBtn">Save Address</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h5>Placing Your Order...</h5>
+                <p class="text-muted">Please wait while we process your order.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.address-option:hover {
+    border-color: #0d6efd !important;
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+.payment-option:hover {
+    border-color: #0d6efd !important;
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+.sticky-top {
+    position: -webkit-sticky;
+    position: sticky;
+    z-index: 10;
+}
+/* Modal specific styles */
+.modal-backdrop {
+    z-index: 1040;
+}
+
+.modal {
+    z-index: 1050;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const placeOrderBtn = document.getElementById('placeOrderBtn');
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    const addAddressModal = new bootstrap.Modal(document.getElementById('addAddressModal'));
+    const saveAddressBtn = document.getElementById('saveAddressBtn');
+    const addAddressForm = document.getElementById('addAddressForm');
+    
+    // Address selection styling
+    document.querySelectorAll('.address-option').forEach(option => {
+        option.addEventListener('click', function() {
+            const radio = this.querySelector('input[type="radio"]');
+            radio.checked = true;
+            
+            // Remove border-primary from all options
+            document.querySelectorAll('.address-option').forEach(opt => {
+                opt.classList.remove('border-primary');
+            });
+            
+            // Add border-primary to selected option
+            this.classList.add('border-primary');
+        });
+    });
+    
+    // Save Address functionality
+    if (saveAddressBtn) {
+        saveAddressBtn.addEventListener('click', function() {
+            const formData = new FormData(addAddressForm);
+            
+            // Clear previous errors
+            document.querySelectorAll('.is-invalid').forEach(el => {
+                el.classList.remove('is-invalid');
+            });
+            document.querySelectorAll('.invalid-feedback').forEach(el => {
+                el.textContent = '';
+            });
+            
+            fetch('{% url "user_add_address" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close modal and refresh address list
+                    addAddressModal.hide();
+                    addAddressForm.reset();
+                    loadAddressList();
+                    
+                    // Show success message
+                    showAlert('Address added successfully!', 'success');
+                } else {
+                    // Display form errors
+                    if (data.errors) {
+                        Object.keys(data.errors).forEach(field => {
+                            const input = document.getElementById(field);
+                            const errorDiv = document.getElementById(field + '_error');
+                            if (input && errorDiv) {
+                                input.classList.add('is-invalid');
+                                errorDiv.textContent = data.errors[field][0];
+                            }
+                        });
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Network error. Please try again.', 'danger');
+            });
+        });
+    }
+    
+    // Load address list via AJAX
+    function loadAddressList() {
+        fetch('{% url "checkout" %}')
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newAddressList = doc.getElementById('addressList');
+                if (newAddressList) {
+                    document.getElementById('addressList').innerHTML = newAddressList.innerHTML;
+                    
+                    // Reattach event listeners to new address options
+                    document.querySelectorAll('.address-option').forEach(option => {
+                        option.addEventListener('click', function() {
+                            const radio = this.querySelector('input[type="radio"]');
+                            radio.checked = true;
+                            
+                            document.querySelectorAll('.address-option').forEach(opt => {
+                                opt.classList.remove('border-primary');
+                            });
+                            this.classList.add('border-primary');
+                        });
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading addresses:', error);
+            });
+    }
+    
+    // Update the loadAddressList function to handle the refresh better
+function loadAddressList() {
+    fetch('{% url "checkout" %}')
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newAddressList = doc.querySelector('.card-body'); // Get the entire card body
+            
+            if (newAddressList) {
+                // Replace the entire address section
+                document.querySelector('.card-body').innerHTML = newAddressList.innerHTML;
+                
+                // Reattach event listeners to new address options
+                document.querySelectorAll('.address-option').forEach(option => {
+                    option.addEventListener('click', function() {
+                        const radio = this.querySelector('input[type="radio"]');
+                        radio.checked = true;
+                        
+                        document.querySelectorAll('.address-option').forEach(opt => {
+                            opt.classList.remove('border-primary');
+                        });
+                        this.classList.add('border-primary');
+                    });
+                });
+                
+                // Reattach event listener to the new modal button if it exists
+                const newModalBtn = document.querySelector('[data-bs-toggle="modal"]');
+                if (newModalBtn) {
+                    newModalBtn.addEventListener('click', function() {
+                        addAddressModal.show();
+                    });
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error loading addresses:', error);
+        });
+}
+    // Show alert message
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // Insert at the top of the address card
+        const addressCard = document.querySelector('.card');
+        addressCard.insertBefore(alertDiv, addressCard.firstChild);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (alertDiv.parentElement) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+    
+    // Place order functionality (existing)
+    if (placeOrderBtn) {
+        placeOrderBtn.addEventListener('click', function() {
+            const selectedAddress = document.querySelector('input[name="address"]:checked');
+            const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
+            
+            if (!selectedAddress) {
+                showAlert('Please select a delivery address.', 'warning');
+                return;
+            }
+            
+            if (!selectedPayment) {
+                showAlert('Please select a payment method.', 'warning');
+                return;
+            }
+            
+            // Show loading modal
+            loadingModal.show();
+            
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('address_id', selectedAddress.value);
+            formData.append('payment_method', selectedPayment.value);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            
+            // Make AJAX request
+            fetch('{% url "place_order" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingModal.hide();
+                
+                if (data.success) {
+                    // Redirect to order success page
+                    window.location.href = data.redirect_url;
+                } else {
+                    showAlert('Error: ' + data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                loadingModal.hide();
+                console.error('Error:', error);
+                showAlert('Network error. Please try again.', 'danger');
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

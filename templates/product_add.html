@@ -1,0 +1,727 @@
+{% extends "common_admin.html" %}
+{% load static %}
+
+{% block page_title %}Add New Product{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.css">
+<style>
+/* Image Cropping Styles */
+.image-crop-container {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.9);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+}
+
+.crop-modal {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    max-width: 90%;
+    max-height: 90%;
+    width: 800px;
+}
+
+.crop-preview {
+    width: 100px;
+    height: 100px;
+    overflow: hidden;
+    border: 2px solid #007bff;
+    border-radius: 5px;
+    margin: 10px auto;
+}
+
+.crop-actions {
+    margin-top: 15px;
+    text-align: center;
+}
+
+#cropImage {
+    max-width: 100%;
+    max-height: 400px;
+}
+
+.crop-instructions {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+}
+
+.crop-options {
+    margin-top: 15px;
+}
+
+.image-preview-container {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    background: #f8f9fa;
+}
+
+.crop-btn {
+    margin-top: 10px;
+}
+
+/* Custom Styles */
+.variant-form {
+    background-color: #f8f9fa;
+    border-left: 4px solid var(--primary-color) !important;
+}
+
+.variant-form h6 {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.img-thumbnail {
+    transition: transform 0.2s ease;
+}
+
+.img-thumbnail:hover {
+    transform: scale(1.05);
+}
+
+.admin-card .card-header {
+    border-bottom: 2px solid var(--primary-color, #431405);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .crop-modal {
+        width: 95%;
+        padding: 15px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="admin-card">
+        <div class="card-header">
+            <h3 class="mb-0">
+                <i class="fas fa-plus me-2"></i>
+                Add New Product
+            </h3>
+        </div>
+
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" id="productForm">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <!-- Left Column - Main Content -->
+                    <div class="col-lg-8">
+                        <!-- Basic Information Card -->
+                        <div class="admin-card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0 text-dark">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Basic Information
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    {% for field in form %}
+                                        {% if field.name != "main_image" and field.name != "is_featured" and field.name != "is_best_selling" and field.name != "is_new_arrival" and field.name != "is_active" %}
+                                        <div class="col-md-6 mb-3">
+                                            <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
+                                                {{ field.label }}
+                                                {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                                            </label>
+                                            {{ field }}
+                                            {% if field.help_text %}
+                                                <div class="form-text">{{ field.help_text }}</div>
+                                            {% endif %}
+                                            {% if field.errors %}
+                                                <div class="text-danger small mt-1">{{ field.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Product Images Card -->
+                        <div class="admin-card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0 text-dark">
+                                    <i class="fas fa-images me-2"></i>
+                                    Product Images
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Main Image -->
+                                <div class="mb-4">
+                                    <label for="{{ form.main_image.id_for_label }}" class="form-label fw-semibold">
+                                        Main Product Image <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="image-upload-container">
+                                        {{ form.main_image }}
+                                        <div class="form-text">
+                                            Recommended size: 800x800px. Supported formats: JPG, PNG, WebP (Max 5MB)
+                                        </div>
+                                        {% if form.main_image.errors %}
+                                            <div class="text-danger small mt-1">{{ form.main_image.errors }}</div>
+                                        {% endif %}
+                                        
+                                        <!-- Image Preview and Crop Button -->
+                                        <div class="image-preview-container mt-3" id="mainImagePreview" style="display: none;">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <img id="mainImagePreviewImg" class="img-thumbnail" 
+                                                     style="height: 120px; width: 120px; object-fit: cover;">
+                                                <div>
+                                                    <button type="button" class="btn btn-outline-primary btn-sm crop-btn" onclick="openCropModal('main')">
+                                                        <i class="fas fa-crop me-1"></i>Crop & Resize Image
+                                                    </button>
+                                                    <p class="text-muted mb-0 mt-1">Click to crop and resize before uploading</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Additional Images -->
+                                <div class="mb-4">
+                                    <label for="images" class="form-label fw-semibold">
+                                        Additional Images <span class="text-danger">*</span> (Minimum 3)
+                                    </label>
+                                    <input type="file" name="images" id="images" multiple class="form-control" accept="image/*" required>
+                                    <div class="form-text">Select at least 3 product images from different angles</div>
+                                    {% if form.errors.images %}
+                                        <div class="text-danger small mt-1">{{ form.errors.images }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Image Preview -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Image Preview</label>
+                                    <div id="preview" class="mt-2 border rounded p-3 text-center">
+                                        <div class="text-muted">
+                                            <i class="fas fa-images fa-2x mb-2"></i>
+                                            <p class="mb-0">Selected images will appear here</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Product Variants Card -->
+                        <div class="admin-card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0 text-dark">
+                                    <i class="fas fa-cubes me-2"></i>
+                                    Product Variants
+                                </h5>
+                                <small class="text-muted">Add different combinations of volume, gender, price and stock</small>
+                            </div>
+                            <div class="card-body">
+                                {{ variant_formset.management_form }}
+                                <div id="variant-forms">
+                                    {% for form in variant_formset %}
+                                    <div class="variant-form border p-3 mb-3 rounded">
+                                        <h6 class="mb-3">Variant {{ forloop.counter }}</h6>
+                                        <div class="row g-3">
+                                            {% for field in form %}
+                                                {% if field.name != 'id' and field.name != 'product' and field.name != 'DELETE' %}
+                                                <div class="col-md-6 mb-3">
+                                                    <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
+                                                        {{ field.label }}
+                                                        {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                                                    </label>
+                                                    {{ field }}
+                                                    {% if field.help_text %}
+                                                        <div class="form-text">{{ field.help_text }}</div>
+                                                    {% endif %}
+                                                    {% if field.errors %}
+                                                        <div class="text-danger small mt-1">{{ field.errors }}</div>
+                                                    {% endif %}
+                                                </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                        {% if form.DELETE %}
+                                        <div class="form-check">
+                                            {{ form.DELETE }}
+                                            <label class="form-check-label" for="{{ form.DELETE.id_for_label }}">
+                                                Delete this variant
+                                            </label>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                <div class="text-center">
+                                    <button type="button" class="btn btn-outline-primary" id="add-variant">
+                                        <i class="fas fa-plus me-2"></i>Add Another Variant
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column - Sidebar -->
+                    <div class="col-lg-4">
+                        <!-- Status Toggles Card -->
+                        <div class="admin-card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0 text-dark">
+                                    <i class="fas fa-toggle-on me-2"></i>
+                                    Product Status
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-check form-switch mb-3">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label fw-semibold" for="{{ form.is_active.id_for_label }}">
+                                        Active Product
+                                    </label>
+                                    <div class="form-text">Product will be visible to customers</div>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    {{ form.is_featured }}
+                                    <label class="form-check-label fw-semibold" for="{{ form.is_featured.id_for_label }}">
+                                        Featured Product
+                                    </label>
+                                    <div class="form-text">Show on homepage featured section</div>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    {{ form.is_best_selling }}
+                                    <label class="form-check-label fw-semibold" for="{{ form.is_best_selling.id_for_label }}">
+                                        Best Selling
+                                    </label>
+                                    <div class="form-text">Mark as best selling product</div>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    {{ form.is_new_arrival }}
+                                    <label class="form-check-label fw-semibold" for="{{ form.is_new_arrival.id_for_label }}">
+                                        New Arrival
+                                    </label>
+                                    <div class="form-text">Show in new arrivals section</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Tips Card -->
+                        <div class="admin-card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0 text-dark">
+                                    <i class="fas fa-lightbulb me-2"></i>
+                                    Quick Tips
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info">
+                                    <h6 class="alert-heading">Best Practices</h6>
+                                    <ul class="mb-0 ps-3">
+                                        <li>Use high-quality product images</li>
+                                        <li>Write detailed descriptions</li>
+                                        <li>Set competitive pricing for variants</li>
+                                        <li>Choose relevant categories</li>
+                                        <li>Add multiple variants for different volumes</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions Card -->
+                        <div class="admin-card">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0 text-dark">
+                                    <i class="fas fa-cogs me-2"></i>
+                                    Actions
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-plus me-2"></i>
+                                        Create Product
+                                    </button>
+                                    <a href="{% url 'product_list' %}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-arrow-left me-2"></i>Cancel
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Image Cropping Modal -->
+<div class="image-crop-container" id="cropModal">
+    <div class="crop-modal">
+        <h5 class="mb-3">Crop & Resize Image</h5>
+        
+        <div class="crop-instructions">
+            <i class="fas fa-info-circle me-2"></i>
+            Drag to select the area you want to keep. Recommended aspect ratio: Square (1:1)
+        </div>
+        
+        <div class="row">
+            <div class="col-md-8">
+                <img id="cropImage" src="" alt="Image to crop">
+            </div>
+            <div class="col-md-4">
+                <div class="crop-preview-container">
+                    <h6>Preview</h6>
+                    <div class="crop-preview"></div>
+                    
+                    <div class="crop-options">
+                        <label class="form-label">Aspect Ratio</label>
+                        <select class="form-select form-select-sm" id="aspectRatio">
+                            <option value="1">Square (1:1)</option>
+                            <option value="4/3">Landscape (4:3)</option>
+                            <option value="3/4">Portrait (3:4)</option>
+                            <option value="0">Free</option>
+                        </select>
+                    </div>
+                    
+                    <div class="crop-actions mt-3">
+                        <button type="button" class="btn btn-success btn-sm" onclick="cropImage()">
+                            <i class="fas fa-check me-1"></i>Apply Crop
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="closeCropModal()">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.js"></script>
+<script>
+let currentCropper = null;
+let currentImageType = null;
+let currentFileInput = null;
+let originalFile = null;
+
+// Initialize when document is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Main image preview
+    const mainImageInput = document.querySelector('input[name="main_image"]');
+    if (mainImageInput) {
+        mainImageInput.addEventListener('change', function(e) {
+            if (this.files && this.files[0]) {
+                originalFile = this.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewContainer = document.getElementById('mainImagePreview');
+                    const previewImg = document.getElementById('mainImagePreviewImg');
+                    previewImg.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                }
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
+
+    // Additional images preview
+    const imagesInput = document.getElementById('images');
+    const preview = document.getElementById('preview');
+    imagesInput.addEventListener('change', function() {
+        preview.innerHTML = '';
+        
+        if (this.files.length === 0) {
+            preview.innerHTML = `
+                <div class="text-center text-muted w-100">
+                    <i class="fas fa-images fa-2x mb-2"></i>
+                    <p class="mb-0">Selected images will appear here</p>
+                </div>
+            `;
+            return;
+        }
+
+        const previewRow = document.createElement('div');
+        previewRow.className = 'row g-2';
+        
+        Array.from(this.files).forEach((file, index) => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const col = document.createElement('div');
+                    col.className = 'col-auto';
+                    
+                    const imgContainer = document.createElement('div');
+                    imgContainer.className = 'text-center';
+                    
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'img-thumbnail mb-2';
+                    img.style.height = '100px';
+                    img.style.width = '100px';
+                    img.style.objectFit = 'cover';
+                    
+                    const imgNumber = document.createElement('div');
+                    imgNumber.className = 'small text-muted';
+                    imgNumber.textContent = `Image ${index + 1}`;
+                    
+                    imgContainer.appendChild(img);
+                    imgContainer.appendChild(imgNumber);
+                    col.appendChild(imgContainer);
+                    previewRow.appendChild(col);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        preview.innerHTML = '';
+        preview.appendChild(previewRow);
+    });
+
+    // Variant image previews
+    document.addEventListener('change', function(e) {
+        if (e.target.matches('input[name*="variant_image"]')) {
+            const fileInput = e.target;
+            if (fileInput.files && fileInput.files[0]) {
+                originalFile = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const variantForm = fileInput.closest('.variant-form');
+                    let previewContainer = variantForm.querySelector('.variant-image-preview');
+                    
+                    if (!previewContainer) {
+                        previewContainer = document.createElement('div');
+                        previewContainer.className = 'variant-image-preview mt-2';
+                        fileInput.parentNode.appendChild(previewContainer);
+                    }
+                    
+                    previewContainer.innerHTML = `
+                        <div class="d-flex align-items-center gap-2">
+                            <img src="${e.target.result}" class="img-thumbnail" 
+                                 style="height: 80px; width: 80px; object-fit: cover;">
+                            <button type="button" class="btn btn-outline-primary btn-sm" 
+                                    onclick="openVariantCropModal(this, '${e.target.result}')">
+                                <i class="fas fa-crop me-1"></i>Crop
+                            </button>
+                        </div>
+                    `;
+                }
+                reader.readAsDataURL(fileInput.files[0]);
+            }
+        }
+    });
+
+    // Variant formset functionality
+    const addVariantBtn = document.getElementById('add-variant');
+    const variantForms = document.getElementById('variant-forms');
+    const totalForms = document.getElementById('id_variants-TOTAL_FORMS');
+
+    addVariantBtn.addEventListener('click', function() {
+        const formNum = parseInt(totalForms.value);
+        const newForm = variantForms.firstElementChild.cloneNode(true);
+        
+        // Update all field names and IDs
+        const formRegex = /variants-(\d+)-/g;
+        newForm.innerHTML = newForm.innerHTML.replace(
+            formRegex, 
+            `variants-${formNum}-`
+        );
+        
+        // Clear input values
+        newForm.querySelectorAll('input, select, textarea').forEach(input => {
+            if (input.type !== 'hidden' && input.name !== 'csrfmiddlewaretoken') {
+                if (input.type === 'checkbox') {
+                    input.checked = false;
+                } else if (input.type === 'select-one') {
+                    input.selectedIndex = 0;
+                } else {
+                    input.value = '';
+                }
+            }
+        });
+        
+        // Update the form number in the heading
+        const heading = newForm.querySelector('h6');
+        if (heading) {
+            heading.textContent = `Variant ${formNum + 1}`;
+        }
+        
+        variantForms.appendChild(newForm);
+        totalForms.value = formNum + 1;
+    });
+
+    // Form validation
+    const form = document.getElementById('productForm');
+    form.addEventListener('submit', function(e) {
+        const images = document.getElementById('images');
+        if (images.files.length < 3) {
+            e.preventDefault();
+            alert('Please upload at least 3 product images.');
+            images.focus();
+            return;
+        }
+
+        // Check if at least one variant is added
+        const variantCount = parseInt(totalForms.value);
+        if (variantCount === 0) {
+            e.preventDefault();
+            alert('Please add at least one product variant.');
+            return;
+        }
+    });
+});
+
+// Cropping Functions (same as in product_edit.html)
+function openCropModal(imageType) {
+    currentImageType = imageType;
+    const previewImg = document.getElementById('mainImagePreviewImg');
+    const cropImage = document.getElementById('cropImage');
+    
+    cropImage.src = previewImg.src;
+    document.getElementById('cropModal').style.display = 'flex';
+    
+    // Initialize cropper
+    setTimeout(() => {
+        if (currentCropper) {
+            currentCropper.destroy();
+        }
+        
+        currentCropper = new Cropper(cropImage, {
+            aspectRatio: 1,
+            viewMode: 1,
+            preview: '.crop-preview',
+            guides: true,
+            background: false,
+            responsive: true,
+            restore: false,
+            checkCrossOrigin: false,
+            autoCropArea: 0.8
+        });
+        
+        // Aspect ratio change handler
+        document.getElementById('aspectRatio').addEventListener('change', function() {
+            const ratio = this.value;
+            if (ratio === '0') {
+                currentCropper.setAspectRatio(NaN);
+            } else {
+                currentCropper.setAspectRatio(eval(ratio));
+            }
+        });
+    }, 100);
+}
+
+function openVariantCropModal(button, imageSrc) {
+    currentImageType = 'variant';
+    const cropImage = document.getElementById('cropImage');
+    
+    cropImage.src = imageSrc;
+    document.getElementById('cropModal').style.display = 'flex';
+    
+    // Store reference to the button and file input
+    currentFileInput = button.closest('.variant-form').querySelector('input[name*="variant_image"]');
+    originalFile = currentFileInput.files[0];
+    
+    // Initialize cropper
+    setTimeout(() => {
+        if (currentCropper) {
+            currentCropper.destroy();
+        }
+        
+        currentCropper = new Cropper(cropImage, {
+            aspectRatio: 1,
+            viewMode: 1,
+            preview: '.crop-preview',
+            guides: true,
+            background: false,
+            responsive: true,
+            restore: false,
+            checkCrossOrigin: false,
+            autoCropArea: 0.8
+        });
+        
+        // Aspect ratio change handler
+        document.getElementById('aspectRatio').addEventListener('change', function() {
+            const ratio = this.value;
+            if (ratio === '0') {
+                currentCropper.setAspectRatio(NaN);
+            } else {
+                currentCropper.setAspectRatio(eval(ratio));
+            }
+        });
+    }, 100);
+}
+
+function cropImage() {
+    if (currentCropper) {
+        const canvas = currentCropper.getCroppedCanvas({
+            width: 800,
+            height: 800,
+            fillColor: '#fff'
+        });
+        
+        canvas.toBlob(function(blob) {
+            // Create a new file from the cropped blob
+            const file = new File([blob], originalFile.name, {
+                type: 'image/jpeg',
+                lastModified: new Date().getTime()
+            });
+            
+            // Create a new DataTransfer object to set the file
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            
+            // Update the file input with the cropped image
+            if (currentImageType === 'main') {
+                const mainImageInput = document.querySelector('input[name="main_image"]');
+                mainImageInput.files = dataTransfer.files;
+                
+                // Update preview
+                const previewImg = document.getElementById('mainImagePreviewImg');
+                previewImg.src = URL.createObjectURL(file);
+            } else if (currentImageType === 'variant') {
+                currentFileInput.files = dataTransfer.files;
+                
+                // Update variant preview
+                const variantPreview = currentFileInput.closest('.variant-form').querySelector('.variant-image-preview img');
+                if (variantPreview) {
+                    variantPreview.src = URL.createObjectURL(file);
+                }
+            }
+            
+            closeCropModal();
+            
+        }, 'image/jpeg', 0.9);
+    }
+}
+
+function closeCropModal() {
+    document.getElementById('cropModal').style.display = 'none';
+    if (currentCropper) {
+        currentCropper.destroy();
+        currentCropper = null;
+    }
+}
+
+// Close modal when clicking outside
+document.getElementById('cropModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeCropModal();
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeCropModal();
+    }
+});
+</script>
+{% endblock %}

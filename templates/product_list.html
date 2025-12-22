@@ -1,0 +1,570 @@
+{% extends "common_admin.html" %}
+{% load static %}
+
+{% block page_title %}Product Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="admin-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">Products</h3>
+            <div>
+                <a href="{% url 'product_trash' %}" class="btn btn-outline-warning me-2">
+                    <i class="fas fa-trash me-2"></i>Trash 
+                    {% if deleted_products_count > 0 %}
+                    <span class="badge bg-danger ms-1">{{ deleted_products_count }}</span>
+                    {% endif %}
+                </a>
+                <a href="{% url 'product_add' %}" class="btn btn-success">
+                    <i class="fas fa-plus me-2"></i>Add New Product
+                </a>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <!-- Search and Filter Section -->
+            <div class="admin-card mb-4">
+                <div class="card-body">
+                    <form method="get" class="mb-0" id="filterForm">
+                        <!-- First Row: Search and Search By -->
+                        <div class="row g-3 align-items-end mb-3">
+                            <!-- Search Input -->
+                            <div class="col-md-6">
+                                <label for="searchInput" class="form-label fw-semibold">Search</label>
+                                <div class="input-group">
+                                    <input type="text" name="q" id="searchInput" placeholder="Search products..." value="{{ query }}" class="form-control" style="height: 58px;">
+                                    <button type="submit" class="btn btn-primary quick-search-btn" style="height: 58px; width: 60px;">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Search Field Selector -->
+                            <div class="col-md-6">
+                                <label for="searchBy" class="form-label fw-semibold">Search By</label>
+                                <select name="search_by" id="searchBy" class="form-select" style="height: 58px;">
+                                    <option value="all" {% if search_by|default:"all" == "all" %}selected{% endif %}>All Fields</option>
+                                    <option value="name" {% if search_by == "name" %}selected{% endif %}>Name</option>
+                                    <option value="id" {% if search_by == "id" %}selected{% endif %}>ID</option>
+                                    <option value="sku" {% if search_by == "sku" %}selected{% endif %}>SKU</option>
+                                    <option value="category" {% if search_by == "category" %}selected{% endif %}>Category</option>
+                                    <option value="brand" {% if search_by == "brand" %}selected{% endif %}>Brand</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Second Row: Other Filters -->
+                        <div class="row g-3 align-items-end">
+                            <!-- Category Filter -->
+                            <div class="col-md-3">
+                                <label for="categoryFilter" class="form-label fw-semibold">Category</label>
+                                <div class="input-group">
+                                    <select name="category" id="categoryFilter" class="form-select" style="height: 58px;">
+                                        <option value="">All Categories</option>
+                                        {% for cat in categories %}
+                                        <option value="{{ cat.id }}" {% if category_filter == cat.id|stringformat:"i" %}selected{% endif %}>
+                                            {{ cat.name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="button" class="btn btn-outline-secondary filter-search-btn" onclick="searchByFilter('category')" style="height: 30px; width: 30px;">
+                                        <i class="fas fa-filter"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Status Filter -->
+                            <div class="col-md-3">
+                                <label for="statusFilter" class="form-label fw-semibold">Status</label>
+                                <div class="input-group">
+                                    <select name="status" id="statusFilter" class="form-select" style="height: 58px;">
+                                        <option value="">All Statuses</option>
+                                        <option value="active" {% if status_filter == "active" %}selected{% endif %}>Active</option>
+                                        <option value="inactive" {% if status_filter == "inactive" %}selected{% endif %}>Inactive</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-secondary filter-search-btn" onclick="searchByFilter('status')" style="height: 30px; width: 30px;">
+                                        <i class="fas fa-filter"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Gender Filter -->
+                            <div class="col-md-3">
+                                <label for="genderFilter" class="form-label fw-semibold">Gender</label>
+                                <div class="input-group">
+                                    <select name="gender" id="genderFilter" class="form-select" style="height: 58px;">
+                                        <option value="">All Genders</option>
+                                        <option value="Male" {% if gender_filter == "Male" %}selected{% endif %}>Male</option>
+                                        <option value="Female" {% if gender_filter == "Female" %}selected{% endif %}>Female</option>
+                                        <option value="Unisex" {% if gender_filter == "Unisex" %}selected{% endif %}>Unisex</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-secondary filter-search-btn" onclick="searchByFilter('gender')" style="height: 30px; width: 30px;">
+                                        <i class="fas fa-filter"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Featured Filter -->
+                            <div class="col-md-3">
+                                <label for="featuredFilter" class="form-label fw-semibold">Featured</label>
+                                <div class="input-group">
+                                    <select name="featured" id="featuredFilter" class="form-select" style="height: 58px;">
+                                        <option value="">All</option>
+                                        <option value="yes" {% if featured_filter == "yes" %}selected{% endif %}>Yes</option>
+                                        <option value="no" {% if featured_filter == "no" %}selected{% endif %}>No</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-secondary filter-search-btn" onclick="searchByFilter('featured')" style="height: 30px; width: 30px;">
+                                        <i class="fas fa-filter"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Third Row: More Filters -->
+                        <div class="row g-3 align-items-end mt-3">
+                            <!-- Best Selling Filter -->
+                            <div class="col-md-3">
+                                <label for="bestSellingFilter" class="form-label fw-semibold">Best Selling</label>
+                                <div class="input-group">
+                                    <select name="best_selling" id="bestSellingFilter" class="form-select" style="height: 58px;">
+                                        <option value="">All</option>
+                                        <option value="yes" {% if best_selling_filter == "yes" %}selected{% endif %}>Yes</option>
+                                        <option value="no" {% if best_selling_filter == "no" %}selected{% endif %}>No</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-secondary filter-search-btn" onclick="searchByFilter('best_selling')" style="height: 30px; width: 30px;">
+                                        <i class="fas fa-filter"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- New Arrival Filter -->
+                            <div class="col-md-3">
+                                <label for="newArrivalFilter" class="form-label fw-semibold">New Arrival</label>
+                                <div class="input-group">
+                                    <select name="new_arrival" id="newArrivalFilter" class="form-select" style="height: 58px;">
+                                        <option value="">All</option>
+                                        <option value="yes" {% if new_arrival_filter == "yes" %}selected{% endif %}>Yes</option>
+                                        <option value="no" {% if new_arrival_filter == "no" %}selected{% endif %}>No</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-secondary filter-search-btn" onclick="searchByFilter('new_arrival')" style="height: 30px; width: 30px;">
+                                        <i class="fas fa-filter"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Stock Filter -->
+                            <div class="col-md-3">
+                                <label for="stockFilter" class="form-label fw-semibold">Stock Status</label>
+                                <div class="input-group">
+                                    <select name="stock" id="stockFilter" class="form-select" style="height: 58px;">
+                                        <option value="">All</option>
+                                        <option value="in_stock" {% if stock_filter == "in_stock" %}selected{% endif %}>In Stock</option>
+                                        <option value="low_stock" {% if stock_filter == "low_stock" %}selected{% endif %}>Low Stock</option>
+                                        <option value="out_of_stock" {% if stock_filter == "out_of_stock" %}selected{% endif %}>Out of Stock</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-secondary filter-search-btn" onclick="searchByFilter('stock')" style="height: 30px; width: 30px;">
+                                        <i class="fas fa-filter"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Sort Options -->
+                            <div class="col-md-3">
+                                <label for="sortBy" class="form-label fw-semibold">Sort By</label>
+                                <div class="input-group">
+                                    <select name="sort" id="sortBy" class="form-select" style="height: 58px;">
+                                        <option value="newest" {% if sort_by == "newest" %}selected{% endif %}>Newest</option>
+                                        <option value="oldest" {% if sort_by == "oldest" %}selected{% endif %}>Oldest</option>
+                                        <option value="name_asc" {% if sort_by == "name_asc" %}selected{% endif %}>Name A-Z</option>
+                                        <option value="name_desc" {% if sort_by == "name_desc" %}selected{% endif %}>Name Z-A</option>
+                                        <option value="price_high" {% if sort_by == "price_high" %}selected{% endif %}>Price High</option>
+                                        <option value="price_low" {% if sort_by == "price_low" %}selected{% endif %}>Price Low</option>
+                                        <option value="stock_high" {% if sort_by == "stock_high" %}selected{% endif %}>Stock High</option>
+                                        <option value="stock_low" {% if sort_by == "stock_low" %}selected{% endif %}>Stock Low</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-secondary filter-search-btn" onclick="searchByFilter('sort')" style="height: 30px; width: 30px;">
+                                        <i class="fas fa-sort"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fourth Row: Action Buttons -->
+                        <div class="row g-3 align-items-end mt-3">
+                            <div class="col-md-12 d-flex gap-2 justify-content-center">
+                                <button type="submit" class="btn btn-primary btn-sm" style="height: 50px; width: 120px;">
+                                    <i class="fas fa-filter me-1"></i>Apply
+                                </button>
+                                <a href="{% url 'product_list' %}" class="btn btn-outline-secondary btn-sm" style="height: 50px; width: 120px;">
+                                    <i class="fas fa-refresh me-1"></i>Reset
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Results Summary -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="text-muted">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }} products
+                    {% if query %}matching "{{ query }}"{% endif %}
+                </div>
+            </div>
+
+            {% if page_obj %}
+            <div class="table-responsive compact-table-wrapper">
+                <table class="table table-hover styled-table compact-table">
+                    <thead>
+                        <tr>
+                            <th width="50">ID</th>
+                            <th width="50" class="text-center">No:</th>
+                            <th width="180">Product</th>
+                            <th width="100">SKU</th>
+                            <th width="80">Image</th>
+                            <th width="100">Brand</th>
+                            <th width="90">Price Range</th>
+                            <th width="80">Stock</th>
+                            <th width="120">Category</th>
+                            <th width="120">Status</th>
+                            <th width="100">Added</th>
+                            <th width="100">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in page_obj %}
+                        <tr>
+                            <td><strong>#{{ product.id }}</strong></td>
+                            <td class="text-center"><strong>{{ forloop.counter0|add:page_obj.start_index }}</strong></td>
+                            
+                            <td>
+                                <div class="product-info">
+                                    <div class="fw-semibold product-name" title="{{ product.name }}">
+                                        {{ product.name|truncatechars:30 }}
+                                    </div>
+                                    <small class="text-muted">{{ product.fragrance_type|default:"-"|truncatechars:20 }}</small>
+                                </div>
+                            </td>
+                            <td><code class="small">{{ product.sku }}</code></td>
+                            <td>
+                                {% if product.main_image %}
+                                <img src="{{ product.main_image.url }}" alt="{{ product.name }}" class="img-thumbnail compact-img" style="height:40px; width:40px; object-fit:cover;">
+                                {% else %}
+                                <span class="text-muted small">No image</span>
+                                {% endif %}
+                            </td>
+                            <td class="small">{{ product.brand|default:"-"|truncatechars:15 }}</td>
+                            <td>
+                                <!-- PRICE RANGE FROM VARIANTS -->
+                                <div class="fw-semibold small">
+                                    {% if product.min_price == product.max_price %}
+                                        ₹{{ product.min_price }}
+                                    {% else %}
+                                        ₹{{ product.min_price }} - ₹{{ product.max_price }}
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">{{ product.variants.count }} variant(s)</small>
+                            </td>
+                            <td>
+                                <!-- TOTAL STOCK FROM VARIANTS -->
+                                <span class="badge {% if product.total_stock > 10 %}bg-success{% elif product.total_stock > 0 %}bg-warning{% else %}bg-danger{% endif %} small">
+                                    {{ product.total_stock }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark small">{{ product.category.name|truncatechars:15 }}</span>
+                            </td>
+                            <td>
+                                <div class="status-badges">
+                                    <span class="badge {% if product.is_active %}bg-success{% else %}bg-secondary{% endif %} small d-block mb-1">
+                                        {% if product.is_active %}Active{% else %}Inactive{% endif %}
+                                    </span>
+                                    {% if product.is_featured %}
+                                    <span class="badge bg-info small d-block mb-1">Featured</span>
+                                    {% endif %}
+                                    {% if product.is_best_selling %}
+                                    <span class="badge bg-warning small d-block mb-1">Best Seller</span>
+                                    {% endif %}
+                                    {% if product.is_new_arrival %}
+                                    <span class="badge bg-success small d-block">New</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ product.created_at|date:"M d, Y" }}</small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'product_edit' product.id %}" class="btn btn-outline-primary" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#deleteProductModal"
+                                            data-product-id="{{ product.id }}"
+                                            data-product-name="{{ product.name }}"
+                                            title="Move to Trash">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if page_obj.paginator.num_pages > 1 %}
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} products
+                </div>
+                <nav>
+                    <ul class="pagination">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Previous</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1">Previous</a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                        {% else %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a></li>
+                        {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1">Next</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-5">
+                <div class="empty-state">
+                    <i class="fas fa-cube fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">No Products Found</h4>
+                    
+                    <!-- DEBUG INFORMATION -->
+                    <div class="debug-info text-start bg-light p-3 rounded mb-4" style="max-width: 500px; margin: 0 auto;">
+                        <h6 class="text-danger">Debug Information:</h6>
+                        <ul class="list-unstyled small">
+                            <li><strong>Total Products in DB:</strong> {{ products.count|default:"0" }}</li>
+                            <li><strong>Active Products:</strong> {{ active_products_count|default:"0" }}</li>
+                            <li><strong>Query:</strong> "{{ query }}"</li>
+                            <li><strong>Category Filter:</strong> {{ category_filter }}</li>
+                            <li><strong>Status Filter:</strong> {{ status_filter }}</li>
+                            <li><strong>Page Object:</strong> {{ page_obj }}</li>
+                        </ul>
+                    </div>
+                    
+                    <p class="text-muted mb-4">
+                        {% if query %}No products found matching your criteria.{% else %}Get started by creating your first product.{% endif %}
+                    </p>
+                    <a href="{% url 'product_add' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Create Your First Product
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteProductModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Move to Trash</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to move the product "<strong id="productName"></strong>" to trash?</p>
+                <p class="text-muted small">The product will be hidden but can be restored later from the trash.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteProductForm" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i>Move to Trash
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Soft delete functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteModal = document.getElementById('deleteProductModal');
+    const productNameElement = document.getElementById('productName');
+    const deleteForm = document.getElementById('deleteProductForm');
+    
+    if (deleteModal) {
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const productId = button.getAttribute('data-product-id');
+            const productName = button.getAttribute('data-product-name');
+            
+            // Update modal content
+            productNameElement.textContent = productName;
+            
+            // Update form action
+            deleteForm.action = "{% url 'product_soft_delete' 0 %}".replace('0', productId);
+        });
+    }
+    
+    // Filter functionality
+    function searchByFilter(filterType) {
+        const form = document.getElementById('filterForm');
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'filter_action';
+        input.value = filterType;
+        form.appendChild(input);
+        form.submit();
+    }
+
+    // Quick search for individual filters
+    const filterButtons = document.querySelectorAll('.filter-search-btn');
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const filterType = this.getAttribute('onclick').match(/'([^']+)'/)[1];
+            searchByFilter(filterType);
+        });
+    });
+});
+</script>
+
+<style>
+.bg-pink {
+    background-color: #e83e8c !important;
+}
+
+.empty-state {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* Compact table styles */
+.compact-table-wrapper {
+    overflow-x: auto;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+}
+
+.compact-table {
+    min-width: 1200px; /* Minimum width to ensure all columns are visible */
+    margin-bottom: 0;
+}
+
+.compact-table td {
+    padding: 0.5rem 0.5rem;
+    vertical-align: middle;
+    font-size: 0.85rem;
+}
+
+.compact-table th {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    white-space: nowrap;
+}
+
+.compact-table .btn-group-sm .btn {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
+}
+
+/* Compact elements */
+.compact-img {
+    max-height: 40px;
+    max-width: 40px;
+}
+
+.product-name {
+    font-size: 0.9rem;
+    line-height: 1.2;
+}
+
+.small {
+    font-size: 0.8rem;
+}
+
+.status-badges .badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+    margin-bottom: 0.1rem;
+}
+
+/* Ensure table fits within container */
+.table-responsive {
+    max-width: 100%;
+}
+
+/* Pagination Styles */
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+    padding: 1rem 0;
+    border-top: 1px solid #e9ecef;
+}
+
+.pagination-info {
+    color: var(--text-light, #7f8c8d);
+    font-size: 0.9rem;
+}
+
+.pagination {
+    margin-bottom: 0;
+    font-size: 0.9rem;
+}
+
+/* Make text truncate properly */
+.product-info {
+    max-width: 180px;
+}
+
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1400px) {
+    .compact-table {
+        min-width: 1100px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .compact-table {
+        min-width: 1000px;
+    }
+}
+</style>
+{% endblock %}

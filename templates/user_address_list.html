@@ -1,0 +1,103 @@
+<!-- user_address_list.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-3">
+            <!-- User Profile Sidebar -->
+            <div class="card">
+                <div class="card-body text-center">
+                    {% if user.profile_image %}
+                        <img src="{{ user.profile_image.url }}" alt="Profile" class="rounded-circle mb-3" width="150" height="150">
+                    {% else %}
+                        <img src="{% static 'images/default_profile.png' %}" alt="Profile" class="rounded-circle mb-3" width="150" height="150">
+                    {% endif %}
+                    <h5 class="card-title">{{ user.get_full_name }}</h5>
+                    <p class="text-muted">{{ user.email }}</p>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{% url 'user_profile' %}" class="list-group-item list-group-item-action">Profile</a>
+                    <a href="{% url 'user_address_list' %}" class="list-group-item list-group-item-action active">Addresses</a>
+                    <a href="{% url 'order_history' %}" class="list-group-item list-group-item-action">Order History</a>
+                    <a href="{% url 'change_password' %}" class="list-group-item list-group-item-action">Change Password</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            <!-- Address List -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">My Addresses</h4>
+                    <a href="{% url 'user_add_address' %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i> Add New Address
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    {% if addresses %}
+                        <div class="row">
+                            {% for address in addresses %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100 {% if address.is_default %}border-primary{% endif %}">
+                                    <div class="card-body">
+                                        {% if address.is_default %}
+                                        <span class="badge bg-primary mb-2">Default Address</span>
+                                        {% endif %}
+                                        
+                                        <h6 class="card-title text-capitalize">{{ address.get_address_type_display }} Address</h6>
+                                        <p class="card-text">
+                                            <strong>{{ address.full_name }}</strong><br>
+                                            {{ address.phone }}<br>
+                                            {{ address.address_line1 }}<br>
+                                            {% if address.address_line2 %}{{ address.address_line2 }}<br>{% endif %}
+                                            {% if address.landmark %}<strong>Landmark:</strong> {{ address.landmark }}<br>{% endif %}
+                                            {{ address.city }}, {{ address.state }} - {{ address.postal_code }}<br>
+                                            {{ address.country }}
+                                        </p>
+                                    </div>
+                                    <div class="card-footer bg-transparent">
+                                        <div class="btn-group w-100">
+                                            {% if not address.is_default %}
+                                                <a href="{% url 'user_set_default_address' address.id %}" class="btn btn-outline-primary btn-sm">
+                                                    Set Default
+                                                </a>
+                                            {% endif %}
+                                            <a href="{% url 'user_edit_address' address.id %}" class="btn btn-outline-secondary btn-sm">
+                                                Edit
+                                            </a>
+                                            <a href="{% url 'user_delete_address' address.id %}" class="btn btn-outline-danger btn-sm">
+                                                Delete
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-map-marker-alt fa-3x text-muted mb-3"></i>
+                            <h5>No addresses found</h5>
+                            <p class="text-muted">You haven't added any addresses yet.</p>
+                            <a href="{% url 'user_add_address' %}" class="btn btn-primary">Add Your First Address</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

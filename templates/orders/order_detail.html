@@ -1,0 +1,281 @@
+<!-- templates/orders/order_detail.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="container mt-3">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'homepage' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'order_list' %}">My Orders</a></li>
+            <li class="breadcrumb-item active">Order #{{ order.order_number }}</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Order Status -->
+            <div class="card mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Order #{{ order.order_number }}</h4>
+                    <div class="btn-group">
+                        <a href="{% url 'download_invoice' order.id %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-download me-1"></i>Download Invoice
+                        </a>
+                        {% if order.can_be_cancelled %}
+                        <button type="button" class="btn btn-outline-danger btn-sm" 
+                                data-bs-toggle="modal" data-bs-target="#cancelOrderModal">
+                            <i class="fas fa-times me-1"></i>Cancel Order
+                        </button>
+                        {% endif %}
+                        {% if order.can_be_returned %}
+                        <button type="button" class="btn btn-outline-warning btn-sm" 
+                                data-bs-toggle="modal" data-bs-target="#returnOrderModal">
+                            <i class="fas fa-undo me-1"></i>Return Order
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Order Date:</strong> {{ order.created_at|date:"F d, Y" }}</p>
+                            <p><strong>Status:</strong> 
+                                <span class="badge bg-{% if order.status == 'delivered' %}success{% elif order.status == 'cancelled' or order.status == 'refunded' %}danger{% elif order.status == 'pending' %}warning{% else %}info{% endif %}">
+                                    {{ order.get_status_display }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Payment Method:</strong> {{ order.get_payment_method_display }}</p>
+                            <p><strong>Payment Status:</strong> 
+                                <span class="badge bg-{% if order.payment_status == 'completed' %}success{% else %}warning{% endif %}">
+                                    {{ order.get_payment_status_display }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    {% if order.cancellation_reason %}
+                    <div class="alert alert-warning mt-3">
+                        <strong>Cancellation Reason:</strong> {{ order.cancellation_reason }}
+                    </div>
+                    {% endif %}
+                    
+                    {% if order.return_reason %}
+                    <div class="alert alert-info mt-3">
+                        <strong>Return Reason:</strong> {{ order.return_reason }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Order Items -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Order Items</h5>
+                </div>
+                <div class="card-body">
+                    {% for item in order_items %}
+                    <div class="order-item d-flex align-items-center border-bottom pb-3 mb-3 {% if item.is_cancelled %}bg-light text-muted{% endif %}">
+                        <img src="{% if item.product_image %}{{ item.product_image.url }}{% else %}https://via.placeholder.com/80x80?text=No+Image{% endif %}" 
+                             alt="{{ item.product_name }}" 
+                             class="rounded me-3" 
+                             style="width: 80px; height: 80px; object-fit: cover;">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1 {% if item.is_cancelled %}text-decoration-line-through{% endif %}">
+                                {{ item.product_name }}
+                                {% if item.is_cancelled %}
+                                <span class="badge bg-danger ms-2">Cancelled</span>
+                                {% endif %}
+                            </h6>
+                            <p class="text-muted mb-1 small">{{ item.variant_details }}</p>
+                            <p class="mb-1 small">Quantity: {{ item.quantity }}</p>
+                            <p class="mb-0 small">Price: ₹{{ item.unit_price }} each</p>
+                            
+                            {% if item.cancellation_reason %}
+                            <p class="mb-0 small text-danger"><strong>Cancellation Reason:</strong> {{ item.cancellation_reason }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="text-end">
+                            <strong class="{% if item.is_cancelled %}text-decoration-line-through{% endif %}">
+                                ₹{{ item.total_price }}
+                            </strong>
+                            {% if not item.is_cancelled and order.can_be_cancelled %}
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                        data-bs-toggle="modal" data-bs-target="#cancelItemModal{{ item.id }}">
+                                    <i class="fas fa-times"></i> Cancel Item
+                                </button>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Cancel Item Modal -->
+                    {% if not item.is_cancelled and order.can_be_cancelled %}
+                    <div class="modal fade" id="cancelItemModal{{ item.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Cancel {{ item.product_name }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form method="POST" action="{% url 'cancel_order_item' item.id %}">
+                                    {% csrf_token %}
+                                    <div class="modal-body">
+                                        <p>Are you sure you want to cancel this item?</p>
+                                        <div class="mb-3">
+                                            <label for="itemReason{{ item.id }}" class="form-label">Reason (optional):</label>
+                                            <textarea class="form-control" id="itemReason{{ item.id }}" name="reason" 
+                                                      rows="3" placeholder="Reason for cancelling this item..."></textarea>
+                                        </div>
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle"></i>
+                                            The stock will be restored for this item.
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        <button type="submit" class="btn btn-danger">Cancel Item</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Order Summary -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Order Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal:</span>
+                        <span>₹{{ order.subtotal }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Shipping:</span>
+                        <span class="{% if order.shipping_charge == 0 %}text-success{% endif %}">
+                            {% if order.shipping_charge == 0 %}FREE{% else %}₹{{ order.shipping_charge }}{% endif %}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Tax (18%):</span>
+                        <span>₹{{ order.tax_amount|floatformat:2 }}</span>
+                    </div>
+                    {% if order.discount_amount > 0 %}
+                    <div class="d-flex justify-content-between mb-2 text-success">
+                        <span>Discount:</span>
+                        <span>-₹{{ order.discount_amount }}</span>
+                    </div>
+                    {% endif %}
+                    <hr>
+                    <div class="d-flex justify-content-between mb-3 fs-5">
+                        <strong>Total:</strong>
+                        <strong class="text-primary">₹{{ order.total_amount|floatformat:2 }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shipping Address -->
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Shipping Address</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>{{ order.shipping_address.full_name }}</strong></p>
+                    <p class="mb-1">{{ order.shipping_address.phone }}</p>
+                    <p class="mb-1 text-muted small">
+                        {{ order.shipping_address.address_line1 }}{% if order.shipping_address.address_line2 %}, {{ order.shipping_address.address_line2 }}{% endif %}
+                    </p>
+                    {% if order.shipping_address.landmark %}
+                    <p class="mb-1 text-muted small">Landmark: {{ order.shipping_address.landmark }}</p>
+                    {% endif %}
+                    <p class="mb-0 text-muted small">
+                        {{ order.shipping_address.city }}, {{ order.shipping_address.state }} - {{ order.shipping_address.postal_code }}
+                    </p>
+                    <p class="mb-0 text-muted small">{{ order.shipping_address.country }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Order Modal -->
+{% if order.can_be_cancelled %}
+<div class="modal fade" id="cancelOrderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancel Order #{{ order.order_number }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'cancel_order' order.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p>Are you sure you want to cancel this entire order?</p>
+                    <div class="mb-3">
+                        <label for="orderReason" class="form-label">Reason for cancellation (optional):</label>
+                        <textarea class="form-control" id="orderReason" name="reason" 
+                                  rows="3" placeholder="Please provide a reason for cancellation..."></textarea>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        The stock will be restored for all items in this order.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger">Cancel Entire Order</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Return Order Modal -->
+{% if order.can_be_returned %}
+<div class="modal fade" id="returnOrderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Return Order #{{ order.order_number }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'return_order' order.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p>Please provide a reason for returning this order.</p>
+                    <div class="mb-3">
+                        <label for="returnReason" class="form-label">Reason for return <span class="text-danger">*</span>:</label>
+                        <textarea class="form-control" id="returnReason" name="reason" 
+                                  rows="3" placeholder="Please provide a detailed reason for return..." required></textarea>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        The stock will be restored and refund will be processed for this order.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-warning">Submit Return Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

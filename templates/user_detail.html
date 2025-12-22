@@ -1,0 +1,221 @@
+<!-- admin---detail of each user---user_detail.html -->
+{% extends 'common_admin.html' %}
+{% load static %}
+
+{% block page_title %}User Details - {{ user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    <div class="admin-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3>User Details</h3>
+            <button class="btn btn-outline-secondary" onclick="window.history.back()">
+                <i class="fas fa-arrow-left"></i> Back to Users
+            </button>
+        </div>
+        <div class="card-body">
+            <!-- User Profile Header -->
+            <div class="user-profile-header mb-4">
+                <div class="d-flex align-items-center">
+                    <div class="user-avatar-icon me-4">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-info">
+                        <h3>{{ user.get_full_name }}</h3>
+                        <p class="mb-1"><strong>Email:</strong> {{ user.email }}</p>
+                        {% if user.phone %}
+                        <p class="mb-1"><strong>Phone:</strong> {{ user.phone }}</p>
+                        {% endif %}
+                        <p class="mb-1">
+                            <strong>Status:</strong>
+                            <span
+                                class="status-badge {% if user.status == 'active' %}status-active{% else %}status-blocked{% endif %}">
+                                {{ user.status|title }}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Basic Information -->
+                <div class="col-md-6">
+                    <div class="admin-card">
+                        <div class="card-header">
+                            <h5>Basic Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <strong>First Name:</strong>
+                                    <p>{{ user.first_name }}</p>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Last Name:</strong>
+                                    <p>{{ user.last_name }}</p>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <strong>Username:</strong>
+                                    <p>{{ user.username }}</p>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Gender:</strong>
+                                    <p>{{ user.gender|title|default:"Not specified" }}</p>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <strong>Date Joined:</strong>
+                                    <p>{{ user.date_joined|date:"M d, Y" }}</p>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Wallet Balance:</strong>
+                                    <p>₹{{ user.wallet_balance }}</p>
+                                </div>
+                            </div>
+                            {% if user.address %}
+                            <div class="row">
+                                <div class="col-12">
+                                    <strong>Address:</strong>
+                                    <p>{{ user.address }}</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Statistics -->
+                <div class="col-md-6">
+                    <div class="admin-card">
+                        <div class="card-header">
+                            <h5>User Statistics</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="user-stats">
+                                <div class="stat-card">
+                                    <div class="stat-value">{{ total_orders }}</div>
+                                    <div class="stat-label">Total Orders</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value">₹{{ total_amount_spent }}</div>
+                                    <div class="stat-label">Total Spent</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value">
+                                        {% if total_orders > 0 %}
+                                        ₹{{ avg_order_amount }}
+                                        {% else %}
+                                        0
+                                        {% endif %}
+                                    </div>
+                                    <div class="stat-label">Avg. Order</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value">
+                                        {% if last_order %}
+                                        {{ last_order.created_at|date:"M d" }}
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </div>
+                                    <div class="stat-label">Last Order</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Action Buttons -->
+                <!-- <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex gap-2 justify-content-end">
+                            {% if user.status == 'active' %}
+                            <button class="btn btn-warning"
+                                onclick="confirmBlockUser({{ user.id }}, '{{ user.get_full_name|escapejs }}')">
+                                <i class="fas fa-ban"></i> Block User
+                            </button>
+                            {% else %}
+                            <button class="btn btn-success"
+                                onclick="confirmUnblockUser({{ user.id }}, '{{ user.get_full_name|escapejs }}')">
+                                <i class="fas fa-check"></i> Unblock User
+                            </button>
+                            {% endif %}
+                            <button class="btn btn-danger"
+                                onclick="confirmDeleteUser({{ user.id }}, '{{ user.get_full_name|escapejs }}')">
+                                <i class="fas fa-trash"></i> Delete User
+                            </button>
+                        </div>
+                    </div>
+                </div> -->
+                <!-- Block/Unblock Form -->
+               <div class="d-flex gap-2 justify-content-end">
+    {% if user.status == 'active' %}
+    <form method="post" action="{% url 'toggle_user_status' user.id %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-warning"
+                onclick="return confirm('Block {{ user.get_full_name|escapejs }}?')">
+            <i class="fas fa-ban"></i> Block User
+        </button>
+    </form>
+    {% else %}
+    <form method="post" action="{% url 'toggle_user_status' user.id %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success"
+                onclick="return confirm('Unblock {{ user.get_full_name|escapejs }}?')">
+            <i class="fas fa-check"></i> Unblock User
+        </button>
+    </form>
+    {% endif %}
+    
+    <!-- <form method="post" action="{% url 'delete_user' user.id %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger"
+                onclick="return confirm('Delete {{ user.get_full_name|escapejs }}? This cannot be undone.')">
+            <i class="fas fa-trash"></i> Delete User
+        </button>
+    </form> -->
+</div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .user-avatar-lg {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #fff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .stat-card {
+            background: var(--light-bg, #f8f9fa);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color, #2c3e50);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-light, #7f8c8d);
+        }
+    </style>
+
+    
+    {% endblock %}

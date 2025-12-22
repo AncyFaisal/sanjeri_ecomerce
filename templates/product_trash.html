@@ -1,0 +1,113 @@
+{% extends "common_admin.html" %}
+{% load static %}
+
+{% block page_title %}Product Trash{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="admin-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">
+                <i class="fas fa-trash me-2"></i>
+                Product Trash
+            </h3>
+            <a href="{% url 'product_list' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Products
+            </a>
+        </div>
+
+        <div class="card-body">
+            <!-- Search in Trash -->
+            <div class="admin-card mb-4">
+                <div class="card-body">
+                    <form method="get" class="mb-0">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-8">
+                                <label for="searchInput" class="form-label fw-semibold">Search in Trash</label>
+                                <div class="input-group">
+                                    <input type="text" name="q" id="searchInput" placeholder="Search deleted products..." 
+                                           value="{{ query }}" class="form-control" style="height: 50px;">
+                                    <button type="submit" class="btn btn-primary" style="height: 50px; width: 60px;">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <a href="{% url 'product_trash' %}" class="btn btn-outline-secondary flex-fill" style="height: 50px;">
+                                    <i class="fas fa-refresh me-1"></i>Reset
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if deleted_products %}
+            <div class="table-responsive">
+                <table class="table table-hover styled-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Product Name</th>
+                            <th>SKU</th>
+                            <th>Category</th>
+                            <th>Brand</th>
+                            <th>Deleted Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in deleted_products %}
+                        <tr>
+                            <td><strong>#{{ product.id }}</strong></td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if product.main_image %}
+                                    <img src="{{ product.main_image.url }}" alt="{{ product.name }}"
+                                         class="img-thumbnail me-3" style="height:40px; width:40px; object-fit:cover;">
+                                    {% endif %}
+                                    <div>
+                                        <div class="fw-semibold">{{ product.name }}</div>
+                                        <small class="text-muted">{{ product.variants.count }} variants</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><code>{{ product.sku }}</code></td>
+                            <td>{{ product.category.name }}</td>
+                            <td>{{ product.brand|default:"-" }}</td>
+                            <td>
+                                <small class="text-muted">{{ product.updated_at|date:"M d, Y" }}</small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'product_restore' product.id %}" class="btn btn-outline-success"
+                                       onclick="return confirm('Restore this product?')">
+                                        <i class="fas fa-undo"></i>
+                                    </a>
+                                    <a href="{% url 'product_permanent_delete' product.id %}" class="btn btn-outline-danger"
+                                       onclick="return confirm('Permanently delete this product? This cannot be undone.')">
+                                        <i class="fas fa-times"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <div class="empty-state">
+                    <i class="fas fa-trash fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">Trash is Empty</h4>
+                    <p class="text-muted mb-4">No products in trash</p>
+                    <a href="{% url 'product_list' %}" class="btn btn-primary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Products
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

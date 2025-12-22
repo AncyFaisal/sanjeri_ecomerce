@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanjeri - A Scent Beyond the Soul</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #431405;
+            --accent-color: #ff8f5;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --background-color: #fff8f5;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+        }
+        
+        .sticky-top {
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+        }
+        
+        .nav-bar {
+            background-color: white;
+            color: var(--primary-color);
+            padding: 15px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            height: 90px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .main-logo {
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 2.2rem;
+            margin: 0;
+            color: var(--primary-color);
+            letter-spacing: 2px;
+        }
+        
+        .logotag {
+            font-style: italic;
+            font-size: 0.9rem;
+            margin: 0;
+            color: var(--primary-color);
+            letter-spacing: 1px;
+            opacity: 0.8;
+        }
+        
+        .nav-right {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+        
+        .search-container {
+            flex-grow: 1;
+            max-width: 500px;
+            margin: 0 20px;
+        }
+        
+        .search-form {
+            display: flex;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid #ddd;
+        }
+        
+        .search-input {
+            border: none;
+            padding: 12px 20px;
+            flex-grow: 1;
+            font-size: 1rem;
+            background: white;
+        }
+        
+        .search-input:focus {
+            outline: none;
+        }
+        
+        .search-btn {
+            background: var(--primary-color);
+            border: none;
+            color: white;
+            padding: 0 25px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .search-btn:hover {
+            background: #2c0d03;
+        }
+        
+        .nav-icons {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        .user-info a {
+            color: var(--primary-color);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .user-info a:hover {
+            color: #2c0d03;
+        }
+        
+        .icon-btn {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-color);
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .icon-btn:hover {
+            background: #f5f5f5;
+            transform: translateY(-2px);
+        }
+        
+        .cart-count, .wishlist-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Category Navigation */
+        .category-nav {
+            background-color: white;
+            padding: 15px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .category-nav .nav-link {
+            color: var(--primary-color);
+            font-weight: 500;
+            margin: 0 15px;
+            padding: 8px 0;
+            position: relative;
+            transition: color 0.3s;
+        }
+        
+        .category-nav .nav-link:hover {
+            color: #2c0d03;
+        }
+        
+        .category-nav .nav-link.active {
+            color: #2c0d03;
+            font-weight: 600;
+        }
+        
+        .category-nav .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--primary-color);
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            background-color: transparent;
+            padding: 15px 0;
+            margin-bottom: 0;
+        }
+        
+        .breadcrumb-item a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+        
+        .breadcrumb-item.active {
+            color: #6c757d;
+        }
+        
+        /* Banner Section */
+        .banner-section {
+            background: linear-gradient(rgba(67, 20, 5, 0.8), rgba(67, 20, 5, 0.6)), url('https://images.unsplash.com/photo-1547887535-0f09d3f69b15?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');
+            background-size: cover;
+            background-position: center;
+            height: 500px;
+            display: flex;
+            align-items: center;
+            color: white;
+            margin-top: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .banner-content {
+            max-width: 600px;
+            padding: 40px;
+        }
+        
+        .banner-title {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            font-family: 'Playfair Display', serif;
+        }
+        
+        .banner-text {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .btn-primary-custom {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 12px 30px;
+            font-weight: 600;
+            border-radius: 4px;
+        }
+        
+        .btn-primary-custom:hover {
+            background-color: #2c0d03;
+            border-color: #2c0d03;
+        }
+        
+        /* Filter and Sort Section */
+        .filter-sort-section {
+            padding: 20px 0;
+            background-color: white;
+            border-radius: 8px;
+            margin: 30px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .sort-options, .filter-options {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .sort-options label, .filter-options label {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0;
+        }
+        
+        .sort-select, .filter-select {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 8px 15px;
+            background-color: white;
+            color: var(--primary-color);
+        }
+        
+        .filter-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 20px;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+        
+        .filter-btn:hover {
+            background-color: #2c0d03;
+        }
+        
+        /* Product Section */
+        .product-section {
+            padding: 60px 0;
+        }
+        
+        .section-title {
+            color: var(--primary-color);
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        .product-card {
+            border: none;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin-bottom: 30px;
+            background: white;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .product-img {
+            height: 250px;
+            object-fit: cover;
+        }
+        
+        .product-card-body {
+            padding: 20px;
+        }
+        
+        .product-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        
+        .product-price {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        /* Go to Top Button */
+        .go-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background-color: var(--primary-color);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            opacity: 0;
+            visibility: hidden;
+        }
+        
+        .go-to-top.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .go-to-top:hover {
+            background-color: #2c0d03;
+            transform: translateY(-5px);
+        }
+        
+        /* Footer */
+        .footer {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 60px 0 30px;
+        }
+        
+        .footer h5 {
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .footer ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .footer ul li {
+            margin-bottom: 10px;
+        }
+        
+        .footer ul li a {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer ul li a:hover {
+            color: white;
+        }
+        
+        .footer-bottom {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 20px;
+            margin-top: 40px;
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+        }
+        
+        /* Filter Modal */
+        .filter-modal .modal-content {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .filter-modal .modal-header {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .filter-section {
+            margin-bottom: 20px;
+        }
+        
+        .filter-section h6 {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .filter-option {
+            margin-bottom: 10px;
+        }
+        
+        .filter-option label {
+            margin-left: 8px;
+            color: #555;
+        }
+        
+        .price-range {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .price-input {
+            width: 100px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px 10px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 992px) {
+            .search-container {
+                max-width: 400px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .nav-bar {
+                height: auto;
+                padding: 15px 0;
+            }
+            
+            .search-container {
+                display: none;
+            }
+            
+            .nav-right {
+                justify-content: flex-end;
+            }
+            
+            .logo {
+                font-size: 1.8rem;
+            }
+            
+            .banner-title {
+                font-size: 2.5rem;
+            }
+            
+            .sort-options, .filter-options {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .logo {
+                font-size: 1.5rem;
+            }
+            
+            .logotag {
+                font-size: 0.8rem;
+            }
+            
+            .nav-icons {
+                gap: 10px;
+            }
+            
+            .icon-btn {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .banner-title {
+                font-size: 2rem;
+            }
+            
+            .banner-text {
+                font-size: 1rem;
+            }
+        }
+        /* Pagination Styles */
+.pagination .page-link {
+    color: var(--primary-color);
+    border: 1px solid #ddd;
+    padding: 10px 15px;
+    margin: 0 5px;
+    border-radius: 4px;
+    transition: all 0.3s;
+}
+
+.pagination .page-link:hover {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #6c757d;
+    pointer-events: none;
+    background-color: #f8f9fa;
+}
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <div class="nav-bar sticky-top">
+        <div class="container">
+            <div class="d-flex align-items-center justify-content-between">
+                <!-- Logo Section -->
+                <div class="main-logo">
+                    <a href="index.html" class="d-flex align-items-center text-decoration-none">
+                        <div class="icon">
+                            <h2 class="logo">SANJERI</h2>
+                            <p class="logotag">A Scent Beyond the Soul</p>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Search Bar (Center) -->
+                <div class="search-container">
+                    <form class="search-form" role="search" action="index.html" method="get">
+                        <input class="search-input" type="search" placeholder="What are you looking for?" aria-label="Search">
+                        <button class="search-btn" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- User Actions (Right) -->
+                <div class="nav-icons">
+                    <!-- User Info -->
+                    <div class="user-info">
+                        <i class="fas fa-user"></i>
+                        <div>
+                            <span>John Doe</span>
+                            <a href="{% url 'user_logout' %}">Logout</a>
+                        </div>
+                    </div>
+
+                    <!-- Wishlist -->
+                    <button class="icon-btn" type="button">
+                        <i class="fas fa-heart"></i>
+                        <span class="wishlist-count">3</span>
+                    </button>
+
+                    <!-- Cart -->
+                    <button class="icon-btn" type="button">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count">5</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Navigation -->
+    <div class="category-nav sticky-top">
+        <div class="container">
+            <ul class="nav justify-content-center">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Men</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Women</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Unisex</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Brands</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Breadcrumb -->
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="#">Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Men</li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- Banner Section -->
+    <div class="container">
+        <div class="banner-section">
+            <div class="banner-content">
+                <h1 class="banner-title">Elegance in Every Drop</h1>
+                <p class="banner-text">Discover our exclusive collection of premium fragrances crafted to perfection. Experience scents that tell your unique story.</p>
+                <a href="#" class="btn btn-primary-custom">Shop Now</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter and Sort Section -->
+    <div class="container">
+        <div class="filter-sort-section">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="sort-options">
+                        <label for="sort-by">Sort by:</label>
+                        <select class="sort-select" id="sort-by">
+                            <option value="featured">Featured</option>
+                            <option value="best-selling">Best Selling</option>
+                            <option value="price-low-high">Price: Low → High</option>
+                            <option value="price-high-low">Price: High → Low</option>
+                            <option value="newest">Newest Arrivals</option>
+                            <option value="customer-rating">Customer Rating: High → Low</option>
+                            <option value="alphabetical">Alphabetical: A → Z</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                    <div class="filter-options">
+                        <button type="button" class="filter-btn" data-bs-toggle="modal" data-bs-target="#filterModal">
+                            <i class="fas fa-filter me-2"></i>Filter
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Section -->
+    <div class="container product-section">
+        <h2 class="section-title">Featured Products</h2>
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card product-card">
+                    <img src="https://images.unsplash.com/photo-1590736969956-6ee11c6b6d17?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80" class="card-img-top product-img" alt="Men's Fragrance">
+                    <div class="card-body product-card-body">
+                        <h5 class="card-title product-title">Noir Essence</h5>
+                        <p class="card-text">A bold and sophisticated scent for the modern man.</p>
+                        <p class="product-price">$89.99</p>
+                        <a href="#" class="btn btn-outline-primary">Add to Cart</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card product-card">
+                    <img src="https://images.unsplash.com/photo-1541643600914-78b084683601?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=764&q=80" class="card-img-top product-img" alt="Women's Fragrance">
+                    <div class="card-body product-card-body">
+                        <h5 class="card-title product-title">Floral Elegance</h5>
+                        <p class="card-text">A delicate blend of flowers for the graceful woman.</p>
+                        <p class="product-price">$79.99</p>
+                        <a href="#" class="btn btn-outline-primary">Add to Cart</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card product-card">
+                    <img src="https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=688&q=80" class="card-img-top product-img" alt="Unisex Fragrance">
+                    <div class="card-body product-card-body">
+                        <h5 class="card-title product-title">Ocean Breeze</h5>
+                        <p class="card-text">A fresh and invigorating scent for everyone.</p>
+                        <p class="product-price">$69.99</p>
+                        <a href="#" class="btn btn-outline-primary">Add to Cart</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card product-card">
+                    <img src="https://images.unsplash.com/photo-1615634260167-6a6d5c416169?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80" class="card-img-top product-img" alt="Luxury Fragrance">
+                    <div class="card-body product-card-body">
+                        <h5 class="card-title product-title">Royal Oud</h5>
+                        <p class="card-text">An exotic and luxurious fragrance for special occasions.</p>
+                        <p class="product-price">$129.99</p>
+                        <a href="#" class="btn btn-outline-primary">Add to Cart</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+<div class="container mt-5">
+    <nav aria-label="Product pagination">
+        <ul class="pagination justify-content-center">
+            <li class="page-item disabled">
+                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+            <li class="page-item"><a class="page-link" href="#">2</a></li>
+            <li class="page-item"><a class="page-link" href="#">3</a></li>
+            <li class="page-item"><a class="page-link" href="#">4</a></li>
+            <li class="page-item"><a class="page-link" href="#">5</a></li>
+            <li class="page-item">
+                <a class="page-link" href="#">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-3">
+                    <h5>SANJERI</h5>
+                    <p>A Scent Beyond the Soul. Crafting exquisite fragrances since 1995.</p>
+                </div>
+                <div class="col-md-3">
+                    <h5>Shop</h5>
+                    <ul>
+                        <li><a href="#">Men's Fragrance</a></li>
+                        <li><a href="#">Women's Fragrance</a></li>
+                        <li><a href="#">Unisex Fragrance</a></li>
+                        <li><a href="#">Gift Sets</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h5>Customer Service</h5>
+                    <ul>
+                        <li><a href="#">Contact Us</a></li>
+                        <li><a href="#">Shipping Policy</a></li>
+                        <li><a href="#">Returns & Exchanges</a></li>
+                        <li><a href="#">FAQ</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h5>Stay Connected</h5>
+                    <ul>
+                        <li><a href="#"><i class="fab fa-facebook me-2"></i>Facebook</a></li>
+                        <li><a href="#"><i class="fab fa-instagram me-2"></i>Instagram</a></li>
+                        <li><a href="#"><i class="fab fa-twitter me-2"></i>Twitter</a></li>
+                        <li><a href="#"><i class="fab fa-pinterest me-2"></i>Pinterest</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2023 Sanjeri. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Filter Modal -->
+    <div class="modal fade filter-modal" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="filterModalLabel">Filter Products</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <!-- Gender / Category -->
+                            <div class="filter-section">
+                                <h6>Gender / Category</h6>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="men" name="gender" value="men">
+                                    <label for="men">Men</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="women" name="gender" value="women">
+                                    <label for="women">Women</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="unisex" name="gender" value="unisex">
+                                    <label for="unisex">Unisex</label>
+                                </div>
+                            </div>
+                            
+                            <!-- Price Range -->
+                            <div class="filter-section">
+                                <h6>Price Range</h6>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="price1" name="price" value="price1">
+                                    <label for="price1">Below ₹1000</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="price2" name="price" value="price2">
+                                    <label for="price2">₹1000 – ₹3000</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="price3" name="price" value="price3">
+                                    <label for="price3">₹3000 – ₹5000</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="price4" name="price" value="price4">
+                                    <label for="price4">₹5000 – ₹10000</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="price5" name="price" value="price5">
+                                    <label for="price5">Above ₹10000</label>
+                                </div>
+                            </div>
+                            
+                            <!-- Bottle Size -->
+                            <div class="filter-section">
+                                <h6>Bottle Size / Volume</h6>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="size1" name="size" value="size1">
+                                    <label for="size1">30 ml</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="size2" name="size" value="size2">
+                                    <label for="size2">50 ml</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="size3" name="size" value="size3">
+                                    <label for="size3">100 ml</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="size4" name="size" value="size4">
+                                    <label for="size4">200 ml</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <!-- Brand / Designer -->
+                            <div class="filter-section">
+                                <h6>Brand / Designer</h6>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="brand1" name="brand" value="brand1">
+                                    <label for="brand1">Dior</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="brand2" name="brand" value="brand2">
+                                    <label for="brand2">Gucci</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="brand3" name="brand" value="brand3">
+                                    <label for="brand3">Calvin Klein</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="brand4" name="brand" value="brand4">
+                                    <label for="brand4">Chanel</label>
+                                </div>
+                            </div>
+                            
+                            <!-- Fragrance Family / Type -->
+                            <div class="filter-section">
+                                <h6>Fragrance Family / Type</h6>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="type1" name="type" value="type1">
+                                    <label for="type1">Floral</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="type2" name="type" value="type2">
+                                    <label for="type2">Fruity</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="type3" name="type" value="type3">
+                                    <label for="type3">Oriental</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="type4" name="type" value="type4">
+                                    <label for="type4">Woody</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="type5" name="type" value="type5">
+                                    <label for="type5">Fresh</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="type6" name="type" value="type6">
+                                    <label for="type6">Spicy</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="type7" name="type" value="type7">
+                                    <label for="type7">Aquatic</label>
+                                </div>
+                            </div>
+                            
+                            <!-- Occasion / Mood -->
+                            <div class="filter-section">
+                                <h6>Occasion / Mood</h6>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="occasion1" name="occasion" value="occasion1">
+                                    <label for="occasion1">Everyday</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="occasion2" name="occasion" value="occasion2">
+                                    <label for="occasion2">Party / Night Out</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="occasion3" name="occasion" value="occasion3">
+                                    <label for="occasion3">Office / Professional</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="occasion4" name="occasion" value="occasion4">
+                                    <label for="occasion4">Romantic</label>
+                                </div>
+                                <div class="filter-option">
+                                    <input type="checkbox" id="occasion5" name="occasion" value="occasion5">
+                                    <label for="occasion5">Festive</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary-custom">Apply Filters</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Go to Top Button -->
+    <div class="go-to-top" id="goToTop">
+        <i class="fas fa-chevron-up"></i>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Go to Top Button
+        const goToTopBtn = document.getElementById('goToTop');
+        
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                goToTopBtn.classList.add('show');
+            } else {
+                goToTopBtn.classList.remove('show');
+            }
+        });
+        
+        goToTopBtn.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+        
+        // Filter functionality (basic example)
+        document.querySelectorAll('.filter-option input').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                // In a real implementation, this would filter products
+                console.log(`Filter changed: ${this.id} - ${this.checked}`);
+            });
+        });
+        
+        // Sort functionality
+        document.getElementById('sort-by').addEventListener('change', function() {
+            // In a real implementation, this would sort products
+            console.log(`Sort by: ${this.value}`);
+        });
+    </script>
+</body>
+</html>

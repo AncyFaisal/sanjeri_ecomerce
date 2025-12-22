@@ -1,0 +1,137 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Verify OTP - Password Reset</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #e4d6b7;
+            font: 600 16px/18px 'Open Sans', sans-serif;
+        }
+        .signup-container {
+            width: 600px;
+            margin: 40px auto;
+            margin-top: 80px;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            background: white;
+        }
+        .btn-submit {
+            background-color: maroon;
+            color: white;
+            border-radius: 50px;
+            padding: 10px 20px;
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .btn-submit:hover {
+            background-color: #a00000;
+        }
+        .btn-resend {
+            background-color: #ffc107;
+            color: black;
+            border-radius: 50px;
+            padding: 10px 20px;
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .resend-section {
+            display: none; /* Initially hidden */
+        }
+    </style>
+    <script>
+        // Use the remaining_seconds passed from view (should be 120 seconds)
+        let remainingSeconds = {{ remaining_seconds|default:120 }};
+        
+        function startTimer() {
+            let timerDisplay = document.getElementById("timer");
+            let resendSection = document.getElementById("resendSection");
+
+            let countdown = setInterval(function() {
+                let minutes = Math.floor(remainingSeconds / 60);
+                let sec = remainingSeconds % 60;
+                timerDisplay.innerHTML = "Time remaining: " + minutes + "m " + (sec < 10 ? "0" : "") + sec + "s";
+                remainingSeconds--;
+
+                if (remainingSeconds < 0) {
+                    clearInterval(countdown);
+                    timerDisplay.innerHTML = "OTP expired!";
+                    resendSection.style.display = "block"; // Show resend section
+                }
+            }, 1000);
+        }
+        
+        window.onload = startTimer;
+    </script>
+</head>
+<body>
+    <div class="icon text-center">
+        <h2 class="logo" style="font-size: 40px;">SANJERI</h2>
+        <p class="logotag" style="font-size: 18px;">A Scent Beyond the Soul</p>
+    </div>
+
+    <div class="signup-container">
+        <h3 class="text-center mb-4" style="font-family:Verdana, Geneva, Tahoma, sans-serif;font-size:xx-large; font-weight: 600px;">Verify OTP</h3>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST" action="{% url 'verify_otp' %}">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Enter OTP sent to your email</label>
+                <input type="text" name="otp" class="form-control" required maxlength="6" pattern="\d{6}" title="Please enter 6-digit OTP">
+            </div>
+            
+            <div class="mb-3 text-center">
+                <p id="timer" style="color:blue; font-weight:bold;"></p>
+            </div>
+            
+            <div class="text-center">
+                <button type="submit" class="btn btn-submit">Verify OTP</button>
+            </div>
+        </form>
+
+        <!-- Resend Section - Hidden initially, shown when timer expires -->
+        <div class="text-center mt-4 resend-section" id="resendSection">
+            <div class="alert alert-warning">
+                <p class="mb-3">OTP has expired. Please request a new one.</p>
+                <form action="{% url 'resend_email_change_otp' %}" method="POST" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-resend">
+                        <i class="fas fa-redo-alt me-2"></i>Resend OTP
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Always visible resend option -->
+        <div class="text-center mt-3">
+            <p>Didn't receive OTP? 
+                <form action="{% url 'resend_reset_otp' %}" method="POST" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-link p-0" style="color: maroon; text-decoration: underline;">
+                        Click here to resend
+                    </button>
+                </form>
+            </p>
+        </div>
+
+        <div class="text-center mt-3">
+            <p>Go back to <a href="{% url 'user_login' %}">Login</a></p>
+        </div>
+    </div>
+
+    <!-- Font Awesome for icons -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+</body>
+</html>

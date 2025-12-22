@@ -1,0 +1,54 @@
+{% extends "common_admin.html" %}
+{% load static %}
+
+{% block page_title %}Category Created Successfully{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="admin-card">
+        <div class="card-body text-center py-5">
+            <div class="success-animation">
+                <i class="fas fa-check-circle text-success fa-5x mb-4"></i>
+            </div>
+            <h3 class="text-success mb-3">Category Created Successfully!</h3>
+            <p class="text-muted mb-4">Your new category has been added to the system.</p>
+            
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{% url 'category_add' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Add Another Category
+                </a>
+                <a href="{% url 'category_manage' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-list me-2"></i>View All Categories
+                </a>
+                <a href="{% url 'product_add' %}" class="btn btn-success">
+                    <i class="fas fa-box me-2"></i>Add Product
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.success-animation {
+    animation: bounceIn 0.6s ease;
+}
+
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+</style>
+{% endblock %}

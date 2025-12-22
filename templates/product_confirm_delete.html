@@ -1,0 +1,70 @@
+{% extends "common_admin.html" %}
+{% load static %}
+
+{% block page_title %}Move to Trash{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="admin-card">
+        <div class="card-header">
+            <h3 class="mb-0 text-danger">
+                <i class="fas fa-trash me-2"></i>
+                Move to Trash
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning">
+                <h5 class="alert-heading">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Confirm Move to Trash
+                </h5>
+                <p class="mb-0">Are you sure you want to move this product to trash?</p>
+            </div>
+            
+            <div class="product-info bg-light p-4 rounded mb-4">
+                <h5>{{ product.name }}</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>SKU:</strong> {{ product.sku }}<br>
+                        <strong>Category:</strong> {{ product.category.name }}<br>
+                        <strong>Brand:</strong> {{ product.brand|default:"-" }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Price Range:</strong> 
+                        {% if product.min_price == product.max_price %}
+                            ₹{{ product.min_price }}
+                        {% else %}
+                            ₹{{ product.min_price }} - ₹{{ product.max_price }}
+                        {% endif %}<br>
+                        <strong>Variants:</strong> {{ product.variants.count }}<br>
+                        <strong>Status:</strong> 
+                        <span class="badge {% if product.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                            {% if product.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Note:</strong> The product will be moved to trash and can be restored later. 
+                All variants will also be moved to trash.
+            </div>
+            
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-2"></i>
+                        Move to Trash
+                    </button>
+                    <a href="{% url 'product_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-2"></i>
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

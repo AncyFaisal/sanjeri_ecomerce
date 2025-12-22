@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<!-- Include Header -->
+{% include 'header.html' %}
+
+<div class="container">
+
+  <!-- Sidebar Filters -->
+  <aside class="sidebar">
+    <h3>Filters</h3>
+    <form method="GET" action="">
+      
+      <!-- Category Filter -->
+      <div class="filter-section">
+        <h4>Category</h4>
+        {% for category in categories %}
+        <label>
+          <input type="checkbox" name="category" value="{{ category.id }}"
+          {% if category.id|stringformat:"s" in request.GET.getlist('category') %}checked{% endif %}>
+          {{ category.name }}
+        </label>
+        {% endfor %}
+      </div>
+
+      <!-- Fragrance Family Filter -->
+      <div class="filter-section">
+        <h4>Fragrance Family</h4>
+        {% for family in fragrance_families %}
+        <label>
+          <input type="checkbox" name="family" value="{{ family }}"
+          {% if family in request.GET.getlist('family') %}checked{% endif %}>
+          {{ family }}
+        </label>
+        {% endfor %}
+      </div>
+
+      <!-- Price Range -->
+      <div class="filter-section">
+        <h4>Price Range</h4>
+        <input type="number" name="min_price" placeholder="Min" value="{{ request.GET.min_price }}">
+        <input type="number" name="max_price" placeholder="Max" value="{{ request.GET.max_price }}">
+      </div>
+
+      <!-- Quantity Filter -->
+      <div class="filter-section">
+        <h4>Quantity</h4>
+        {% for qty in quantities %}
+        <label>
+          <input type="checkbox" name="quantity" value="{{ qty }}"
+          {% if qty|stringformat:"s" in request.GET.getlist('quantity') %}checked{% endif %}>
+          {{ qty }} ml
+        </label>
+        {% endfor %}
+      </div>
+
+      <!-- Brand Filter -->
+      <div class="filter-section">
+        <h4>Brand</h4>
+        {% for brand in brands %}
+        <label>
+          <input type="checkbox" name="brand" value="{{ brand.id }}"
+          {% if brand.id|stringformat:"s" in request.GET.getlist('brand') %}checked{% endif %}>
+          {{ brand.name }}
+        </label>
+        {% endfor %}
+      </div>
+
+      <button type="submit" class="filter-btn">Apply Filters</button>
+      <a href="{% url 'product_list' %}" class="clear-btn">Clear All</a>
+    </form>
+  </aside>
+
+  <!-- Main Product Listing Area -->
+  <main class="product-area">
+
+    <!-- Search and Sorting -->
+    <div class="search-sort">
+      <form method="GET" action="">
+        <input type="text" name="search" placeholder="Search products..."
+          value="{{ request.GET.search }}">
+        <button type="submit">Search</button>
+        <a href="{% url 'product_list' %}" class="clear-search">Clear</a>
+
+        <select name="sort" onchange="this.form.submit()">
+          <option value="">Sort By</option>
+          <option value="price_asc" {% if request.GET.sort=='price_asc' %}selected{% endif %}>Price: Low to High</option>
+          <option value="price_desc" {% if request.GET.sort=='price_desc' %}selected{% endif %}>Price: High to Low</option>
+          <option value="name_asc" {% if request.GET.sort=='name_asc' %}selected{% endif %}>Name A-Z</option>
+          <option value="name_desc" {% if request.GET.sort=='name_desc' %}selected{% endif %}>Name Z-A</option>
+          <option value="popularity" {% if request.GET.sort=='popularity' %}selected{% endif %}>Popularity</option>
+          <option value="ratings" {% if request.GET.sort=='ratings' %}selected{% endif %}>Average Ratings</option>
+          <option value="new_arrival" {% if request.GET.sort=='new_arrival' %}selected{% endif %}>New Arrival</option>
+        </select>
+      </form>
+      <p>Showing {{ products.paginator.count }} products</p>
+    </div>
+
+    <!-- Product Cards -->
+    <div class="products-grid">
+      {% for product in products %}
+        {% if product.is_active %}
+        <div class="product-card">
+          <a href="{% url 'product_detail' product.id %}">
+            <img src="{{ product.image.url }}" alt="{{ product.name }}">
+          </a>
+          <h4>{{ product.name }}</h4>
+          <p class="price">
+            {% if product.discount %}
+              <span class="discounted-price">{{ product.discounted_price }}</span>
+              <span class="original-price">{{ product.price }}</span>
+            {% else %}
+              {{ product.price }}
+            {% endif %}
+          </p>
+          <p>Quantity: {{ product.quantity }}ml</p>
+          <p>Rating: {{ product.average_rating }} / 5</p>
+          <button class="add-cart">Add to Cart</button>
+          <button class="add-wishlist">Add to Wishlist</button>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      {% if products.has_previous %}
+        <a href="?page={{ products.previous_page_number }}">Previous</a>
+      {% endif %}
+      <span>Page {{ products.number }} of {{ products.paginator.num_pages }}</span>
+      {% if products.has_next %}
+        <a href="?page={{ products.next_page_number }}">Next</a>
+      {% endif %}
+    </div>
+
+  </main>
+
+</div>
+
+<!-- Styles -->
+<style>
+.container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 20px;
+}
+.sidebar {
+  flex: 1 1 250px;
+  border: 1px solid #ddd;
+  padding: 15px;
+  border-radius: 5px;
+}
+.product-area {
+  flex: 3 1 700px;
+}
+.filter-section h4 {
+  margin: 10px 0 5px;
+}
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(200px,1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+.product-card {
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 5px;
+  text-align: center;
+}
+.product-card img {
+  max-width: 100%;
+  height: auto;
+}
+.add-cart, .add-wishlist {
+  margin: 5px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+@media (max-width: 768px) {
+  .container { flex-direction: column; }
+  .sidebar, .product-area { flex: 1 1 100%; }
+}
+</style>
+
+{% endblock %}

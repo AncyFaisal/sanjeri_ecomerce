@@ -1,0 +1,231 @@
+{% extends "common_admin.html" %}
+{% load static %}
+
+{% block page_title %}Add New Category{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="admin-card">
+        <div class="card-header">
+            <h3 class="mb-0">
+                <i class="fas fa-plus me-2"></i>
+                Add New Category 
+            </h3>
+        </div>
+
+        <div class="card-body">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data" id="categoryForm">
+                {% csrf_token %}
+                {{ formset.management_form }}
+
+                <div class="row">
+                    <!-- Basic Information -->
+                    <div class="col-lg-8">
+                        <div class="admin-card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Category Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.name.id_for_label }}" class="form-label">Category Name *</label>
+                                        {{ form.name }}
+                                        {% if form.name.errors %}
+                                        <div class="text-danger small mt-1">{{ form.name.errors }}</div>
+                                        {% endif %}
+                                        <div class="form-text">You can create multiple categories with the same name</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Single Product Section -->
+                        <div class="admin-card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Product Information</h5>
+                            </div>
+                            <div class="card-body">
+                                {% for product_form in formset %}
+                                <div class="product-form row g-3 p-3 border rounded">
+                                    <div class="col-12">
+                                        <h6 class="mb-3">Product Details</h6>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <label class="form-label">Product Name *</label>
+                                        {{ product_form.name }}
+                                        {% if product_form.name.errors %}
+                                        <div class="text-danger small mt-1">{{ product_form.name.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <label class="form-label">Product SKU *</label>
+                                        {{ product_form.sku }}
+                                        {% if product_form.sku.errors %}
+                                        <div class="text-danger small mt-1">{{ product_form.sku.errors }}</div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Price *</label>
+                                        {{ product_form.price }}
+                                        {% if product_form.price.errors %}
+                                        <div class="text-danger small mt-1">{{ product_form.price.errors }}</div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Stock *</label>
+                                        {{ product_form.stock }}
+                                        {% if product_form.stock.errors %}
+                                        <div class="text-danger small mt-1">{{ product_form.stock.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+    <label class="form-label">Brand</label>
+    {{ product_form.brand }}
+    {% if product_form.brand.errors %}
+    <div class="text-danger small mt-1">{{ product_form.brand.errors }}</div>
+    {% endif %}
+</div>
+
+<div class="col-md-6">
+    <label class="form-label">Gender</label>
+    {{ product_form.gender }}
+    {% if product_form.gender.errors %}
+    <div class="text-danger small mt-1">{{ product_form.gender.errors }}</div>
+    {% endif %}
+</div>
+
+<div class="col-md-6">
+    <label class="form-label">Volume (ml)</label>
+    {{ product_form.volume_ml }}
+    {% if product_form.volume_ml.errors %}
+    <div class="text-danger small mt-1">{{ product_form.volume_ml.errors }}</div>
+    {% endif %}
+</div>
+
+                                    <div class="col-12">
+                                        <label class="form-label">Description</label>
+                                        {{ product_form.description }}
+                                        {% if product_form.description.errors %}
+                                        <div class="text-danger small mt-1">{{ product_form.description.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar -->
+                    <div class="col-lg-4">
+                        <!-- Thumbnail Upload -->
+                        <div class="admin-card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Category Image</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="{{ form.thumbnail.id_for_label }}" class="form-label">Thumbnail</label>
+                                    {{ form.thumbnail }}
+                                    {% if form.thumbnail.help_text %}
+                                    <div class="form-text">{{ form.thumbnail.help_text }}</div>
+                                    {% endif %}
+                                    {% if form.thumbnail.errors %}
+                                    <div class="text-danger small mt-1">{{ form.thumbnail.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Image Preview</label>
+                                    <div id="thumbnailPreview" class="mt-2 border rounded p-3 text-center">
+                                        <div class="text-muted">
+                                            <i class="fas fa-image fa-2x mb-2"></i>
+                                            <p class="mb-0">Thumbnail preview will appear here</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status Toggles -->
+                        <div class="admin-card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Category Status</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-check form-switch mb-3">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">Active Category</label>
+                                    <div class="form-text">Category will be visible to customers</div>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    {{ form.is_featured }}
+                                    <label class="form-check-label" for="{{ form.is_featured.id_for_label }}">Featured Category</label>
+                                    <div class="form-text">Show on homepage featured section</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="admin-card">
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-plus me-2"></i>
+                                        Create Category
+                                    </button>
+                                    <a href="{% url 'category_manage' %}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-arrow-left me-2"></i>Cancel
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const thumbnailInput = document.getElementById('id_thumbnail');
+    const thumbnailPreview = document.getElementById('thumbnailPreview');
+
+    // Thumbnail preview
+    if (thumbnailInput) {
+        thumbnailInput.addEventListener('change', function () {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    thumbnailPreview.innerHTML = `
+                        <img src="${e.target.result}" class="img-thumbnail" style="max-height: 200px; max-width: 100%;">
+                        <p class="mt-2 text-muted mb-0">Category thumbnail preview</p>
+                    `;
+                };
+                reader.readAsDataURL(this.files[0]);
+            } else {
+                thumbnailPreview.innerHTML = `
+                    <div class="text-muted">
+                        <i class="fas fa-image fa-2x mb-2"></i>
+                        <p class="mb-0">Thumbnail preview will appear here</p>
+                    </div>
+                `;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

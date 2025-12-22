@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Invoice #{{ order.order_number }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+        .company-name { font-size: 24px; font-weight: bold; color: #431405; }
+        .invoice-title { font-size: 20px; margin: 10px 0; }
+        .section { margin: 20px 0; }
+        .section-title { font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f8f9fa; }
+        .text-right { text-align: right; }
+        .total-row { font-weight: bold; background-color: #f8f9fa; }
+        .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-name">Sanjeri Perfumes</div>
+        <div class="invoice-title">INVOICE</div>
+        <div>Order #{{ order.order_number }}</div>
+        <div>Date: {{ order.created_at|date:"F d, Y" }}</div>
+    </div>
+
+    <div class="row">
+        <div class="col-6">
+            <div class="section">
+                <div class="section-title">Bill To:</div>
+                <div><strong>{{ order.shipping_address.full_name }}</strong></div>
+                <div>{{ order.shipping_address.phone }}</div>
+                <div>{{ order.shipping_address.address_line1 }}</div>
+                {% if order.shipping_address.address_line2 %}
+                <div>{{ order.shipping_address.address_line2 }}</div>
+                {% endif %}
+                <div>{{ order.shipping_address.city }}, {{ order.shipping_address.state }} - {{ order.shipping_address.postal_code }}</div>
+                <div>{{ order.shipping_address.country }}</div>
+            </div>
+        </div>
+        <div class="col-6">
+            <div class="section">
+                <div class="section-title">Order Details:</div>
+                <div><strong>Order Number:</strong> {{ order.order_number }}</div>
+                <div><strong>Order Date:</strong> {{ order.created_at|date:"F d, Y" }}</div>
+                <div><strong>Status:</strong> {{ order.get_status_display }}</div>
+                <div><strong>Payment Method:</strong> {{ order.get_payment_method_display }}</div>
+                <div><strong>Payment Status:</strong> {{ order.get_payment_status_display }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Order Items</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Variant</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order_items %}
+                <tr>
+                    <td>{{ item.product_name }}</td>
+                    <td>{{ item.variant_details }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>₹{{ item.unit_price }}</td>
+                    <td>₹{{ item.total_price }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <table style="width: 50%; margin-left: auto;">
+            <tr>
+                <td>Subtotal:</td>
+                <td class="text-right">₹{{ order.subtotal }}</td>
+            </tr>
+            <tr>
+                <td>Shipping:</td>
+                <td class="text-right">{% if order.shipping_charge == 0 %}FREE{% else %}₹{{ order.shipping_charge }}{% endif %}</td>
+            </tr>
+            <tr>
+                <td>Tax (18%):</td>
+                <td class="text-right">₹{{ order.tax_amount|floatformat:2 }}</td>
+            </tr>
+            {% if order.discount_amount > 0 %}
+            <tr>
+                <td>Discount:</td>
+                <td class="text-right">-₹{{ order.discount_amount }}</td>
+            </tr>
+            {% endif %}
+            <tr class="total-row">
+                <td><strong>Total Amount:</strong></td>
+                <td class="text-right"><strong>₹{{ order.total_amount|floatformat:2 }}</strong></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        <p>Thank you for your business!</p>
+        <p>Sanjeri Perfumes - A Scent Beyond the Soul</p>
+        <p>For any queries, please contact our customer support</p>
+    </div>
+</body>
+</html>

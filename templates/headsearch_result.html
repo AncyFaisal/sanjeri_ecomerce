@@ -1,0 +1,372 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Search Results - Sanjeri{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Search Header with Clear Button -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="section-title">Search Results</h1>
+                    {% if query %}
+                        <p class="lead mb-1">Showing results for "{{ query }}"</p>
+                        <p class="text-muted">{{ results_count }} product(s) found</p>
+                    {% endif %}
+                </div>
+                
+                <!-- CLEAR BUTTON - This will be visible when there's a search query -->
+               {% if query %}
+
+<div class="search-info">
+    <a href="{% url 'homepage' %}" class="btn btn-clear-gradient">
+        <i class="fas fa-times me-2"></i> Clear Search
+    </a>
+</div>
+
+{% endif %}
+            </div>
+            
+            <!-- Search Form -->
+            <!-- <div class="search-container mb-4">
+                <form class="search-form" method="GET" action="{% url 'home_product_search' %}">
+                    <div class="input-group input-group-lg" style="max-width: 600px;">
+                        <input type="text" class="form-control" name="q" placeholder="Search for perfumes..." 
+                               value="{{ query }}">
+                        <button class="btn search-submit-btn" type="submit">
+                            <i class="fas fa-search me-1"></i> Search
+                        </button>
+                    </div>
+                </form>
+            </div> -->
+        </div>
+    </div>
+
+    <!-- Search Results -->
+    {% if products %}
+    <div class="row">
+        {% for product in products %}
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            <div class="product-item position-relative">
+                <!-- Sale Badge - Check if any variant has discount -->
+                {% if product.variants.exists %}
+                    {% with variant=product.variants.first %}
+                        {% if variant.discount_price %}
+                        <span class="badge bg-success position-absolute m-2">Sale</span>
+                        {% endif %}
+                    {% endwith %}
+                {% endif %}
+                
+                <!-- Variant Count Badge -->
+                {% if product.variants.count > 1 %}
+                <span class="badge bg-info position-absolute top-0 start-0 m-2">
+                    {{ product.variants.count }} Sizes
+                </span>
+                {% endif %}
+
+                <!-- Wishlist Symbol -->
+                <a href="#" class="btn-wishlist position-absolute top-0 end-0 m-2">
+                    <i class="far fa-heart"></i>
+                </a>
+                
+                <!-- Product Image -->
+                <figure class="text-center">
+                    <a href="{% url 'product_detail' product.id %}" title="{{ product.name }}">
+                        {% if product.main_image %}
+                        <img src="{{ product.main_image.url }}" class="img-fluid product-img" alt="{{ product.name }}">
+                        {% else %}
+                        <!-- Placeholder when no image -->
+                        <div class="image-placeholder">
+                            <div class="text-center">
+                                <i class="fas fa-perfume-bottle fa-3x text-muted mb-2"></i>
+                                <p class="small text-muted">No Image</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </a>
+                </figure>
+                
+                <!-- Product Details -->
+                <div class="product-card-body">
+                    <!-- Product Name -->
+                    <h3 class="product-title">{{ product.name }}</h3>
+                    
+                    <!-- Ratings Stars and Number -->
+                    <div class="product-rating">
+                        <div class="star-rating">
+                            {% if product.avg_rating %}
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= product.avg_rating %}
+                                        <i class="fas fa-star"></i>
+                                    {% elif forloop.counter|add:"-0.5" <= product.avg_rating %}
+                                        <i class="fas fa-star-half-alt"></i>
+                                    {% else %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <!-- Default stars if no rating -->
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            {% endif %}
+                        </div>
+                        <span class="rating-count">({{ product.avg_rating|default:"4.2" }})</span>
+                    </div>
+
+                    <!-- Minimum Price Only -->
+                    <div class="price-section">
+                        <span class="current-price fw-bold">₹{{ product.min_price }}</span>
+                        <small class="text-muted d-block">{{ product.variants.count }} variant{{ product.variants.count|pluralize }}</small>
+                    </div>
+
+                    <!-- Stock Status -->
+                    <div class="stock-status mt-1 mb-2">
+                        {% if product.total_stock > 10 %}
+                            <span class="badge bg-success small">
+                                <i class="fas fa-check me-1"></i>In Stock
+                            </span>
+                        {% elif product.total_stock > 0 %}
+                            <span class="badge bg-warning small">
+                                <i class="fas fa-exclamation me-1"></i>Low Stock
+                            </span>
+                        {% else %}
+                            <span class="badge bg-danger small">
+                                <i class="fas fa-times me-1"></i>Out of Stock
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Add to Cart Button -->
+                    <div class="d-flex justify-content-center">
+                        <a href="{% url 'product_detail' product.id %}" class="btn btn-add-cart">
+                            <i class="fas fa-shopping-cart me-1"></i> Add to Cart
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if products.has_other_pages %}
+    <nav aria-label="Search results pagination">
+        <ul class="pagination justify-content-center">
+            {% if products.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?q={{ query }}&page={{ products.previous_page_number }}">Previous</a>
+            </li>
+            {% endif %}
+            
+            {% for num in products.paginator.page_range %}
+            {% if products.number == num %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% else %}
+            <li class="page-item">
+                <a class="page-link" href="?q={{ query }}&page={{ num }}">{{ num }}</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+            
+            {% if products.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?q={{ query }}&page={{ products.next_page_number }}">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <!-- No Results -->
+    <div class="text-center py-5">
+        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+        <h3>No products found</h3>
+        {% if query %}
+        <p class="text-muted">We couldn't find any products matching "{{ query }}"</p>
+        {% else %}
+        <p class="text-muted">Please enter a search term to find products</p>
+        {% endif %}
+        <p>Try checking your spelling or using more general terms</p>
+        <div class="mt-4">
+            <a href="{% url 'homepage' %}" class="btn btn-primary btn-lg me-3">
+                <i class="fas fa-home me-1"></i> Back to Homepage
+            </a>
+          
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.btn-clear-gradient {
+    background: linear-gradient(135deg, #404040 0%, #808080 100%);
+    border: none;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(64, 64, 64, 0.3);
+}
+
+.btn-clear-gradient:hover {
+    background: linear-gradient(135deg, #808080 0%, #404040 100%);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(64, 64, 64, 0.4);
+}
+.section-title {
+    color: var(--primary-color);
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.search-container {
+    max-width: 600px;
+}
+
+.search-form .input-group {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+}
+
+.search-form .form-control {
+    border: none;
+    padding: 12px 16px;
+    font-size: 1rem;
+}
+
+.search-form .form-control:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.search-submit-btn {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+}
+
+.search-submit-btn:hover {
+    background: #2c0d03;
+    color: white;
+}
+
+/* Clear Button Styles */
+.btn-danger {
+    background: #dc3545;
+    border-color: #dc3545;
+    font-weight: 600;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    border-color: #bd2130;
+    transform: translateY(-1px);
+}
+
+/* Product items styling */
+.product-item {
+    background: white;
+    border-radius: 6px;
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+    margin-bottom: 25px;
+    border: 1px solid #f0f0f0;
+}
+
+.product-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+}
+
+.product-img {
+    height: 200px;
+    object-fit: cover;
+    width: 100%;
+}
+
+.product-card-body {
+    padding: 16px;
+}
+
+.product-title {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+    line-height: 1.3;
+}
+
+.btn-add-cart {
+    background-color: maroon;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 0.8rem;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-add-cart:hover {
+    background-color: #5a0c1d;
+    color: white;
+    transform: translateY(-1px);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .d-flex.justify-content-between.align-items-center {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .search-info {
+        margin-top: 15px;
+        width: 100%;
+    }
+    
+    .search-info .btn {
+        width: 100%;
+    }
+}
+.btn-clear-icon {
+    background: #dc3545;
+    border: none;
+    color: white;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.btn-clear-icon:hover {
+    background: #c82333;
+    color: white;
+    transform: translateY(-2px) rotate(90deg);
+    box-shadow: 0 6px 15px rgba(220, 53, 69, 0.4);
+}
+</style>
+{% endblock %}

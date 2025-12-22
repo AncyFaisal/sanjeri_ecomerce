@@ -1,0 +1,1186 @@
+{% extends "common_admin.html" %}
+{% load static %}
+
+{% block page_title %}Edit Product - {{ product.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.css">
+<style>
+/* Image Cropping Styles */
+.image-crop-container {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.9);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+}
+
+.crop-modal {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    max-width: 90%;
+    max-height: 90%;
+    width: 800px;
+}
+
+.crop-preview {
+    width: 100px;
+    height: 100px;
+    overflow: hidden;
+    border: 2px solid #007bff;
+    border-radius: 5px;
+    margin: 10px auto;
+}
+
+.crop-actions {
+    margin-top: 15px;
+    text-align: center;
+}
+
+#cropImage {
+    max-width: 100%;
+    max-height: 400px;
+}
+
+.crop-instructions {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+}
+
+.crop-options {
+    margin-top: 15px;
+}
+
+.image-preview-container {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    background: #f8f9fa;
+}
+
+.crop-btn {
+    margin-top: 10px;
+}
+
+/* Custom Styles */
+.product-badges .badge {
+    font-size: 0.75rem;
+    margin-left: 0.25rem;
+}
+
+.variant-form {
+    transition: all 0.3s ease;
+}
+
+.variant-form:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.summary-item {
+    font-size: 0.9rem;
+}
+
+.status-controls .form-check {
+    padding-left: 3.5rem;
+}
+
+.status-controls .form-check-input {
+    width: 3rem;
+    height: 1.5rem;
+}
+
+.admin-card .card-header {
+    border-bottom: 2px solid var(--primary-color, #431405);
+}
+
+.variant-form .card-header {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef) !important;
+}
+
+.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+}
+
+.img-thumbnail {
+    transition: transform 0.2s ease;
+}
+
+.img-thumbnail:hover {
+    transform: scale(1.05);
+}
+
+/* Custom scrollbar for variant forms */
+#variant-forms {
+    max-height: 800px;
+    overflow-y: auto;
+}
+
+#variant-forms::-webkit-scrollbar {
+    width: 6px;
+}
+
+#variant-forms::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+#variant-forms::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+#variant-forms::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .product-badges {
+        margin-top: 1rem;
+    }
+    
+    .variant-form .row {
+        margin-left: -0.5rem;
+        margin-right: -0.5rem;
+    }
+    
+    .variant-form .col-md-3,
+    .variant-form .col-md-4,
+    .variant-form .col-md-6 {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+    
+    .crop-modal {
+        width: 95%;
+        padding: 15px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="admin-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">
+                <i class="fas fa-edit me-2"></i>
+                Edit Product: {{ product.name }}
+            </h3>
+            <div class="product-badges">
+                <span class="badge bg-primary">#{{ product.id }}</span>
+                <span class="badge {% if product.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                    {% if product.is_active %}Active{% else %}Inactive{% endif %}
+                </span>
+                {% if product.is_featured %}
+                <span class="badge bg-info">Featured</span>
+                {% endif %}
+                {% if product.is_best_selling %}
+                <span class="badge bg-warning">Best Seller</span>
+                {% endif %}
+                {% if product.is_new_arrival %}
+                <span class="badge bg-success">New Arrival</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" id="productForm" novalidate>
+                {% csrf_token %}
+                
+                <div class="row">
+                    <!-- Left Column - Main Content -->
+                    <div class="col-lg-8">
+                        <!-- Basic Information Card -->
+                        <div class="admin-card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0 text-dark">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Basic Information
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <!-- Product Name -->
+                                    <div class="col-md-6">
+                                        <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold">
+                                            Product Name <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.name }}
+                                        {% if form.name.errors %}
+                                            <div class="text-danger small mt-1">{{ form.name.errors }}</div>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- SKU -->
+                                    <div class="col-md-6">
+                                        <label for="{{ form.sku.id_for_label }}" class="form-label fw-semibold">
+                                            Product SKU <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.sku }}
+                                        {% if form.sku.errors %}
+                                            <div class="text-danger small mt-1">{{ form.sku.errors }}</div>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Slug -->
+                                    <div class="col-md-6">
+                                        <label for="{{ form.slug.id_for_label }}" class="form-label fw-semibold">Slug</label>
+                                        {{ form.slug }}
+                                        <div class="form-text">Leave blank to auto-generate from product name</div>
+                                        {% if form.slug.errors %}
+                                            <div class="text-danger small mt-1">{{ form.slug.errors }}</div>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Category -->
+                                    <div class="col-md-6">
+                                        <label for="{{ form.category.id_for_label }}" class="form-label fw-semibold">
+                                            Category <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.category }}
+                                        {% if form.category.errors %}
+                                            <div class="text-danger small mt-1">{{ form.category.errors }}</div>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Brand -->
+                                    <div class="col-md-6">
+                                        <label for="{{ form.brand.id_for_label }}" class="form-label fw-semibold">Brand</label>
+                                        {{ form.brand }}
+                                        {% if form.brand.errors %}
+                                            <div class="text-danger small mt-1">{{ form.brand.errors }}</div>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Fragrance Type -->
+                                    <div class="col-md-6">
+                                        <label for="{{ form.fragrance_type.id_for_label }}" class="form-label fw-semibold">Fragrance Type</label>
+                                        {{ form.fragrance_type }}
+                                        {% if form.fragrance_type.errors %}
+                                            <div class="text-danger small mt-1">{{ form.fragrance_type.errors }}</div>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Occasion -->
+                                    <div class="col-md-6">
+                                        <label for="{{ form.occasion.id_for_label }}" class="form-label fw-semibold">Occasion</label>
+                                        {{ form.occasion }}
+                                        {% if form.occasion.errors %}
+                                            <div class="text-danger small mt-1">{{ form.occasion.errors }}</div>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Description -->
+                                    <div class="col-12">
+                                        <label for="{{ form.description.id_for_label }}" class="form-label fw-semibold">
+                                            Description <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.description }}
+                                        {% if form.description.errors %}
+                                            <div class="text-danger small mt-1">{{ form.description.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Product Images Card -->
+                        <div class="admin-card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0 text-dark">
+                                    <i class="fas fa-images me-2"></i>
+                                    Product Images
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Main Image -->
+                                <div class="mb-4">
+                                    <label for="{{ form.main_image.id_for_label }}" class="form-label fw-semibold">
+                                        Main Product Image
+                                    </label>
+                                    <div class="image-upload-container">
+                                        {{ form.main_image }}
+                                        <div class="form-text">
+                                            Recommended size: 800x800px. Supported formats: JPG, PNG, WebP (Max 5MB)
+                                        </div>
+                                        {% if form.main_image.errors %}
+                                            <div class="text-danger small mt-1">{{ form.main_image.errors }}</div>
+                                        {% endif %}
+                                        
+                                        <!-- Image Preview and Crop Button -->
+                                        <div class="image-preview-container mt-3" id="mainImagePreview" style="display: none;">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <img id="mainImagePreviewImg" class="img-thumbnail" 
+                                                     style="height: 120px; width: 120px; object-fit: cover;">
+                                                <div>
+                                                    <button type="button" class="btn btn-outline-primary btn-sm crop-btn" onclick="openCropModal('main')">
+                                                        <i class="fas fa-crop me-1"></i>Crop & Resize Image
+                                                    </button>
+                                                    <p class="text-muted mb-0 mt-1">Click to crop and resize before uploading</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        {% if product.main_image %}
+                                        <div class="mt-3">
+                                            <label class="form-label fw-semibold">Current Main Image</label>
+                                            <div class="d-flex align-items-center gap-3">
+                                                <img src="{{ product.main_image.url }}" 
+                                                     class="img-thumbnail" 
+                                                     style="height: 120px; width: 120px; object-fit: cover;"
+                                                     alt="Current main image">
+                                                <div>
+                                                    <p class="mb-1 text-muted">Upload new image to replace</p>
+                                                    <small class="text-muted">Current image will be kept if no new image is selected</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- Additional Images -->
+                                <div class="mb-4">
+                                    <label for="images" class="form-label fw-semibold">Additional Images</label>
+                                    <input type="file" name="images" id="images" multiple class="form-control" accept="image/*">
+                                    <div class="form-text">Select additional product images (optional)</div>
+                                </div>
+
+                                <!-- Current Images Gallery -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Current Product Images</label>
+                                    <div class="current-images">
+                                        <div class="row g-3">
+                                            {% for img in product.images.all %}
+                                            <div class="col-auto">
+                                                <div class="position-relative text-center">
+                                                    <img src="{{ img.image.url }}" 
+                                                         class="img-thumbnail" 
+                                                         style="height: 100px; width: 100px; object-fit: cover;"
+                                                         alt="Product image {{ forloop.counter }}">
+                                                    <div class="mt-1">
+                                                        <small class="text-muted d-block">Image {{ forloop.counter }}</small>
+                                                        {% if img.is_default %}
+                                                        <span class="badge bg-success badge-sm">Main</span>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% empty %}
+                                            <div class="col-12">
+                                                <div class="text-center text-muted py-4">
+                                                    <i class="fas fa-images fa-2x mb-2"></i>
+                                                    <p class="mb-0">No additional images</p>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- New Images Preview -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">New Images Preview</label>
+                                    <div id="newPreview" class="mt-2 border rounded p-3 text-center">
+                                        <div class="text-muted">
+                                            <i class="fas fa-plus fa-2x mb-2"></i>
+                                            <p class="mb-0">New images will appear here after selection</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Product Variants Card -->
+                        <div class="admin-card mb-4">
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0 text-dark">
+                                    <i class="fas fa-cubes me-2"></i>
+                                    Product Variants
+                                </h5>
+                                <span class="badge bg-primary">{{ product.variants.count }} variants</span>
+                            </div>
+                            <div class="card-body">
+                                {{ variant_formset.management_form }}
+                                
+                                <!-- Variant Forms Container -->
+                                <div id="variant-forms" class="mb-4">
+                                    {% for form in variant_formset %}
+                                    <div class="variant-form card border mb-3 {% if form.instance.pk %}border-primary{% else %}border-success{% endif %}">
+                                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-cube me-2"></i>
+                                                Variant {{ forloop.counter }}
+                                                {% if form.instance.pk %}
+                                                    <small class="text-muted">(ID: {{ form.instance.id }})</small>
+                                                {% else %}
+                                                    <small class="text-success">(New)</small>
+                                                {% endif %}
+                                            </h6>
+                                            <div class="d-flex align-items-center gap-2">
+                                                {% if form.instance.pk %}
+                                                <a href="{% url 'variant_edit' product.id form.instance.id %}" 
+                                                   class="btn btn-sm btn-outline-primary" 
+                                                   title="Edit this variant separately">
+                                                    <i class="fas fa-external-link-alt"></i>
+                                                </a>
+                                                {% endif %}
+                                                {% if form.DELETE and form.instance.pk %}
+                                                <div class="form-check form-check-danger">
+                                                    {{ form.DELETE }}
+                                                    <label class="form-check-label text-danger fw-semibold" for="{{ form.DELETE.id_for_label }}">
+                                                        <i class="fas fa-trash me-1"></i>Delete
+                                                    </label>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="card-body">
+                                            <div class="row g-3">
+                                                <!-- Volume -->
+                                                <div class="col-md-3">
+                                                    <label class="form-label fw-semibold">
+                                                        Volume (ml) <span class="text-danger">*</span>
+                                                    </label>
+                                                    {{ form.volume_ml }}
+                                                    {% if form.volume_ml.errors %}
+                                                        <div class="text-danger small mt-1">{{ form.volume_ml.errors }}</div>
+                                                    {% endif %}
+                                                </div>
+
+                                                <!-- Gender -->
+                                                <div class="col-md-3">
+                                                    <label class="form-label fw-semibold">
+                                                        Gender <span class="text-danger">*</span>
+                                                    </label>
+                                                    {{ form.gender }}
+                                                    {% if form.gender.errors %}
+                                                        <div class="text-danger small mt-1">{{ form.gender.errors }}</div>
+                                                    {% endif %}
+                                                </div>
+
+                                                <!-- SKU -->
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-semibold">
+                                                        Variant SKU <span class="text-danger">*</span>
+                                                    </label>
+                                                    {{ form.sku }}
+                                                    <div class="form-text">Leave blank to auto-generate</div>
+                                                    {% if form.sku.errors %}
+                                                        <div class="text-danger small mt-1">{{ form.sku.errors }}</div>
+                                                    {% endif %}
+                                                </div>
+
+                                                <!-- Price -->
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-semibold">
+                                                        Price (₹) <span class="text-danger">*</span>
+                                                    </label>
+                                                    {{ form.price }}
+                                                    {% if form.price.errors %}
+                                                        <div class="text-danger small mt-1">{{ form.price.errors }}</div>
+                                                    {% endif %}
+                                                </div>
+
+                                                <!-- Discount Price -->
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-semibold">Discount Price (₹)</label>
+                                                    {{ form.discount_price }}
+                                                    {% if form.discount_price.errors %}
+                                                        <div class="text-danger small mt-1">{{ form.discount_price.errors }}</div>
+                                                    {% endif %}
+                                                </div>
+
+                                                <!-- Stock -->
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-semibold">
+                                                        Stock <span class="text-danger">*</span>
+                                                    </label>
+                                                    {{ form.stock }}
+                                                    {% if form.stock.errors %}
+                                                        <div class="text-danger small mt-1">{{ form.stock.errors }}</div>
+                                                    {% endif %}
+                                                </div>
+
+                                                <!-- Variant Image -->
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-semibold">Variant Image</label>
+                                                    {{ form.variant_image }}
+                                                    {% if form.variant_image.errors %}
+                                                        <div class="text-danger small mt-1">{{ form.variant_image.errors }}</div>
+                                                    {% endif %}
+                                                    
+                                                    {% if form.instance.variant_image %}
+                                                    <div class="mt-2">
+                                                        <img src="{{ form.instance.variant_image.url }}" 
+                                                             alt="Variant image" 
+                                                             class="img-thumbnail"
+                                                             style="height: 80px; width: 80px; object-fit: cover;">
+                                                        <small class="text-muted d-block">Current image</small>
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+
+                                                <!-- Status -->
+                                                <div class="col-md-6">
+                                                    <label class="form-label fw-semibold">Status</label>
+                                                    <div class="form-check form-switch mt-2">
+                                                        {{ form.is_active }}
+                                                        <label class="form-check-label fw-semibold" for="{{ form.is_active.id_for_label }}">
+                                                            Active Variant
+                                                        </label>
+                                                    </div>
+                                                    <div class="form-text">Inactive variants won't be visible to customers</div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Hidden Fields -->
+                                            {{ form.id }}
+                                            {{ form.product }}
+                                        </div>
+
+                                        <!-- Variant Summary for Existing Variants -->
+                                        {% if form.instance.pk %}
+                                        <div class="card-footer bg-light">
+                                            <div class="row g-2 text-center">
+                                                <div class="col-3">
+                                                    <small class="text-muted d-block">SKU</small>
+                                                    <strong class="text-primary">{{ form.instance.sku }}</strong>
+                                                </div>
+                                                <div class="col-3">
+                                                    <small class="text-muted d-block">Current Price</small>
+                                                    <strong>₹{{ form.instance.price }}</strong>
+                                                </div>
+                                                <div class="col-3">
+                                                    <small class="text-muted d-block">Discounted</small>
+                                                    <strong class="{% if form.instance.discount_price %}text-danger{% else %}text-muted{% endif %}">
+                                                        {% if form.instance.discount_price %}₹{{ form.instance.discount_price }}{% else %}--{% endif %}
+                                                    </strong>
+                                                </div>
+                                                <div class="col-3">
+                                                    <small class="text-muted d-block">Stock</small>
+                                                    <span class="badge {% if form.instance.stock > 10 %}bg-success{% elif form.instance.stock > 0 %}bg-warning{% else %}bg-danger{% endif %}">
+                                                        {{ form.instance.stock }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+
+                                <!-- Add Variant Button -->
+                                <div class="text-center">
+                                    <button type="button" class="btn btn-success" id="add-variant">
+                                        <i class="fas fa-plus-circle me-2"></i>Add New Variant
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column - Sidebar -->
+                    <div class="col-lg-4">
+                        <!-- Product Summary Card -->
+                        <div class="admin-card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0 text-dark">
+                                    <i class="fas fa-chart-bar me-2"></i>
+                                    Product Summary
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="product-summary">
+                                    <div class="summary-item d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                                        <span class="text-muted">Product ID:</span>
+                                        <strong>#{{ product.id }}</strong>
+                                    </div>
+                                    <div class="summary-item d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                                        <span class="text-muted">Base SKU:</span>
+                                        <code class="text-primary">{{ product.sku }}</code>
+                                    </div>
+                                    <div class="summary-item d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                                        <span class="text-muted">Price Range:</span>
+                                        <strong class="text-success">
+                                            {% if product.min_price == product.max_price %}
+                                                ₹{{ product.min_price }}
+                                            {% else %}
+                                                ₹{{ product.min_price }} - ₹{{ product.max_price }}
+                                            {% endif %}
+                                        </strong>
+                                    </div>
+                                    <div class="summary-item d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                                        <span class="text-muted">Total Stock:</span>
+                                        <span class="badge {% if product.total_stock > 10 %}bg-success{% elif product.total_stock > 0 %}bg-warning{% else %}bg-danger{% endif %} fs-6">
+                                            {{ product.total_stock }}
+                                        </span>
+                                    </div>
+                                    <div class="summary-item d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                                        <span class="text-muted">Active Variants:</span>
+                                        <strong>{{ product.variants.filter.is_active.count }}</strong>
+                                    </div>
+                                    <div class="summary-item d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                                        <span class="text-muted">Category:</span>
+                                        <strong>{{ product.category.name }}</strong>
+                                    </div>
+                                    <div class="summary-item d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                                        <span class="text-muted">Created:</span>
+                                        <small>{{ product.created_at|date:"M d, Y" }}</small>
+                                    </div>
+                                    <div class="summary-item d-flex justify-content-between align-items-center">
+                                        <span class="text-muted">Last Updated:</span>
+                                        <small>{{ product.updated_at|date:"M d, Y" }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Product Status Card -->
+                        <div class="admin-card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0 text-dark">
+                                    <i class="fas fa-toggle-on me-2"></i>
+                                    Product Status
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="status-controls">
+                                    <div class="form-check form-switch mb-3">
+                                        {{ form.is_active }}
+                                        <label class="form-check-label fw-semibold" for="{{ form.is_active.id_for_label }}">
+                                            Active Product
+                                        </label>
+                                        <div class="form-text">Product will be visible to customers</div>
+                                    </div>
+                                    <div class="form-check form-switch mb-3">
+                                        {{ form.is_featured }}
+                                        <label class="form-check-label fw-semibold" for="{{ form.is_featured.id_for_label }}">
+                                            Featured Product
+                                        </label>
+                                        <div class="form-text">Show on homepage featured section</div>
+                                    </div>
+                                    <div class="form-check form-switch mb-3">
+                                        {{ form.is_best_selling }}
+                                        <label class="form-check-label fw-semibold" for="{{ form.is_best_selling.id_for_label }}">
+                                            Best Selling
+                                        </label>
+                                        <div class="form-text">Mark as best selling product</div>
+                                    </div>
+                                    <div class="form-check form-switch mb-3">
+                                        {{ form.is_new_arrival }}
+                                        <label class="form-check-label fw-semibold" for="{{ form.is_new_arrival.id_for_label }}">
+                                            New Arrival
+                                        </label>
+                                        <div class="form-text">Show in new arrivals section</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions Card -->
+                        <div class="admin-card">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0 text-dark">
+                                    <i class="fas fa-cogs me-2"></i>
+                                    Actions
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-save me-2"></i>
+                                        Update Product
+                                    </button>
+                                    <a href="{% url 'product_list' %}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-arrow-left me-2"></i>Back to Products
+                                    </a>
+                                    <a href="{% url 'product_soft_delete' product.id %}" 
+                                       class="btn btn-outline-danger"
+                                       onclick="return confirm('Are you sure you want to move this product to trash? The product will be hidden but can be restored later.')">
+                                        <i class="fas fa-trash me-2"></i>Move to Trash
+                                    </a>
+                                    <a href="{% url 'product_detail' product.id %}" 
+                                       class="btn btn-outline-info"
+                                       target="_blank">
+                                        <i class="fas fa-eye me-2"></i>View Product Page
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Image Cropping Modal -->
+<div class="image-crop-container" id="cropModal">
+    <div class="crop-modal">
+        <h5 class="mb-3">Crop & Resize Image</h5>
+        
+        <div class="crop-instructions">
+            <i class="fas fa-info-circle me-2"></i>
+            Drag to select the area you want to keep. Recommended aspect ratio: Square (1:1)
+        </div>
+        
+        <div class="row">
+            <div class="col-md-8">
+                <img id="cropImage" src="" alt="Image to crop">
+            </div>
+            <div class="col-md-4">
+                <div class="crop-preview-container">
+                    <h6>Preview</h6>
+                    <div class="crop-preview"></div>
+                    
+                    <div class="crop-options">
+                        <label class="form-label">Aspect Ratio</label>
+                        <select class="form-select form-select-sm" id="aspectRatio">
+                            <option value="1">Square (1:1)</option>
+                            <option value="4/3">Landscape (4:3)</option>
+                            <option value="3/4">Portrait (3:4)</option>
+                            <option value="0">Free</option>
+                        </select>
+                    </div>
+                    
+                    <div class="crop-actions mt-3">
+                        <button type="button" class="btn btn-success btn-sm" onclick="cropImage()">
+                            <i class="fas fa-check me-1"></i>Apply Crop
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="closeCropModal()">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.js"></script>
+<script>
+let currentCropper = null;
+let currentImageType = null;
+let currentFileInput = null;
+let originalFile = null;
+
+// Initialize when document is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Main image preview
+    const mainImageInput = document.querySelector('input[name="main_image"]');
+    if (mainImageInput) {
+        mainImageInput.addEventListener('change', function(e) {
+            if (this.files && this.files[0]) {
+                originalFile = this.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewContainer = document.getElementById('mainImagePreview');
+                    const previewImg = document.getElementById('mainImagePreviewImg');
+                    previewImg.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                }
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
+
+    // Additional images preview
+    const imagesInput = document.getElementById('images');
+    const newPreview = document.getElementById('newPreview');
+    imagesInput?.addEventListener('change', function() {
+        newPreview.innerHTML = '';
+        
+        if (this.files.length === 0) {
+            newPreview.innerHTML = `
+                <div class="text-center text-muted">
+                    <i class="fas fa-plus fa-2x mb-2"></i>
+                    <p class="mb-0">New images will appear here after selection</p>
+                </div>
+            `;
+            return;
+        }
+
+        const previewRow = document.createElement('div');
+        previewRow.className = 'row g-2';
+        
+        Array.from(this.files).forEach((file, index) => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const col = document.createElement('div');
+                    col.className = 'col-auto';
+                    
+                    const imgContainer = document.createElement('div');
+                    imgContainer.className = 'text-center';
+                    
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'img-thumbnail mb-2';
+                    img.style.height = '80px';
+                    img.style.width = '80px';
+                    img.style.objectFit = 'cover';
+                    
+                    const imgNumber = document.createElement('div');
+                    imgNumber.className = 'small text-success fw-semibold';
+                    imgNumber.textContent = `New ${index + 1}`;
+                    
+                    imgContainer.appendChild(img);
+                    imgContainer.appendChild(imgNumber);
+                    col.appendChild(imgContainer);
+                    previewRow.appendChild(col);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        newPreview.innerHTML = '';
+        newPreview.appendChild(previewRow);
+    });
+
+    // Variant image previews
+    document.addEventListener('change', function(e) {
+        if (e.target.matches('input[name*="variant_image"]')) {
+            const fileInput = e.target;
+            if (fileInput.files && fileInput.files[0]) {
+                originalFile = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const variantForm = fileInput.closest('.variant-form');
+                    let previewContainer = variantForm.querySelector('.variant-image-preview');
+                    
+                    if (!previewContainer) {
+                        previewContainer = document.createElement('div');
+                        previewContainer.className = 'variant-image-preview mt-2';
+                        fileInput.parentNode.appendChild(previewContainer);
+                    }
+                    
+                    previewContainer.innerHTML = `
+                        <div class="d-flex align-items-center gap-2">
+                            <img src="${e.target.result}" class="img-thumbnail" 
+                                 style="height: 80px; width: 80px; object-fit: cover;">
+                            <button type="button" class="btn btn-outline-primary btn-sm" 
+                                    onclick="openVariantCropModal(this, '${e.target.result}')">
+                                <i class="fas fa-crop me-1"></i>Crop
+                            </button>
+                        </div>
+                    `;
+                }
+                reader.readAsDataURL(fileInput.files[0]);
+            }
+        }
+    });
+
+    // Variant formset functionality
+    const addVariantBtn = document.getElementById('add-variant');
+    const variantForms = document.getElementById('variant-forms');
+    const totalForms = document.getElementById('id_variants-TOTAL_FORMS');
+
+    if (addVariantBtn && variantForms && totalForms) {
+        addVariantBtn.addEventListener('click', function() {
+            const formNum = parseInt(totalForms.value);
+            const newForm = variantForms.children[0].cloneNode(true);
+            
+            // Update all field names and IDs
+            const formRegex = /variants-(\d+)-/g;
+            newForm.innerHTML = newForm.innerHTML.replace(
+                formRegex, 
+                `variants-${formNum}-`
+            );
+            
+            // Clear input values and reset states
+            newForm.querySelectorAll('input, select, textarea').forEach(input => {
+                const name = input.name;
+                
+                if (name && !name.includes('csrfmiddlewaretoken') && !name.includes('TOTAL_FORMS') && !name.includes('INITIAL_FORMS')) {
+                    if (input.type === 'checkbox') {
+                        input.checked = true; // Default to active for new variants
+                    } else if (input.type === 'select-one') {
+                        input.selectedIndex = 0;
+                    } else if (input.type === 'file') {
+                        input.value = '';
+                    } else if (input.type === 'number') {
+                        input.value = '';
+                    } else if (input.type === 'text') {
+                        input.value = '';
+                    }
+                }
+            });
+            
+            // Remove variant summary for new forms
+            const variantSummary = newForm.querySelector('.card-footer');
+            if (variantSummary) {
+                variantSummary.remove();
+            }
+            
+            // Remove DELETE checkbox for new forms
+            const deleteCheckbox = newForm.querySelector('input[type="checkbox"][name*="DELETE"]');
+            const deleteLabel = newForm.querySelector('label[for*="DELETE"]');
+            if (deleteCheckbox && deleteLabel) {
+                deleteCheckbox.closest('.form-check').remove();
+            }
+            
+            // Update the header for new forms
+            const header = newForm.querySelector('.card-header h6');
+            if (header) {
+                header.innerHTML = '<i class="fas fa-cube me-2"></i>Variant ' + (formNum + 1) + ' <small class="text-success">(New)</small>';
+            }
+            
+            // Change border color for new forms
+            newForm.classList.remove('border-primary');
+            newForm.classList.add('border-success');
+            
+            // Remove external edit link for new forms
+            const editLink = newForm.querySelector('a[href*="variant_edit"]');
+            if (editLink) {
+                editLink.remove();
+            }
+            
+            variantForms.appendChild(newForm);
+            totalForms.value = formNum + 1;
+            
+            // Scroll to the new form
+            newForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+    }
+
+    // Auto-generate SKU based on volume and gender
+    function generateVariantSKU(input) {
+        const variantForm = input.closest('.variant-form');
+        const volumeInput = variantForm.querySelector('input[name*="volume_ml"]');
+        const genderSelect = variantForm.querySelector('select[name*="gender"]');
+        const skuInput = variantForm.querySelector('input[name*="sku"]');
+        
+        if (volumeInput && genderSelect && skuInput && !skuInput.value) {
+            const volume = volumeInput.value;
+            const gender = genderSelect.value;
+            const baseSKU = '{{ product.sku }}';
+            
+            if (volume && gender && baseSKU) {
+                const genderCode = gender.substring(0, 3).toUpperCase();
+                skuInput.value = `${baseSKU}-${volume}-${genderCode}`;
+            }
+        }
+    }
+
+    // Add event listeners for auto SKU generation
+    document.addEventListener('input', function(e) {
+        if (e.target.matches('input[name*="volume_ml"]') || e.target.matches('select[name*="gender"]')) {
+            generateVariantSKU(e.target);
+        }
+    });
+
+    // Price validation
+    document.addEventListener('input', function(e) {
+        if (e.target.matches('input[name*="discount_price"]')) {
+            const variantForm = e.target.closest('.variant-form');
+            const priceInput = variantForm.querySelector('input[name*="price"]');
+            const discountInput = e.target;
+            
+            if (priceInput.value && discountInput.value) {
+                const price = parseFloat(priceInput.value);
+                const discount = parseFloat(discountInput.value);
+                
+                if (discount >= price) {
+                    discountInput.classList.add('is-invalid');
+                } else {
+                    discountInput.classList.remove('is-invalid');
+                }
+            }
+        }
+    });
+
+    // Form submission validation
+    const productForm = document.getElementById('productForm');
+    productForm?.addEventListener('submit', function(e) {
+        let hasErrors = false;
+        
+        // Check if at least one variant is active
+        const activeVariants = document.querySelectorAll('input[name*="is_active"]:checked');
+        if (activeVariants.length === 0) {
+            alert('Warning: No active variants. The product will not be visible to customers.');
+        }
+        
+        // Check for duplicate SKUs
+        const skus = new Set();
+        const skuInputs = document.querySelectorAll('input[name*="sku"]');
+        
+        skuInputs.forEach(input => {
+            if (input.value) {
+                if (skus.has(input.value)) {
+                    input.classList.add('is-invalid');
+                    hasErrors = true;
+                    alert(`Duplicate SKU found: ${input.value}. Please ensure all variant SKUs are unique.`);
+                } else {
+                    skus.add(input.value);
+                    input.classList.remove('is-invalid');
+                }
+            }
+        });
+        
+        if (hasErrors) {
+            e.preventDefault();
+        }
+    });
+});
+
+// Cropping Functions
+function openCropModal(imageType) {
+    currentImageType = imageType;
+    const previewImg = document.getElementById('mainImagePreviewImg');
+    const cropImage = document.getElementById('cropImage');
+    
+    cropImage.src = previewImg.src;
+    document.getElementById('cropModal').style.display = 'flex';
+    
+    // Initialize cropper
+    setTimeout(() => {
+        if (currentCropper) {
+            currentCropper.destroy();
+        }
+        
+        currentCropper = new Cropper(cropImage, {
+            aspectRatio: 1,
+            viewMode: 1,
+            preview: '.crop-preview',
+            guides: true,
+            background: false,
+            responsive: true,
+            restore: false,
+            checkCrossOrigin: false,
+            autoCropArea: 0.8
+        });
+        
+        // Aspect ratio change handler
+        document.getElementById('aspectRatio').addEventListener('change', function() {
+            const ratio = this.value;
+            if (ratio === '0') {
+                currentCropper.setAspectRatio(NaN);
+            } else {
+                currentCropper.setAspectRatio(eval(ratio));
+            }
+        });
+    }, 100);
+}
+
+function openVariantCropModal(button, imageSrc) {
+    currentImageType = 'variant';
+    const cropImage = document.getElementById('cropImage');
+    
+    cropImage.src = imageSrc;
+    document.getElementById('cropModal').style.display = 'flex';
+    
+    // Store reference to the button and file input
+    currentFileInput = button.closest('.variant-form').querySelector('input[name*="variant_image"]');
+    originalFile = currentFileInput.files[0];
+    
+    // Initialize cropper
+    setTimeout(() => {
+        if (currentCropper) {
+            currentCropper.destroy();
+        }
+        
+        currentCropper = new Cropper(cropImage, {
+            aspectRatio: 1,
+            viewMode: 1,
+            preview: '.crop-preview',
+            guides: true,
+            background: false,
+            responsive: true,
+            restore: false,
+            checkCrossOrigin: false,
+            autoCropArea: 0.8
+        });
+        
+        // Aspect ratio change handler
+        document.getElementById('aspectRatio').addEventListener('change', function() {
+            const ratio = this.value;
+            if (ratio === '0') {
+                currentCropper.setAspectRatio(NaN);
+            } else {
+                currentCropper.setAspectRatio(eval(ratio));
+            }
+        });
+    }, 100);
+}
+
+function cropImage() {
+    if (currentCropper) {
+        const canvas = currentCropper.getCroppedCanvas({
+            width: 800,
+            height: 800,
+            fillColor: '#fff'
+        });
+        
+        canvas.toBlob(function(blob) {
+            // Create a new file from the cropped blob
+            const file = new File([blob], originalFile.name, {
+                type: 'image/jpeg',
+                lastModified: new Date().getTime()
+            });
+            
+            // Create a new DataTransfer object to set the file
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            
+            // Update the file input with the cropped image
+            if (currentImageType === 'main') {
+                const mainImageInput = document.querySelector('input[name="main_image"]');
+                mainImageInput.files = dataTransfer.files;
+                
+                // Update preview
+                const previewImg = document.getElementById('mainImagePreviewImg');
+                previewImg.src = URL.createObjectURL(file);
+            } else if (currentImageType === 'variant') {
+                currentFileInput.files = dataTransfer.files;
+                
+                // Update variant preview
+                const variantPreview = currentFileInput.closest('.variant-form').querySelector('.variant-image-preview img');
+                if (variantPreview) {
+                    variantPreview.src = URL.createObjectURL(file);
+                }
+            }
+            
+            closeCropModal();
+            
+        }, 'image/jpeg', 0.9);
+    }
+}
+
+function closeCropModal() {
+    document.getElementById('cropModal').style.display = 'none';
+    if (currentCropper) {
+        currentCropper.destroy();
+        currentCropper = null;
+    }
+}
+
+// Close modal when clicking outside
+document.getElementById('cropModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeCropModal();
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeCropModal();
+    }
+});
+</script>
+{% endblock %}

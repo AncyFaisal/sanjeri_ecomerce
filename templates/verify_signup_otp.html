@@ -1,0 +1,120 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Verify OTP - Signup</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #e4d6b7;
+            font: 600 16px/18px 'Open Sans', sans-serif;
+        }
+        .signup-container {
+            width: 600px;
+            margin: 40px auto;
+            margin-top: 80px;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            background: white;
+        }
+        .btn-submit {
+            background-color: maroon;
+            color: white;
+            border-radius: 50px;
+            padding: 10px 20px;
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .btn-submit:hover {
+            background-color: #a00000;
+        }
+        .btn-resend {
+            background-color: #ffc107;
+            color: black;
+            border-radius: 50px;
+            padding: 10px 20px;
+            font-size: 15px;
+            font-weight: 500;
+        }
+    </style>
+    <script>
+        // Calculate remaining seconds from expiry_time
+        let expiry = {{ expiry_time|default:0 }};
+        let currentTime = Math.floor(Date.now() / 1000);
+        let remainingSeconds = Math.max(0, expiry - currentTime);
+        
+        function startTimer() {
+            let timerElement = document.getElementById("timer");
+            let resendBtn = document.getElementById("resendBtn");
+            let resendLink = document.getElementById("resendLink");
+
+            let countdown = setInterval(function() {
+                if (remainingSeconds <= 0) {
+                    clearInterval(countdown);
+                    timerElement.innerText = "OTP expired!";
+                    resendBtn.disabled = false;
+                    resendBtn.classList.remove('btn-secondary');
+                    resendBtn.classList.add('btn-resend');
+                    resendLink.style.display = 'block';
+                } else {
+                    let minutes = Math.floor(remainingSeconds / 60);
+                    let seconds = remainingSeconds % 60;
+                    timerElement.innerText = "Time remaining: " + minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+                    remainingSeconds--;
+                }
+            }, 1000);
+        }
+        window.onload = startTimer;
+    </script>
+</head>
+<body>
+    <div class="icon text-center">
+        <h2 class="logo" style="font-size: 40px;">SANJERI</h2>
+        <p class="logotag" style="font-size: 18px;">A Scent Beyond the Soul</p>
+    </div>
+
+    <div class="signup-container">
+        <h3 class="text-center mb-4" style="font-family:Verdana, Geneva, Tahoma, sans-serif;font-size:xx-large; font-weight: 600px;">Verify OTP</h3>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST" action="{% url 'verify_signup_otp' %}">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Enter OTP sent to your email</label>
+                <input type="text" name="otp" class="form-control" required maxlength="6" pattern="\d{6}" title="Please enter 6-digit OTP">
+            </div>
+            
+            <div class="mb-3 text-center">
+                <p id="timer" style="color:blue; font-weight:bold;"></p>
+            </div>
+            
+            <div class="text-center">
+                <button type="submit" class="btn btn-submit">Verify OTP</button>
+            </div>
+        </form>
+
+        <div class="text-center mt-3">
+            <form action="{% url 'resend_signup_otp' %}" method="POST">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary" id="resendBtn" disabled style="border-radius: 50px; padding: 10px 20px;">
+                    Resend OTP
+                </button>
+            </form>
+        </div>
+
+        <div class="text-center mt-3">
+            <p id="resendLink" style="display: none;">
+                Didn't receive OTP? <a href="{% url 'resend_signup_otp' %}">Click here to resend</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

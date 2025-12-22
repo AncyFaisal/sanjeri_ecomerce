@@ -1,0 +1,96 @@
+<!-- templates/variant_confirm_delete.html -->
+{% extends "common_admin.html" %}
+{% load static %}
+
+{% block page_title %}Delete Variant - {{ variant.sku }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="admin-card">
+                <div class="card-header bg-warning text-dark">
+                    <h3 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Confirm Variant Deletion
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-trash me-2"></i>
+                            Move Variant to Trash
+                        </h5>
+                        <p class="mb-0">Are you sure you want to move this variant to trash?</p>
+                    </div>
+                    
+                    <!-- Variant Information -->
+                    <div class="variant-info bg-light p-4 rounded mb-4">
+                        <h5 class="text-danger mb-3">{{ variant.sku }}</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Product:</strong> {{ variant.product.name }}<br>
+                                <strong>Volume:</strong> {{ variant.volume_ml }}ml<br>
+                                <strong>Gender:</strong> {{ variant.gender }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Price:</strong> ₹{{ variant.price }}<br>
+                                {% if variant.discount_price %}
+                                <strong>Discount Price:</strong> ₹{{ variant.discount_price }}<br>
+                                {% endif %}
+                                <strong>Stock:</strong> 
+                                <span class="badge {% if variant.stock > 10 %}bg-success{% elif variant.stock > 0 %}bg-warning{% else %}bg-danger{% endif %}">
+                                    {{ variant.stock }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Important Notes -->
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Important Notes
+                        </h6>
+                        <ul class="mb-0 ps-3">
+                            <li>The variant will be moved to trash (soft delete)</li>
+                            <li>It will be hidden from customers but preserved in the database</li>
+                            <li>You can restore it later from the product edit page</li>
+                            <li>This action does not affect other variants of the same product</li>
+                        </ul>
+                    </div>
+
+                    <!-- Confirmation Form -->
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'product_edit' variant.product.id %}" class="btn btn-secondary me-md-2">
+                                <i class="fas fa-times me-2"></i>
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash me-2"></i>
+                                Move to Trash
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.admin-card .card-header {
+    border-bottom: 2px solid var(--warning);
+}
+
+.variant-info {
+    border-left: 4px solid var(--warning);
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+}
+</style>
+{% endblock %}

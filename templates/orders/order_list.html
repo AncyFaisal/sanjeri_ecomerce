@@ -1,0 +1,188 @@
+<!-- templates/orders/order_list.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">My Orders</h4>
+                    <div class="d-flex gap-2">
+                        <!-- Search Form -->
+                        <form method="GET" class="d-flex">
+                            <input type="text" name="search" class="form-control me-2" 
+                                   placeholder="Search by order number..." 
+                                   value="{{ search_query }}">
+                            <select name="status" class="form-select me-2" style="width: auto;">
+                                <option value="">All Status</option>
+                                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="confirmed" {% if status_filter == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                                <option value="shipped" {% if status_filter == 'shipped' %}selected{% endif %}>Shipped</option>
+                                <option value="delivered" {% if status_filter == 'delivered' %}selected{% endif %}>Delivered</option>
+                                <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                                <option value="refunded" {% if status_filter == 'refunded' %}selected{% endif %}>Refunded</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            <a href="{% url 'order_list' %}" class="btn btn-outline-secondary ms-2">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if orders %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Order Number</th>
+                                        <th>Date</th>
+                                        <th>Items</th>
+                                        <th>Total Amount</th>
+                                        <th>Status</th>
+                                        <th>Payment</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in orders %}
+                                    <tr>
+                                        <td>
+                                            <strong>#{{ order.order_number }}</strong>
+                                        </td>
+                                        <td>{{ order.created_at|date:"M d, Y" }}</td>
+                                        <td>{{ order.items.count }} item(s)</td>
+                                        <td>₹{{ order.total_amount }}</td>
+                                        <td>
+                                            <span class="badge bg-{% if order.status == 'delivered' %}success{% elif order.status == 'cancelled' or order.status == 'refunded' %}danger{% elif order.status == 'pending' %}warning{% else %}info{% endif %}">
+                                                {{ order.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{% if order.payment_status == 'completed' %}success{% else %}warning{% endif %}">
+                                                {{ order.get_payment_status_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{% url 'order_detail' order.id %}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i> View
+                                                </a>
+                                                <a href="{% url 'download_invoice' order.id %}" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="fas fa-download"></i> Invoice
+                                                </a>
+                                                
+                                                {% if order.can_be_cancelled %}
+                                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                        data-bs-toggle="modal" data-bs-target="#cancelModal{{ order.id }}">
+                                                    <i class="fas fa-times"></i> Cancel
+                                                </button>
+                                                {% endif %}
+                                                
+                                                {% if order.can_be_returned %}
+                                                <button type="button" class="btn btn-sm btn-outline-warning" 
+                                                        data-bs-toggle="modal" data-bs-target="#returnModal{{ order.id }}">
+                                                    <i class="fas fa-undo"></i> Return
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
+                            <h5>No orders found</h5>
+                            <p class="text-muted">
+                                {% if search_query or status_filter %}
+                                    Try adjusting your search or filters
+                                {% else %}
+                                    You haven't placed any orders yet.
+                                {% endif %}
+                            </p>
+                            <a href="{% url 'homepage' %}" class="btn btn-primary">Start Shopping</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Order Modals -->
+{% for order in orders %}
+{% if order.can_be_cancelled %}
+<div class="modal fade" id="cancelModal{{ order.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancel Order #{{ order.order_number }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'cancel_order' order.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p>Are you sure you want to cancel this order?</p>
+                    <div class="mb-3">
+                        <label for="reason{{ order.id }}" class="form-label">Reason for cancellation (optional):</label>
+                        <textarea class="form-control" id="reason{{ order.id }}" name="reason" 
+                                  rows="3" placeholder="Please provide a reason for cancellation..."></textarea>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        The stock will be restored for all items in this order.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Return Order Modals -->
+{% if order.can_be_returned %}
+<div class="modal fade" id="returnModal{{ order.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Return Order #{{ order.order_number }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'return_order' order.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p>Please provide a reason for returning this order.</p>
+                    <div class="mb-3">
+                        <label for="returnReason{{ order.id }}" class="form-label">Reason for return <span class="text-danger">*</span>:</label>
+                        <textarea class="form-control" id="returnReason{{ order.id }}" name="reason" 
+                                  rows="3" placeholder="Please provide a detailed reason for return..." required></textarea>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        The stock will be restored and refund will be processed for this order.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-warning">Submit Return Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endblock %}
