@@ -27,6 +27,7 @@ SECRET_KEY = 'django-insecure--^v2*dd7n=%tr0g%=s46wfv4!t3sl%u)p=9j4cq(wf!zr7h%3&
 DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+# ALLOWED_HOSTS = ['https://ancyfaisal.github.io/sanjeri_ecomerce/']
 
 
 # Application definition
@@ -75,6 +76,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'sanjeri_app.context_processors.cart_and_wishlist_context',
+                # 'sanjeri_app.context_processors.wishlist_context',
             ],
         },
     },
@@ -133,7 +135,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / "static"] 
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type

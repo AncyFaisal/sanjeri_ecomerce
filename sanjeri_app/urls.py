@@ -12,7 +12,7 @@ from .views.user_address_manage import *
 from .views.cart import *
 from .views.checkout import *
 from .views.admin_order_management import *
-from .views.wishlist import wishlist_view, add_to_wishlist, remove_from_wishlist
+from .views.wishlist import *
 from .views.view_userside import (
     home, men_products, women_products, unisex_products, 
     brands, product_search, wishlist, cart, all_products, brand_products
@@ -24,7 +24,7 @@ urlpatterns = [
     path('dashboard/', admin_dashboard, name='admin_dashboard'),
 
     # User management
-    path('user_list/', user_list, name='user_list'),
+    path('user-list/', user_list, name='user_list'),
     path('users/<int:user_id>/', user_detail, name='user_detail'),
     path('users/<int:user_id>/toggle-status/', toggle_user_status, name='toggle_user_status'),
     path('users/<int:user_id>/delete/', delete_user, name='delete_user'),
@@ -57,9 +57,9 @@ path('products/<int:product_pk>/variants/<int:variant_pk>/restore/', variant_res
     
     # Authentication
     path('accounts/', include('allauth.urls')),
-    path('user_signup/', user_signup, name='user_signup'),
-    path('user_login/', user_login, name='user_login'),
-    path('user_logout/', user_logout, name='user_logout'),
+    path('user-signup/', user_signup, name='user_signup'),
+    path('user-login/', user_login, name='user_login'),
+    path('user-logout/', user_logout, name='user_logout'),
     path("forgot-password/", forgot_password, name="forgot_password"),
     path("verify-otp/", verify_reset_otp, name="verify_otp"),
     path("reset-password/", reset_password, name="reset_password"),
@@ -70,7 +70,7 @@ path('products/<int:product_pk>/variants/<int:variant_pk>/restore/', variant_res
     # Main website
     path('', homepage, name='homepage'),
     path('commonhome/', homeproduct, name='commonhome'),
-    path('home_product_search',home_product_search,name='home_product_search'), #for search results of home search bar
+    path('home-product-search',home_product_search,name='home_product_search'), #for search results of home search bar
     
     # Product pages
     path('men/', men_products, name='men'),  
@@ -83,11 +83,18 @@ path('products/<int:product_pk>/variants/<int:variant_pk>/restore/', variant_res
 
     
     # Wishlist URLs
+    # Add this to your urlpatterns
+    path('wishlist/count/', wishlist_count, name='wishlist_count'),
+    path('wishlist/get-item-id/<int:product_id>/', get_wishlist_item_id, name='get_wishlist_item_id'),
+    path('wishlist/check/<int:product_id>/', check_wishlist_status, name='check_wishlist_status'),
+ path('wishlist/count/', get_wishlist_count, name='get_wishlist_count'),
     path('wishlist/', wishlist_view, name='wishlist'),
     path('wishlist/add/<int:product_id>/', add_to_wishlist, name='add_to_wishlist'),
     path('wishlist/remove/<int:item_id>/', remove_from_wishlist, name='remove_from_wishlist'),
 
     # Cart URLs
+    path('cart/check-variant/<int:variant_id>/', check_variant_in_cart, name='check_variant_in_cart'),
+    path('cart/debug/', cart_debug, name='cart_debug'),  # Add this
     path('cart/', cart_view, name='cart'),
     path('cart/add/<int:variant_id>/', add_to_cart, name='add_to_cart'),
     path('cart/update/<int:item_id>/', update_cart_item, name='update_cart_item'),

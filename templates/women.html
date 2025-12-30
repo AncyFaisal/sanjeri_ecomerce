@@ -1,845 +1,1231 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Men's Fragrances - Sanjeri{% endblock %}
+{% block title %}Women's Fragrances - Sanjeri{% endblock %}
+
+{% block extra_css %}
+<style>
+  .banner-section {
+    margin-top: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+    height: 400px;
+    width: 100%;
+  }
+
+  .carousel-image {
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+  }
+
+  .filter-sort-section {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 25px;
+  }
+
+  .sort-select {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 6px 10px;
+    background: white;
+    font-size: 0.9rem;
+  }
+
+  .filter-btn {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    transition: background 0.3s;
+    font-size: 0.9rem;
+  }
+
+  .filter-btn:hover {
+    background: #2c0d03;
+  }
+
+  .active-filters {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+  }
+
+  .active-filters .badge {
+    font-size: 0.8rem;
+    padding: 6px 10px;
+  }
+
+  /* Product Card Styles */
+  .product-item {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+    margin-bottom: 20px;
+    border: 1px solid #f0f0f0;
+    height: 100%;
+  }
+
+  .product-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .product-img-sm {
+    height: 180px;
+    width: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+
+  .product-card-body-sm {
+    padding: 12px;
+  }
+
+  .product-title-sm {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 6px;
+    line-height: 1.3;
+    height: 2.6em;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .product-details-sm {
+    margin-bottom: 6px;
+  }
+
+  .product-type-sm {
+    font-size: 0.8rem;
+  }
+
+  .product-rating-sm {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .star-rating-sm {
+    color: #ffc107;
+    margin-right: 4px;
+    font-size: 0.8rem;
+  }
+
+  .rating-count-sm {
+    font-size: 0.75rem;
+    color: #6c757d;
+  }
+
+  .price-section-sm {
+    margin-bottom: 4px;
+  }
+
+  .current-price-sm {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--primary-color);
+  }
+
+  .stock-status-sm {
+    font-size: 0.75rem;
+  }
+
+  .btn-add-cart-sm {
+    background-color: maroon;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .btn-add-cart-sm:hover {
+    background-color: #5a0c1d;
+    color: white;
+    transform: translateY(-1px);
+  }
+
+  .badge {
+    font-size: 0.7rem;
+    padding: 4px 6px;
+  }
+
+  .btn-wishlist {
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    transition: all 0.3s;
+    font-size: 0.8rem;
+  }
+
+  .btn-wishlist:hover {
+    background: white;
+    color: #dc3545;
+    transform: scale(1.1);
+  }
+
+  .page-link {
+    color: var(--primary-color);
+    border: 1px solid #dee2e6;
+    padding: 6px 12px;
+    font-size: 0.9rem;
+  }
+
+  .page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+
+  /* Image placeholder styles */
+  .image-placeholder {
+    height: 180px;
+    width: 100%;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6c757d;
+    border-radius: 4px;
+  }
+
+  /* Search Section Styles */
+  .search-section {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6;
+  }
+
+  .search-section .form-control {
+    border: 1px solid #ced4da;
+    border-right: none;
+  }
+
+  .search-section .btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+
+  .search-section .btn-primary:hover {
+    background-color: #2c0d03;
+    border-color: #2c0d03;
+  }
+
+  /* Active filters improvements */
+  .active-filters .badge {
+    font-size: 0.8rem;
+    padding: 6px 10px;
+    margin: 2px;
+  }
+
+  .active-filters .badge.bg-primary {
+    background-color: var(--primary-color) !important;
+  }
+
+  /* Add to Cart button states */
+  .btn-success {
+    background-color: #28a745 !important;
+    color: white !important;
+  }
+
+  .btn-success:hover {
+    background-color: #218838 !important;
+    transform: translateY(-1px);
+  }
+
+  /* Spinner for loading */
+  .btn-loading {
+    position: relative;
+    color: transparent !important;
+  }
+
+  .btn-loading::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+    border: 2px solid white;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Variant badge */
+  .variant-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 2;
+  }
+  
+  /* Discount badge */
+  .discount-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+  }
+
+  /* Notification Styles */
+  .notification {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 5px;
+    color: white;
+    z-index: 9999;
+    max-width: 300px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+  }
+
+  .notification.show {
+    transform: translateX(0);
+  }
+
+  .notification.success {
+    background-color: #28a745;
+  }
+
+  .notification.error {
+    background-color: #dc3545;
+  }
+
+  .notification.info {
+    background-color: #17a2b8;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
 <!-- Breadcrumb -->
 <div class="container mt-3">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'homepage' %}">Home</a></li>
-            <li class="breadcrumb-item active" aria-current="page"><wbr>Women</wbr></li>
-        </ol>
-    </nav>
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'homepage' %}">Home</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Women</li>
+    </ol>
+  </nav>
 </div>
 
 <!-- Banner Section - Image Only -->
 <div class="container">
-    <div class="banner-section">
-        <img src="https://media.al-jasser.com/api/public/content/imxf4lbqqlg0ahuytyxaaa-web?v=d62484d7" 
-             class="d-block w-100 carousel-image" alt="Unisex Fragrance Collections" 
-             style="border-radius: 8px;">
-    </div>
+  <div class="banner-section">
+    <img src="https://media.al-jasser.com/api/public/content/imxf4lbqqlg0ahuytyxaaa-web?v=d62484d7" 
+         class="d-block w-100 carousel-image" alt="Women's Fragrance Collection" 
+         style="border-radius: 8px;">
+  </div>
 </div>
+
 <!-- Search Section -->
 <div class="container mt-4">
-    <div class="search-section bg-light p-4 rounded">
-        <form method="GET" action="" class="row g-3 align-items-center">
-            <!-- Hidden fields to preserve existing filters -->
-            <input type="hidden" name="sort" value="{{ request.GET.sort }}">
-            <input type="hidden" name="price_range" value="{{ request.GET.price_range }}">
-            <input type="hidden" name="fragrance_type" value="{{ request.GET.fragrance_type }}">
-            <input type="hidden" name="occasion" value="{{ request.GET.occasion }}">
-            <input type="hidden" name="volume" value="{{ request.GET.volume }}">
-            {% if request.GET.gender %}<input type="hidden" name="gender" value="{{ request.GET.gender }}">{% endif %}
-            
-            <div class="col-md-8">
-                <div class="input-group">
-                    <input type="text" 
-                           name="q" 
-                           class="form-control" 
-                           placeholder="Search within women's products..." 
-                           value="{{ search_query|default:'' }}">
-                    <button class="btn btn-primary" type="submit">
-                        <i class="fas fa-search"></i> Search
-                    </button>
-                </div>
-            </div>
-            <div class="col-md-4">
-                {% if search_query %}
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="text-muted">
-                        Found {{ products_count }} result{{ products_count|pluralize }} for "{{ search_query }}"
-                    </span>
-                    <a href="?{% if request.GET.sort %}sort={{ request.GET.sort }}{% if request.GET.price_range %}&price_range={{ request.GET.price_range }}{% endif %}{% if request.GET.fragrance_type %}&fragrance_type={{ request.GET.fragrance_type }}{% endif %}{% if request.GET.occasion %}&occasion={{ request.GET.occasion }}{% endif %}{% if request.GET.volume %}&volume={{ request.GET.volume }}{% endif %}{% if request.GET.gender %}&gender={{ request.GET.gender }}{% endif %}{% endif %}" 
-                       class="btn btn-sm btn-outline-secondary">
-                        Clear Search
-                    </a>
-                </div>
-                {% endif %}
-            </div>
-        </form>
-    </div>
+  <div class="search-section bg-light p-4 rounded">
+    <form method="GET" action="" class="row g-3 align-items-center">
+      <input type="hidden" name="sort" value="{{ request.GET.sort }}">
+      <input type="hidden" name="price_range" value="{{ request.GET.price_range }}">
+      <input type="hidden" name="fragrance_type" value="{{ request.GET.fragrance_type }}">
+      <input type="hidden" name="occasion" value="{{ request.GET.occasion }}">
+      <input type="hidden" name="volume" value="{{ request.GET.volume }}">
+      
+      <div class="col-md-8">
+        <div class="input-group">
+          <input type="text" 
+                 name="q" 
+                 class="form-control" 
+                 placeholder="Search within women's products..." 
+                 value="{{ search_query|default:'' }}">
+          <button class="btn btn-primary" type="submit">
+            <i class="fas fa-search"></i> Search
+          </button>
+        </div>
+      </div>
+      <div class="col-md-4">
+        {% if search_query %}
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="text-muted">
+            Found {{ products_count }} result{{ products_count|pluralize }} for "{{ search_query }}"
+          </span>
+          <a href="?{% if request.GET.sort %}sort={{ request.GET.sort }}{% if request.GET.price_range %}&price_range={{ request.GET.price_range }}{% endif %}{% if request.GET.fragrance_type %}&fragrance_type={{ request.GET.fragrance_type }}{% endif %}{% if request.GET.occasion %}&occasion={{ request.GET.occasion }}{% endif %}{% if request.GET.volume %}&volume={{ request.GET.volume }}{% endif %}{% endif %}" 
+             class="btn btn-sm btn-outline-secondary">
+            Clear Search
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </form>
+  </div>
 </div>
 
 <!-- Filter and Sort Section -->
 <div class="container mt-4">
-    <div class="filter-sort-section">
-        <div class="row align-items-center">
-            <div class="col-md-6">
-                <div class="sort-options">
-                    <label for="sort-by" class="me-2 fw-medium">Sort by:</label>
-                    <select class="sort-select" id="sort-by" onchange="updateSort(this.value)">
-                        <option value="featured" {% if sort_by == 'featured' %}selected{% endif %}>Featured</option>
-                        <option value="best-selling" {% if sort_by == 'best-selling' %}selected{% endif %}>Best Selling</option>
-                        <option value="price-low-high" {% if sort_by == 'price-low-high' %}selected{% endif %}>Price: Low → High</option>
-                        <option value="price-high-low" {% if sort_by == 'price-high-low' %}selected{% endif %}>Price: High → Low</option>
-                        <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest Arrivals</option>
-                        <option value="customer-rating" {% if sort_by == 'customer-rating' %}selected{% endif %}>Customer Rating: High → Low</option>
-                        <option value="alphabetical-az" {% if sort_by == 'alphabetical-az' %}selected{% endif %}>Alphabetical: A → Z</option>
-                        <option value="alphabetical-za" {% if sort_by == 'alphabetical-za' %}selected{% endif %}>Alphabetical: Z → A</option>
-                    </select>
-                </div>
-            </div>
-            <div class="col-md-6 text-md-end mt-3 mt-md-0">
-                <div class="filter-options">
-                    <!-- Clear All Filters Button -->
-                    {% if request.GET.q or request.GET.sort or request.GET.price_range or request.GET.fragrance_type or request.GET.occasion or request.GET.volume or request.GET.gender %}
-                    <button type="button" class="btn btn-outline-secondary me-2" onclick="clearAllFilters()">
-                        <i class="fas fa-times me-1"></i>Clear All
-                    </button>
-                    {% endif %}
-                    <button type="button" class="filter-btn" data-bs-toggle="modal" data-bs-target="#filterModal">
-                        <i class="fas fa-filter me-2"></i>Filter
-                    </button>
-                </div>
-            </div>
+  <div class="filter-sort-section">
+    <div class="row align-items-center">
+      <div class="col-md-6">
+        <div class="sort-options">
+          <label for="sort-by" class="me-2 fw-medium">Sort by:</label>
+          <select class="sort-select" id="sort-by" onchange="updateSort(this.value)">
+            <option value="featured" {% if sort_by == 'featured' %}selected{% endif %}>Featured</option>
+            <option value="best-selling" {% if sort_by == 'best-selling' %}selected{% endif %}>Best Selling</option>
+            <option value="price-low-high" {% if sort_by == 'price-low-high' %}selected{% endif %}>Price: Low → High</option>
+            <option value="price-high-low" {% if sort_by == 'price-high-low' %}selected{% endif %}>Price: High → Low</option>
+            <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest Arrivals</option>
+            <option value="customer-rating" {% if sort_by == 'customer-rating' %}selected{% endif %}>Customer Rating: High → Low</option>
+            <option value="alphabetical-az" {% if sort_by == 'alphabetical-az' %}selected{% endif %}>Alphabetical: A → Z</option>
+            <option value="alphabetical-za" {% if sort_by == 'alphabetical-za' %}selected{% endif %}>Alphabetical: Z → A</option>
+          </select>
         </div>
+      </div>
+       <div class="col-md-6 text-md-end mt-3 mt-md-0">
+        <div class="filter-options">
+          {% if  request.GET.sort or request.GET.price_range or request.GET.fragrance_type or request.GET.occasion or request.GET.volume %}
+          <button type="button" class="btn btn-outline-secondary me-2" onclick="clearAllFilters()">
+            <i class="fas fa-times me-1"></i>Clear All
+          </button>
+          {% endif %} 
+          <button type="button" class="filter-btn" data-bs-toggle="modal" data-bs-target="#filterModal">
+            <i class="fas fa-filter me-2"></i>Filter
+          </button>
+        </div>
+      </div> 
     </div>
+  </div>
 </div>
-
 
 <!-- Filter Modal -->
 <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="filterModalLabel">Filter Products</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="filterModalLabel">Filter Products</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="filter-form" method="GET">
+          <div class="row">
+            <!-- Price Range Filter -->
+            <div class="col-md-6 mb-4">
+              <h6 class="fw-bold mb-3">Price Range</h6>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="price_range" id="price-all" value="" {% if not request.GET.price_range %}checked{% endif %}>
+                <label class="form-check-label" for="price-all">All Prices</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="price_range" id="price-under-1000" value="under-1000" {% if request.GET.price_range == 'under-1000' %}checked{% endif %}>
+                <label class="form-check-label" for="price-under-1000">Under ₹1000</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="price_range" id="price-1000-3000" value="1000-3000" {% if request.GET.price_range == '1000-3000' %}checked{% endif %}>
+                <label class="form-check-label" for="price-1000-3000">₹1000 - ₹3000</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="price_range" id="price-3000-5000" value="3000-5000" {% if request.GET.price_range == '3000-5000' %}checked{% endif %}>
+                <label class="form-check-label" for="price-3000-5000">₹3000 - ₹5000</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="price_range" id="price-5000-10000" value="5000-10000" {% if request.GET.price_range == '5000-10000' %}checked{% endif %}>
+                <label class="form-check-label" for="price-5000-10000">₹5000 - ₹10000</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="price_range" id="price-above-10000" value="above-10000" {% if request.GET.price_range == 'above-10000' %}checked{% endif %}>
+                <label class="form-check-label" for="price-above-10000">Above ₹10000</label>
+              </div>
             </div>
-            <div class="modal-body">
-                <form id="filter-form" method="GET">
-                    <div class="row">
-                        <!-- Price Range Filter -->
-                        <div class="col-md-6 mb-4">
-    <h6 class="fw-bold mb-3">Price Range</h6>
-    <div class="form-check">
-        <input class="form-check-input" type="radio" name="price_range" id="price-all" value="" {% if not request.GET.price_range %}checked{% endif %}>
-        <label class="form-check-label" for="price-all">
-            All Prices
-        </label>
+
+            <!-- Volume Filter -->
+            <div class="col-md-6 mb-4">
+              <h6 class="fw-bold mb-3">Volume (ml)</h6>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="volume" id="volume-all" value="" {% if not request.GET.volume %}checked{% endif %}>
+                <label class="form-check-label" for="volume-all">All Volumes</label>
+              </div>
+              {% for volume in available_volumes %}
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="volume" id="volume-{{ volume }}" value="{{ volume }}" {% if request.GET.volume == volume|stringformat:"s" %}checked{% endif %}>
+                <label class="form-check-label" for="volume-{{ volume }}">{{ volume }}ml</label>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="row">
+            <!-- Fragrance Type Filter -->
+            <div class="col-md-6 mb-4">
+              <h6 class="fw-bold mb-3">Fragrance Type</h6>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="fragrance_type" id="fragrance-all" value="" {% if not request.GET.fragrance_type %}checked{% endif %}>
+                <label class="form-check-label" for="fragrance-all">All Types</label>
+              </div>
+              {% for fragrance in available_fragrance_types %}
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="fragrance_type" id="type-{{ fragrance|slugify }}" value="{{ fragrance }}" {% if request.GET.fragrance_type == fragrance %}checked{% endif %}>
+                <label class="form-check-label" for="type-{{ fragrance|slugify }}">{{ fragrance }}</label>
+              </div>
+              {% endfor %}
+            </div>
+
+            <!-- Occasion Filter -->
+            <div class="col-md-6 mb-4">
+              <h6 class="fw-bold mb-3">Occasion</h6>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="occasion" id="occasion-all" value="" {% if not request.GET.occasion %}checked{% endif %}>
+                <label class="form-check-label" for="occasion-all">All Occasions</label>
+              </div>
+              {% for occasion in available_occasions %}
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="occasion" id="occasion-{{ occasion|slugify }}" value="{{ occasion }}" {% if request.GET.occasion == occasion %}checked{% endif %}>
+                <label class="form-check-label" for="occasion-{{ occasion|slugify }}">{{ occasion }}</label>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <input type="hidden" name="gender" value="Female">
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" onclick="clearFiltersAndClose()">
+          <i class="fas fa-times me-1"></i>Clear All
+        </button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+      </div>
     </div>
-    <div class="form-check">
-        <input class="form-check-input" type="radio" name="price_range" id="price-under-1000" value="under-1000" {% if request.GET.price_range == 'under-1000' %}checked{% endif %}>
-        <label class="form-check-label" for="price-under-1000">
-            Under ₹1000
-        </label>
-    </div>
-    <div class="form-check">
-        <input class="form-check-input" type="radio" name="price_range" id="price-1000-3000" value="1000-3000" {% if request.GET.price_range == '1000-3000' %}checked{% endif %}>
-        <label class="form-check-label" for="price-1000-3000">
-            ₹1000 - ₹3000
-        </label>
-    </div>
-    <div class="form-check">
-        <input class="form-check-input" type="radio" name="price_range" id="price-3000-5000" value="3000-5000" {% if request.GET.price_range == '3000-5000' %}checked{% endif %}>
-        <label class="form-check-label" for="price-3000-5000">
-            ₹3000 - ₹5000
-        </label>
-    </div>
-    <div class="form-check">
-        <input class="form-check-input" type="radio" name="price_range" id="price-5000-10000" value="5000-10000" {% if request.GET.price_range == '5000-10000' %}checked{% endif %}>
-        <label class="form-check-label" for="price-5000-10000">
-            ₹5000 - ₹10000
-        </label>
-    </div>
-    <div class="form-check">
-        <input class="form-check-input" type="radio" name="price_range" id="price-above-10000" value="above-10000" {% if request.GET.price_range == 'above-10000' %}checked{% endif %}>
-        <label class="form-check-label" for="price-above-10000">
-            Above ₹10000
-        </label>
-    </div>
+  </div>
 </div>
 
-                        <!-- Volume Filter -->
-                        <div class="col-md-6 mb-4">
-                            <h6 class="fw-bold mb-3">Volume (ml)</h6>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="volume" id="volume-all" value="" {% if not request.GET.volume %}checked{% endif %}>
-                                <label class="form-check-label" for="volume-all">
-                                    All Volumes
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="volume" id="volume-30" value="30" {% if request.GET.volume == '30' %}checked{% endif %}>
-                                <label class="form-check-label" for="volume-30">
-                                    30ml
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="volume" id="volume-50" value="50" {% if request.GET.volume == '50' %}checked{% endif %}>
-                                <label class="form-check-label" for="volume-50">
-                                    50ml
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="volume" id="volume-100" value="100" {% if request.GET.volume == '100' %}checked{% endif %}>
-                                <label class="form-check-label" for="volume-100">
-                                    100ml
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="volume" id="volume-200" value="200" {% if request.GET.volume == '200' %}checked{% endif %}>
-                                <label class="form-check-label" for="volume-200">
-                                    200ml
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <!-- Fragrance Type Filter -->
-                        <div class="col-md-6 mb-4">
-                            <h6 class="fw-bold mb-3">Fragrance Type</h6>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="fragrance_type" id="fragrance-all" value="" {% if not request.GET.fragrance_type %}checked{% endif %}>
-                                <label class="form-check-label" for="fragrance-all">
-                                    All Types
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="fragrance_type" id="type-woody" value="Woodsy" {% if request.GET.fragrance_type == 'Woodsy' %}checked{% endif %}>
-                                <label class="form-check-label" for="type-woody">
-                                    Woody
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="fragrance_type" id="type-citrus" value="Citrus" {% if request.GET.fragrance_type == 'Citrus' %}checked{% endif %}>
-                                <label class="form-check-label" for="type-citrus">
-                                    Citrus
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="fragrance_type" id="type-floral" value="Floral" {% if request.GET.fragrance_type == 'Floral' %}checked{% endif %}>
-                                <label class="form-check-label" for="type-floral">
-                                    Floral
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="fragrance_type" id="type-aquatic" value="Aquatic" {% if request.GET.fragrance_type == 'Aquatic' %}checked{% endif %}>
-                                <label class="form-check-label" for="type-aquatic">
-                                    Aquatic
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="fragrance_type" id="type-oriental" value="Oriental" {% if request.GET.fragrance_type == 'Oriental' %}checked{% endif %}>
-                                <label class="form-check-label" for="type-oriental">
-                                    Oriental
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Occasion Filter -->
-                        <div class="col-md-6 mb-4">
-                            <h6 class="fw-bold mb-3">Occasion</h6>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="occasion" id="occasion-all" value="" {% if not request.GET.occasion %}checked{% endif %}>
-                                <label class="form-check-label" for="occasion-all">
-                                    All Occasions
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="occasion" id="occasion-party" value="Party" {% if request.GET.occasion == 'Party' %}checked{% endif %}>
-                                <label class="form-check-label" for="occasion-party">
-                                    Party
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="occasion" id="occasion-office" value="Office" {% if request.GET.occasion == 'Office' %}checked{% endif %}>
-                                <label class="form-check-label" for="occasion-office">
-                                    Daily Use
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="occasion" id="occasion-romantic" value="Romantic" {% if request.GET.occasion == 'Romantic' %}checked{% endif %}>
-                                <label class="form-check-label" for="occasion-romantic">
-                                    Romantic
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="occasion" id="occasion-casual" value="Casual" {% if request.GET.occasion == 'Casual' %}checked{% endif %}>
-                                <label class="form-check-label" for="occasion-casual">
-                                    Casual
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="occasion" id="occasion-formal" value="Formal" {% if request.GET.occasion == 'Formal' %}checked{% endif %}>
-                                <label class="form-check-label" for="occasion-formal">
-                                    Formal
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Gender Filter - Hidden since this is Unisex's page -->
-                    <input type="hidden" name="gender" value="Women">
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" onclick="clearFiltersAndClose()">
-                    <i class="fas fa-times me-1"></i>Clear All
-                </button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
-            </div>
-        </div>
-    </div>
+<!-- Active Filters Display -->
+{% if request.GET.q or request.GET.price_range or request.GET.fragrance_type or request.GET.occasion or request.GET.volume %}
+<div class="container mb-4">
+  <div class="active-filters">
+    <strong class="me-2">Active Filters:</strong>
+    {% if request.GET.q %}
+    <span class="badge bg-primary me-2">
+      Search: "{{ request.GET.q }}"
+      <button type="button" class="btn-close btn-close-sm ms-1" onclick="removeFilter('q')"></button>
+    </span>
+    {% endif %}
+    {% if request.GET.price_range %}
+    <span class="badge bg-light text-dark me-2">
+      Price: {{ request.GET.price_range|title }}
+      <button type="button" class="btn-close btn-close-sm ms-1" onclick="removeFilter('price_range')"></button>
+    </span>
+    {% endif %}
+    {% if request.GET.fragrance_type %}
+    <span class="badge bg-light text-dark me-2">
+      Fragrance: {{ request.GET.fragrance_type }}
+      <button type="button" class="btn-close btn-close-sm ms-1" onclick="removeFilter('fragrance_type')"></button>
+    </span>
+    {% endif %}
+    {% if request.GET.occasion %}
+    <span class="badge bg-light text-dark me-2">
+      Occasion: {{ request.GET.occasion }}
+      <button type="button" class="btn-close btn-close-sm ms-1" onclick="removeFilter('occasion')"></button>
+    </span>
+    {% endif %}
+    {% if request.GET.volume %}
+    <span class="badge bg-light text-dark me-2">
+      Volume: {{ request.GET.volume }}ml
+      <button type="button" class="btn-close btn-close-sm ms-1" onclick="removeFilter('volume')"></button>
+    </span>
+    {% endif %}
+  </div>
 </div>
+{% endif %}
 
 <!-- Women's Products Grid Section -->
 <section class="product-section" id="products">
-    <div class="container">
-        <h2 class="section-title mb-4">Women's Collections</h2>
-        
-       <!-- Active Filters Display -->
-{% if request.GET.q or request.GET.price_range or request.GET.fragrance_type or request.GET.occasion or request.GET.volume or request.GET.gender %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="active-filters">
-            <strong class="me-2">Active Filters:</strong>
-            {% if request.GET.q %}
-            <span class="badge bg-primary me-2">
-                Search: "{{ request.GET.q }}"
-                <button type="button" class="btn-close btn-close-sm ms-1" onclick="removeFilter('q')"></button>
-            </span>
-            {% endif %}
-            {% if request.GET.price_range %}
-            <span class="badge bg-light text-dark me-2">
-                Price: {{ request.GET.price_range|title }}
-                <button type="button" class="btn-close btn-close-sm ms-1" onclick="removeFilter('price_range')"></button>
-            </span>
-            {% endif %}
-            {% if request.GET.fragrance_type %}
-            <span class="badge bg-light text-dark me-2">
-                Fragrance: {{ request.GET.fragrance_type }}
-                <button type="button" class="btn-close btn-close-sm ms-1" onclick="removeFilter('fragrance_type')"></button>
-            </span>
-            {% endif %}
-            {% if request.GET.occasion %}
-            <span class="badge bg-light text-dark me-2">
-                Occasion: {{ request.GET.occasion }}
-                <button type="button" class="btn-close btn-close-sm ms-1" onclick="removeFilter('occasion')"></button>
-            </span>
-            {% endif %}
-            {% if request.GET.volume %}
-            <span class="badge bg-light text-dark me-2">
-                Volume: {{ request.GET.volume }}ml
-                <button type="button" class="btn-close btn-close-sm ms-1" onclick="removeFilter('volume')"></button>
-            </span>
-            {% endif %}
-            {% if request.GET.gender %}
-            <span class="badge bg-light text-dark me-2">
-                Gender: {{ request.GET.gender }}
-                <button type="button" class="btn-close btn-close-sm ms-1" onclick="removeFilter('gender')"></button>
-            </span>
-            {% endif %}
-        </div>
-    </div>
-</div>
-{% endif %}
-        
-        <!-- Products Grid - 4 per row -->
-        <div class="row">
-            {% for product in page_obj %}
-        <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-4">
-    <div class="product-item position-relative">
-        <!-- Sale Badge -->
-        {% if product.variants.exists %}
-            {% with variant=product.variants.first %}
-                {% if variant.discount_price %}
-                <span class="badge bg-success position-absolute m-2">Sale</span>
-                {% endif %}
+  <div class="container">
+    <h2 class="section-title mb-4">Women's Collection</h2>
+    
+    <!-- Products Grid - Now showing variants -->
+    <div class="row">
+      {% for variant in page_obj %}
+      <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-4">
+        <div class="product-item position-relative">
+          <!-- Volume Badge -->
+          <span class="badge bg-info variant-badge">
+            {{ variant.volume_ml }}ml
+          </span>
+          
+          <!-- Discount Badge -->
+          <!-- {% if variant.discount_price and variant.discount_price < variant.price %}
+          <span class="badge bg-success discount-badge">
+            {% with discount=variant.discount_percentage %}
+              {{ discount }}% OFF
             {% endwith %}
-        {% endif %}
-        
-        <!-- Variant Count Badge -->
-        {% if product.variants.count > 1 %}
-        <span class="badge bg-info position-absolute top-0 start-0 m-2">
-            {{ product.variants.count }} Sizes
-        </span>
-        {% endif %}
+          </span>
+          {% endif %} -->
 
-        <a href="#" class="btn-wishlist position-absolute top-0 end-0 m-2">
+          <!-- In your product card template -->
+<!-- <div class="card"> -->
+    <div class="position-relative">
+        <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
+  
+    </div>
+    <!-- Rest of card content -->
+<!-- </div> -->
+<!-- In the product card, replace the wishlist button with: -->
+{% include 'includes/wishlist_button.html' with product=variant.product %}
+          <!-- <button class="btn-wishlist position-absolute top-0 end-0 m-2">
             <i class="far fa-heart"></i>
-        </a>
-        
-        <figure class="text-center mb-2">
-            <a href="{% url 'product_detail' product.id %}" title="{{ product.name }}">
-                {% if product.main_image %}
-                <img src="{{ product.main_image.url }}" class="img-fluid product-img-sm" alt="{{ product.name }}">
-                {% else %}
-                <div class="image-placeholder">
-                    <div class="text-center">
-                        <i class="fas fa-perfume-bottle fa-3x text-muted mb-2"></i>
-                        <p class="small text-muted">No Image</p>
-                    </div>
+          </button> -->
+          
+          <figure class="text-center mb-2">
+            <a href="{% url 'product_detail' variant.product.id %}" title="{{ variant.product.name }}">
+              {% if variant.variant_image %}
+              <img src="{{ variant.variant_image.url }}" class="img-fluid product-img-sm" alt="{{ variant.product.name }} - {{ variant.volume_ml }}ml">
+              {% elif variant.product.main_image %}
+              <img src="{{ variant.product.main_image.url }}" class="img-fluid product-img-sm" alt="{{ variant.product.name }} - {{ variant.volume_ml }}ml">
+              {% else %}
+              <div class="image-placeholder">
+                <div class="text-center">
+                  <i class="fas fa-perfume-bottle fa-3x text-muted mb-2"></i>
+                  <p class="small text-muted">No Image</p>
                 </div>
-                {% endif %}
+              </div>
+              {% endif %}
             </a>
-        </figure>
-        
-        <div class="product-card-body-sm">
-            <h4 class="product-title-sm">{{ product.name }}</h4>
+          </figure>
+          
+          <div class="product-card-body-sm">
+            <h4 class="product-title-sm">{{ variant.product.name }}</h4>
             
-            <!-- Product Details -->
             <div class="product-details-sm mb-1">
-                <span class="product-type-sm text-muted">
-                    {{ product.fragrance_type|default:"Eau de Parfum" }}
-                </span>
+              <span class="product-type-sm text-muted">
+                {{ variant.product.fragrance_type|default:"Eau de Parfum" }}
+              </span>
             </div>
             
-            <!-- Ratings -->
             <div class="product-rating-sm mb-1">
-                <div class="star-rating-sm">
-                    {% if product.avg_rating %}
-                        {% for i in "12345" %}
-                            {% if forloop.counter <= product.avg_rating %}
-                                <i class="fas fa-star"></i>
-                            {% elif forloop.counter|add:"-0.5" <= product.avg_rating %}
-                                <i class="fas fa-star-half-alt"></i>
-                            {% else %}
-                                <i class="far fa-star"></i>
-                            {% endif %}
-                        {% endfor %}
+              <div class="star-rating-sm">
+                {% if variant.product.avg_rating %}
+                  {% for i in "12345" %}
+                    {% if forloop.counter <= variant.product.avg_rating %}
+                      <i class="fas fa-star"></i>
+                    {% elif forloop.counter|add:"-0.5" <= variant.product.avg_rating %}
+                      <i class="fas fa-star-half-alt"></i>
                     {% else %}
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star-half-alt"></i>
+                      <i class="far fa-star"></i>
                     {% endif %}
-                </div>
-                <span class="rating-count-sm">({{ product.rating_count|default:"4.2" }})</span>
-            </div>
-
-            <!-- UPDATED: Show only min price -->
-            <div class="price-section-sm mb-1">
-                <span class="current-price-sm fw-bold">₹{{ product.min_price }}</span>
-                <small class="text-muted d-block">{{ product.variants.count }} variant{{ product.variants.count|pluralize }}</small>
-            </div>
-
-            <!-- UPDATED: Specific stock status -->
-            <div class="stock-status-sm mb-2">
-                {% if product.total_stock > 10 %}
-                    <span class="badge bg-success small"><i class="fas fa-check me-1"></i>In Stock</span>
-                {% elif product.total_stock > 0 %}
-                    <span class="badge bg-warning small"><i class="fas fa-exclamation me-1"></i>Low Stock</span>
+                  {% endfor %}
                 {% else %}
-                    <span class="badge bg-danger small"><i class="fas fa-times me-1"></i>Out of Stock</span>
+                  <i class="fas fa-star"></i>
+                  <i class="fas fa-star"></i>
+                  <i class="fas fa-star"></i>
+                  <i class="fas fa-star"></i>
+                  <i class="fas fa-star-half-alt"></i>
                 {% endif %}
+              </div>
+              <span class="rating-count-sm">({{ variant.product.rating_count|default:"4.2" }})</span>
+            </div>
+
+            <div class="price-section-sm mb-1">
+              {% if variant.discount_price and variant.discount_price < variant.price %}
+              <div class="d-flex align-items-center">
+                <span class="current-price-sm fw-bold">₹{{ variant.discount_price }}</span>
+                <small class="text-muted ms-2 text-decoration-line-through">₹{{ variant.price }}</small>
+              </div>
+              {% else %}
+              <span class="current-price-sm fw-bold">₹{{ variant.price }}</span>
+              {% endif %}
+              <small class="text-muted d-block">{{ variant.gender }} • SKU: {{ variant.sku }}</small>
+            </div>
+
+            <div class="stock-status-sm mb-2">
+              {% if variant.stock > 10 %}
+                <span class="badge bg-success small"><i class="fas fa-check me-1"></i>In Stock ({{ variant.stock }})</span>
+              {% elif variant.stock > 0 %}
+                <span class="badge bg-warning small"><i class="fas fa-exclamation me-1"></i>Only {{ variant.stock }} left</span>
+              {% else %}
+                <span class="badge bg-danger small"><i class="fas fa-times me-1"></i>Out of Stock</span>
+              {% endif %}
             </div>
 
             <div class="d-flex justify-content-center">
-                <a href="{% url 'product_detail' product.id %}" class="btn btn-add-cart-sm">
-                    <i class="fas fa-eye me-1"></i> Add to Cart
-                </a>
+              {% if variant.stock > 0 %}
+              <button class="btn btn-add-cart-sm add-to-cart-btn" 
+                data-variant-id="{{ variant.id }}"
+                data-product-id="{{ variant.product.id }}">
+                <i class="fas fa-shopping-cart me-1"></i> Add to Cart
+              </button>
+              {% else %}
+              <button class="btn btn-secondary btn-sm" disabled>
+                <i class="fas fa-times me-1"></i> Out of Stock
+              </button>
+              {% endif %}
             </div>
+          </div>
         </div>
+      </div>
+      {% empty %}
+      <div class="col-12 text-center py-5">
+        <p class="text-muted fs-5">No women's products available yet.</p>
+        <p class="text-muted">Check back later for new arrivals.</p>
+      </div>
+      {% endfor %}
     </div>
-</div>
-            {% empty %}
-            <div class="col-12 text-center py-5">
-                <p class="text-muted fs-5">No women's products available yet.</p>
-                <p class="text-muted">Check back later for new arrivals.</p>
-            </div>
+    
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="row mt-5">
+      <div class="col-12">
+        <nav aria-label="Product pagination">
+          <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                <i class="fas fa-chevron-left"></i>
+              </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+              <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                <i class="fas fa-chevron-left"></i>
+              </a>
+            </li>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+              {% if page_obj.number == num %}
+              <li class="page-item active">
+                <span class="page-link">{{ num }}</span>
+              </li>
+              {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+              <li class="page-item">
+                <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ num }}">{{ num }}</a>
+              </li>
+              {% endif %}
             {% endfor %}
-        </div>
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Next">
+                <i class="fas fa-chevron-right"></i>
+              </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+              <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                <i class="fas fa-chevron-right"></i>
+              </a>
+            </li>
+            {% endif %}
+          </ul>
+        </nav>
         
-        <!-- Pagination -->
-        {% if page_obj.has_other_pages %}
-        <div class="row mt-5">
-            <div class="col-12">
-                <nav aria-label="Product pagination">
-                    <ul class="pagination justify-content-center">
-                        {% if page_obj.has_previous %}
-                        <li class="page-item">
-                            <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Previous">
-                                <i class="fas fa-chevron-left"></i>
-                            </a>
-                        </li>
-                        {% else %}
-                        <li class="page-item disabled">
-                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
-                                <i class="fas fa-chevron-left"></i>
-                            </a>
-                        </li>
-                        {% endif %}
-                        
-                        {% for num in page_obj.paginator.page_range %}
-                            {% if page_obj.number == num %}
-                            <li class="page-item active">
-                                <span class="page-link">{{ num }}</span>
-                            </li>
-                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                            <li class="page-item">
-                                <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ num }}">{{ num }}</a>
-                            </li>
-                            {% endif %}
-                        {% endfor %}
-                        
-                        {% if page_obj.has_next %}
-                        <li class="page-item">
-                            <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Next">
-                                <i class="fas fa-chevron-right"></i>
-                            </a>
-                        </li>
-                        {% else %}
-                        <li class="page-item disabled">
-                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
-                                <i class="fas fa-chevron-right"></i>
-                            </a>
-                        </li>
-                        {% endif %}
-                    </ul>
-                </nav>
-                
-                <!-- Page Info -->
-                <div class="text-center mt-2">
-                    <p class="text-muted small">
-                        Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                    </p>
-                </div>
-            </div>
+        <!-- Page Info -->
+        <div class="text-center mt-2">
+          <p class="text-muted small">
+            Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+          </p>
         </div>
-        {% endif %}
+      </div>
     </div>
+    {% endif %}
+  </div>
 </section>
 
-<!-- CSS Styles -->
-<style>
-    
-    .banner-section {
-        margin-top: 20px;
-        border-radius: 8px;
-        overflow: hidden;
-        height: 600px;
-        width: 100%;
-    }
-
-    .carousel-image {
-        height: 100%;
-        object-fit: cover;
-        width: 100%;
-    }
-
-    .filter-sort-section {
-        background: white;
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        margin-bottom: 25px;
-    }
-
-    .sort-select {
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        padding: 6px 10px;
-        background: white;
-        font-size: 0.9rem;
-    }
-
-    .filter-btn {
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        padding: 6px 12px;
-        border-radius: 4px;
-        transition: background 0.3s;
-        font-size: 0.9rem;
-    }
-
-    .filter-btn:hover {
-        background: #2c0d03;
-    }
-
-    .active-filters {
-        background: #f8f9fa;
-        padding: 15px;
-        border-radius: 8px;
-        border: 1px solid #e9ecef;
-    }
-
-    .active-filters .badge {
-        font-size: 0.8rem;
-        padding: 6px 10px;
-    }
-
-    /* Product Card Styles */
-    .product-item {
-        background: white;
-        border-radius: 8px;
-        overflow: hidden;
-        transition: transform 0.3s, box-shadow 0.3s;
-        margin-bottom: 20px;
-        border: 1px solid #f0f0f0;
-        height: 100%;
-    }
-
-    .product-item:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-    }
-
-    .product-img-sm {
-        height: 180px;
-        width: 180px;
-        object-fit: cover;
-        border-radius: 4px;
-    }
-
-    .product-card-body-sm {
-        padding: 12px;
-    }
-
-    .product-title-sm {
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: var(--primary-color);
-        margin-bottom: 6px;
-        line-height: 1.3;
-        height: 2.6em;
-        overflow: hidden;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-    }
-
-    .product-details-sm {
-        margin-bottom: 6px;
-    }
-
-    .product-type-sm {
-        font-size: 0.8rem;
-    }
-
-    .product-rating-sm {
-        display: flex;
-        align-items: center;
-        margin-bottom: 6px;
-    }
-
-    .star-rating-sm {
-        color: #ffc107;
-        margin-right: 4px;
-        font-size: 0.8rem;
-    }
-
-    .rating-count-sm {
-        font-size: 0.75rem;
-        color: #6c757d;
-    }
-
-    .price-section-sm {
-        margin-bottom: 4px;
-    }
-
-    .current-price-sm {
-        font-size: 1rem;
-        font-weight: 700;
-        color: var(--primary-color);
-    }
-
-    .stock-status-sm {
-        font-size: 0.75rem;
-    }
-
-    .btn-add-cart-sm {
-        background-color: maroon;
-        color: white;
-        border: none;
-        border-radius: 20px;
-        padding: 5px 12px;
-        font-size: 0.8rem;
-        transition: all 0.3s;
-        text-decoration: none;
-        display: inline-block;
-    }
-
-    .btn-add-cart-sm:hover {
-        background-color: #5a0c1d;
-        color: white;
-        transform: translateY(-1px);
-    }
-
-    .badge {
-        font-size: 0.7rem;
-        padding: 4px 6px;
-    }
-
-    .btn-wishlist {
-        background: rgba(255, 255, 255, 0.9);
-        border: none;
-        border-radius: 50%;
-        width: 30px;
-        height: 30px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--primary-color);
-        transition: all 0.3s;
-        font-size: 0.8rem;
-    }
-
-    .btn-wishlist:hover {
-        background: white;
-        color: #dc3545;
-        transform: scale(1.1);
-    }
-
-    .page-link {
-        color: var(--primary-color);
-        border: 1px solid #dee2e6;
-        padding: 6px 12px;
-        font-size: 0.9rem;
-    }
-
-    .page-item.active .page-link {
-        background-color: var(--primary-color);
-        border-color: var(--primary-color);
-    }
-
-    /* Image placeholder styles */
-    .image-placeholder {
-        height: 180px;
-        width: 180px;
-        background: #f8f9fa;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #6c757d;
-        border-radius: 4px;
-        margin: 0 auto;
-    }
-    /* Search Section Styles */
-.search-section {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border: 1px solid #dee2e6;
-}
-
-.search-section .form-control {
-    border: 1px solid #ced4da;
-    border-right: none;
-}
-
-.search-section .btn-primary {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-}
-
-.search-section .btn-primary:hover {
-    background-color: #2c0d03;
-    border-color: #2c0d03;
-}
-
-/* Active filters improvements */
-.active-filters .badge {
-    font-size: 0.8rem;
-    padding: 6px 10px;
-    margin: 2px;
-}
-
-.active-filters .badge.bg-primary {
-    background-color: var(--primary-color) !important;
-}
-</style>
-
-<!-- JavaScript for Sorting and Filtering -->
+<!-- Notification Container -->
+<div id="notification" class="notification"></div>
+{% endblock %}
+{% block extra_js %}
 <script>
-// Clear search but preserve other filters
-function clearSearch() {
-    const url = new URL(window.location.href);
-    url.searchParams.delete('q');
-    url.searchParams.delete('page'); // Go to first page
-    window.location.href = url.toString();
-}
+  // ==================== UTILITY FUNCTIONS ====================
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
 
-// Update sort parameter - PRESERVES SEARCH AND FILTERS
-function updateSort(sortValue) {
-    const url = new URL(window.location.href);
+  function showNotification(message, type = 'info') {
+    const notification = document.getElementById('notification');
+    if (notification) {
+      notification.textContent = message;
+      notification.className = `notification ${type}`;
+      notification.classList.add('show');
+      
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 3000);
+    }
+  }
+
+  function updateCartBadge(count) {
+    const badges = document.querySelectorAll('.cart-count');
+    badges.forEach(badge => {
+      if (badge.closest('a[href*="cart"]')) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'flex' : 'none';
+      }
+    });
+  }
+
+  function updateWishlistBadge(count) {
+    // Update wishlist badge in header
+    const wishlistLinks = document.querySelectorAll('a[href*="wishlist"] .cart-count, .wishlist-count');
+    wishlistLinks.forEach(badge => {
+      badge.textContent = count;
+      badge.style.display = count > 0 ? 'flex' : 'none';
+    });
     
-    // Remove page parameter when sorting
+    // Also update any icon with heart icon
+    const heartIcons = document.querySelectorAll('.icon-btn .fa-heart');
+    heartIcons.forEach(icon => {
+      const parentLink = icon.closest('a[href*="wishlist"]');
+      if (parentLink) {
+        const badge = parentLink.querySelector('.cart-count');
+        if (badge) {
+          badge.textContent = count;
+          badge.style.display = count > 0 ? 'flex' : 'none';
+        }
+      }
+    });
+  }
+
+  // ==================== FILTER AND SORT FUNCTIONS ====================
+  function updateSort(sortValue) {
+    const url = new URL(window.location.href);
     url.searchParams.delete('page');
     
-    // Update or set sort parameter
     if (sortValue) {
-        url.searchParams.set('sort', sortValue);
+      url.searchParams.set('sort', sortValue);
     } else {
-        url.searchParams.delete('sort');
+      url.searchParams.delete('sort');
     }
     
     window.location.href = url.toString();
-}
+  }
 
-// Apply filters - PRESERVES SEARCH
-function applyFilters() {
+  function applyFilters() {
     const form = document.getElementById('filter-form');
     const formData = new FormData(form);
     const params = new URLSearchParams();
     
-    // Add existing parameters (search, sort)
     const currentUrl = new URL(window.location.href);
     const currentParams = ['q', 'sort'];
     
     currentParams.forEach(param => {
-        const value = currentUrl.searchParams.get(param);
-        if (value) {
-            params.set(param, value);
-        }
+      const value = currentUrl.searchParams.get(param);
+      if (value) {
+        params.set(param, value);
+      }
     });
     
-    // Add filter parameters from form
     for (let [key, value] of formData.entries()) {
-        if (value) {
-            params.set(key, value);
-        } else {
-            // Remove empty parameters
-            params.delete(key);
-        }
+      if (value) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
     }
     
-    // Remove page parameter when filtering
     params.delete('page');
-    
     window.location.href = '?' + params.toString();
-}
+  }
 
-// Clear all filters INCLUDING SEARCH
-function clearAllFilters() {
+  function clearAllFilters() {
     window.location.href = '?';
-}
+  }
 
-// Remove specific filter - PRESERVES OTHER PARAMETERS
-function removeFilter(filterName) {
+  function removeFilter(filterName) {
     const url = new URL(window.location.href);
     url.searchParams.delete(filterName);
-    url.searchParams.delete('page'); // Go to first page
+    url.searchParams.delete('page');
     window.location.href = url.toString();
-}
+  }
 
-// Initialize filter values from URL when modal opens
-document.addEventListener('DOMContentLoaded', function() {
+  function clearFiltersAndClose() {
+    clearAllFilters();
+    const modal = bootstrap.Modal.getInstance(document.getElementById('filterModal'));
+    if (modal) modal.hide();
+  }
+
+  // ==================== CART FUNCTIONS ====================
+  async function checkCartForVariant(variantId, button) {
+    try {
+      const response = await fetch(`/cart/check-variant/${variantId}/`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.in_cart) {
+          updateButtonToGoToCart(button);
+          localStorage.setItem(`added_${variantId}`, 'true');
+        } else {
+          updateButtonToAddCart(button);
+          localStorage.removeItem(`added_${variantId}`);
+        }
+      }
+    } catch (error) {
+      // Fallback to localStorage
+      if (localStorage.getItem(`added_${variantId}`)) {
+        updateButtonToGoToCart(button);
+      } else {
+        updateButtonToAddCart(button);
+      }
+    }
+  }
+
+  function updateButtonToGoToCart(button) {
+    button.innerHTML = '<i class="fas fa-shopping-cart me-1"></i> Go to Cart';
+    button.classList.add('btn-success');
+    button.classList.remove('btn-add-cart-sm');
+  }
+
+  function updateButtonToAddCart(button) {
+    button.innerHTML = '<i class="fas fa-shopping-cart me-1"></i> Add to Cart';
+    button.classList.remove('btn-success');
+    button.classList.add('btn-add-cart-sm');
+  }
+
+  async function addToCart(variantId, productId, button) {
+    const originalText = button.innerHTML;
+    const originalClasses = button.className;
+    
+    // Show loading state
+    button.innerHTML = '';
+    button.classList.add('btn-loading');
+    button.disabled = true;
+    
+    try {
+      const csrfToken = getCookie('csrftoken');
+      
+      const response = await fetch(`/cart/add/${variantId}/`, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': csrfToken,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `quantity=1&csrfmiddlewaretoken=${csrfToken}`
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update cart badge
+        updateCartBadge(data.cart_total_items || data.cart_count);
+        
+        // Change button to "Go to Cart"
+        updateButtonToGoToCart(button);
+        button.disabled = false;
+        
+        // Store in localStorage
+        localStorage.setItem(`added_${variantId}`, 'true');
+        
+        showNotification('Product added to cart!', 'success');
+        
+      } else {
+        showNotification(data.message || 'Please select a variant first', 'info');
+        setTimeout(() => {
+          window.location.href = `/product/${productId}/`;
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Add to cart error:', error);
+      showNotification('Error adding to cart. Please try again.', 'error');
+      button.innerHTML = originalText;
+      button.className = originalClasses;
+      button.disabled = false;
+    }
+  }
+
+  // ==================== WISHLIST FUNCTIONS ====================
+  async function checkWishlistForProduct(productId, button) {
+    try {
+      // Check if product is in wishlist
+      const response = await fetch(`/wishlist/check/${productId}/`);
+      if (response.ok) {
+        const data = await response.json();
+        const heartIcon = button.querySelector('i');
+        if (data.in_wishlist) {
+          heartIcon.className = 'fas fa-heart';
+          heartIcon.style.color = '#dc3545';
+        } else {
+          heartIcon.className = 'far fa-heart';
+          heartIcon.style.color = '';
+        }
+      }
+    } catch (error) {
+      console.log('Wishlist check error:', error);
+    }
+  }
+
+  async function addToWishlist(productId, button) {
+    if (!button) return;
+    
+    const heartIcon = button.querySelector('i');
+    const originalClass = heartIcon.className;
+    
+    // Show loading state
+    heartIcon.className = 'fas fa-spinner fa-spin';
+    button.disabled = true;
+    
+    try {
+      const csrfToken = getCookie('csrftoken');
+      
+      const response = await fetch(`/wishlist/add/${productId}/`, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': csrfToken,
+        },
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update wishlist badge count
+        updateWishlistBadge(data.wishlist_total_items || data.wishlist_count);
+        
+        // Change heart icon to solid (filled)
+        heartIcon.className = 'fas fa-heart';
+        heartIcon.style.color = '#dc3545';
+        
+        showNotification('Added to wishlist!', 'success');
+      } else {
+        // If already in wishlist, might be trying to remove
+        heartIcon.className = 'far fa-heart';
+        heartIcon.style.color = '';
+        showNotification(data.message || 'Product already in wishlist', 'info');
+      }
+    } catch (error) {
+      console.error('Wishlist error:', error);
+      
+      if (error.status === 403 || error.status === 401) {
+        showNotification('Please login to use wishlist', 'error');
+        setTimeout(() => {
+          window.location.href = '/user-login/?next=' + encodeURIComponent(window.location.pathname);
+        }, 1500);
+      } else {
+        heartIcon.className = originalClass;
+        showNotification('Error updating wishlist', 'error');
+      }
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function removeFromWishlist(productId, button) {
+    // Note: You'll need to implement this endpoint or modify addToWishlist to toggle
+    try {
+      const csrfToken = getCookie('csrftoken');
+      
+      const response = await fetch(`/wishlist/remove/${productId}/`, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': csrfToken,
+        },
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        updateWishlistBadge(data.wishlist_total_items);
+        
+        const heartIcon = button.querySelector('i');
+        heartIcon.className = 'far fa-heart';
+        heartIcon.style.color = '';
+        
+        showNotification('Removed from wishlist', 'success');
+      }
+    } catch (error) {
+      console.error('Remove from wishlist error:', error);
+    }
+  }
+
+  // ==================== INITIALIZATION FUNCTIONS ====================
+  function initializeCartButtons() {
+    console.log('Initializing cart buttons...');
+    
+    // Handle add to cart button clicks
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('.add-to-cart-btn')) {
+        e.preventDefault();
+        
+        const button = e.target.closest('.add-to-cart-btn');
+        
+        // Check if button already says "Go to Cart"
+        if (button.textContent.includes('Go to Cart')) {
+          window.location.href = '/cart/';
+          return;
+        }
+        
+        const variantId = button.getAttribute('data-variant-id');
+        const productId = button.getAttribute('data-product-id');
+        
+        if (variantId) {
+          addToCart(variantId, productId, button);
+        } else {
+          window.location.href = `/product/${productId}/`;
+        }
+      }
+    });
+    
+    // Initialize button states on page load
+    document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+      const variantId = button.getAttribute('data-variant-id');
+      if (variantId) {
+        // First check localStorage for immediate feedback
+        if (localStorage.getItem(`added_${variantId}`)) {
+          updateButtonToGoToCart(button);
+        }
+        // Then check server for accurate state
+        checkCartForVariant(variantId, button);
+      }
+    });
+  }
+
+  function initializeWishlistButtons() {
+    console.log('Initializing wishlist buttons...');
+    
+    // Handle wishlist button clicks
+    document.addEventListener('click', function(e) {
+      const wishlistBtn = e.target.closest('.add-to-wishlist');
+      if (wishlistBtn) {
+        e.preventDefault();
+        console.log('Wishlist button clicked');
+        
+        const productId = wishlistBtn.getAttribute('data-product-id');
+        if (productId) {
+          addToWishlist(productId, wishlistBtn);
+        }
+      }
+    });
+    
+    // Check initial wishlist status for all products
+    document.querySelectorAll('.add-to-wishlist').forEach(button => {
+      const productId = button.getAttribute('data-product-id');
+      if (productId) {
+        checkWishlistForProduct(productId, button);
+      }
+    });
+  }
+
+  function initializeFilterModal() {
     const filterModal = document.getElementById('filterModal');
     if (filterModal) {
-        filterModal.addEventListener('show.bs.modal', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            
-            // Set all filter values from URL
-            ['price_range', 'fragrance_type', 'occasion', 'volume', 'gender'].forEach(param => {
-                const value = urlParams.get(param);
-                if (value) {
-                    const input = document.querySelector(`input[name="${param}"][value="${value}"]`);
-                    if (input) {
-                        input.checked = true;
-                    }
-                }
-            });
+      filterModal.addEventListener('show.bs.modal', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        ['price_range', 'fragrance_type', 'occasion', 'volume'].forEach(param => {
+          const value = urlParams.get(param);
+          if (value) {
+            const input = document.querySelector(`input[name="${param}"][value="${value}"]`);
+            if (input) {
+              input.checked = true;
+            }
+          }
         });
+      });
     }
+  }
+
+  // ==================== EVENT LISTENERS ====================
+  function setupEventListeners() {
+    // Listen for cart cleared events
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'cart_cleared') {
+        // Reset all cart buttons on this page
+        document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+          const variantId = button.getAttribute('data-variant-id');
+          updateButtonToAddCart(button);
+          if (variantId) {
+            localStorage.removeItem(`added_${variantId}`);
+          }
+        });
+        // Update cart badge
+        updateCartBadge(0);
+      }
+    });
     
-    // Debug: Check if search is working
-    console.log('Search query:', '{{ search_query }}');
-    console.log('All URL parameters:', window.location.search);
-});
+    // Listen for wishlist updates
+    document.addEventListener('wishlistUpdated', function(e) {
+      updateWishlistBadge(e.detail.count);
+    });
+  }
+
+  // ==================== MAIN INITIALIZATION ====================
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('Women page loaded - initializing...');
+    
+    // Initialize filter modal
+    initializeFilterModal();
+    
+    // Initialize cart buttons
+    initializeCartButtons();
+    
+    // Initialize wishlist buttons
+    initializeWishlistButtons();
+    
+    // Setup event listeners
+    setupEventListeners();
+    
+    // Initial badge updates
+    updateCartBadge({{ cart_item_count|default:0 }});
+    updateWishlistBadge({{ wishlist_count|default:0 }});
+    
+    console.log('Women page initialization complete');
+  });
+
+  // Add this helper function if you need to check wishlist status
+  // You'll need to create this endpoint in Django
+  async function checkWishlistStatus(productId) {
+    try {
+      const response = await fetch(`/wishlist/check/${productId}/`);
+      if (response.ok) {
+        const data = await response.json();
+        return data.in_wishlist;
+      }
+    } catch (error) {
+      return false;
+    }
+  }
+
+  // Optional: Toggle wishlist function (add/remove in one)
+  async function toggleWishlist(productId, button) {
+    const isInWishlist = await checkWishlistStatus(productId);
+    
+    if (isInWishlist) {
+      await removeFromWishlist(productId, button);
+    } else {
+      await addToWishlist(productId, button);
+    }
+  }
 </script>
 {% endblock %}

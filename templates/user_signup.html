@@ -573,16 +573,16 @@
                     {% csrf_token %}
 
                     <!-- First Name -->
-                    <div class="form-group-elegant">
+                    <!-- <div class="form-group-elegant">
                         <label for="firstName" class="form-label-elegant">First Name</label>
                         <input type="text" id="firstName" name="firstName" class="form-input-elegant" placeholder="Enter first name" required>
-                    </div>
+                    </div> -->
 
                     <!-- Last Name -->
-                    <div class="form-group-elegant">
+                    <!-- <div class="form-group-elegant">
                         <label for="lastName" class="form-label-elegant">Last Name</label>
                         <input type="text" id="lastName" name="lastName" class="form-input-elegant" placeholder="Enter last name" required>
-                    </div>
+                    </div> -->
 
                     <!-- Username -->
                     <div class="form-group-elegant">
@@ -625,7 +625,7 @@
                     </div>
 
                     <!-- Gender -->
-                    <div class="form-group-elegant">
+                    <!-- <div class="form-group-elegant">
                         <label class="form-label-elegant">Gender</label>
                         <div class="gender-options-elegant">
                             <label class="gender-option">
@@ -641,13 +641,13 @@
                                 Other
                             </label>
                         </div>
-                    </div>
+                    </div> -->
 
                     <!-- Address -->
-                    <div class="form-group-full">
+                    <!-- <div class="form-group-full">
                         <label for="address" class="form-label-elegant">Address</label>
                         <textarea id="address" name="address" class="form-input-elegant" placeholder="Enter your address" rows="2"></textarea>
-                    </div>
+                    </div> -->
 
                     <!-- Terms and Conditions -->
                     <div class="terms-group">
@@ -659,13 +659,13 @@
 
                     <!-- Buttons -->
                     <div class="button-group">
-                        <button type="submit" class="btn-signup">Create Account</button>
+                        <button type="submit" class="btn-signup">Sign Up</button>
                         <a href="{% url 'user_login' %}" class="btn-cancel">Cancel</a>
                     </div>
 
                     <!-- Login Prompt -->
                     <div class="login-prompt">
-                        Already have an account? <a href="{% url 'user_login' %}">Sign in here</a>
+                        Already have an account? <a href="{% url 'user_login' %}">Log In</a>
                     </div>
                 </form>
             </div>

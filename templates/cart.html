@@ -1,67 +1,79 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Shopping Cart - Perfume Store{% endblock %}
+{% block title %}Shopping Cart - Sanjeri{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
+    <!-- Debug banner (remove after fixing) -->
+    <div class="alert alert-info mb-4">
+        <small>Cart has {{ cart_items|length }} items | Total: {{ cart.total_items|default:0 }} items</small>
+    </div>
+    
     <h1 class="mb-4">Shopping Cart</h1>
     
-    <!-- Add CSRF token here for AJAX requests -->
+    <!-- CSRF token for AJAX -->
     {% csrf_token %}
     
     {% if cart_items %}
         <div class="row">
             <div class="col-lg-8">
-                {% for item in cart_items %}
-                <div class="card mb-3 cart-item {% if not item.is_available %}border-danger{% endif %}" id="cart-item-{{ item.id }}">
+                {% for cart_item in cart_items %}
+                <div class="card mb-3 cart-item {% if not cart_item.is_available %}border-danger{% endif %}" 
+     id="cart-item-{{ cart_item.item.id }}" 
+     data-variant-id="{{ cart_item.variant.id }}">
                     <div class="card-body">
                         <div class="row align-items-center">
                             <div class="col-md-2">
-                                <img src="{{ item.variant.variant_image.url|default:item.product.main_image.url|default:'/static/images/placeholder.jpg' }}" 
-                                     alt="{{ item.product.name }}" 
+                                {% with product=cart_item.product %}
+                                <img src="{% if product.main_image %}{{ product.main_image.url }}{% else %}{% static 'images/placeholder.jpg' %}{% endif %}" 
+                                     alt="{{ product.name }}" 
                                      class="img-fluid rounded" style="height: 80px; object-fit: cover;">
                             </div>
                             
                             <div class="col-md-3">
-                                <h5 class="card-title">{{ item.product.name }}</h5>
+                                <h5 class="card-title">{{ product.name }}</h5>
                                 <p class="text-muted mb-1">
-                                    {{ item.variant.volume_ml }}ml • {{ item.variant.gender }}
+                                    {{ cart_item.variant.volume_ml }}ml • {{ cart_item.variant.gender }}
                                 </p>
                                 <p class="h5 text-primary mb-0">
-                                    ₹{{ item.variant.display_price }}
+                                    ₹{{ cart_item.variant.display_price }}
                                 </p>
                             </div>
                             
                             <div class="col-md-3">
                                 <div class="quantity-controls d-flex align-items-center justify-content-center">
-                                    <button class="btn btn-outline-secondary btn-sm decrement-btn {% if not item.can_decrement %}disabled{% endif %}" 
-                                            data-item-id="{{ item.id }}">
+                                    <button class="btn btn-outline-secondary btn-sm decrement-btn {% if not cart_item.can_decrement %}disabled{% endif %}" 
+                                            data-item-id="{{ cart_item.item.id }}">
                                         <i class="fas fa-minus"></i>
                                     </button>
                                     
-                                    <span class="mx-3 quantity-display" id="quantity-{{ item.id }}">{{ item.quantity }}</span>
+                                    <span class="mx-3 quantity-display" id="quantity-{{ cart_item.item.id }}">
+                                        {{ cart_item.quantity }}
+                                    </span>
                                     
-                                    <button class="btn btn-outline-secondary btn-sm increment-btn {% if not item.can_increment %}disabled{% endif %}" 
-                                            data-item-id="{{ item.id }}">
+                                    <button class="btn btn-outline-secondary btn-sm increment-btn {% if not cart_item.can_increment %}disabled{% endif %}" 
+                                            data-item-id="{{ cart_item.item.id }}">
                                         <i class="fas fa-plus"></i>
                                     </button>
                                 </div>
                                 
-                                {% if item.max_allowed_quantity %}
+                                {% if cart_item.max_allowed_quantity %}
                                 <small class="text-muted d-block mt-1 text-center">
-                                    Max: {{ item.max_allowed_quantity }}
+                                    Max: {{ cart_item.max_allowed_quantity }}
                                 </small>
                                 {% endif %}
                             </div>
                             
                             <div class="col-md-2 text-center">
-                                <strong class="h5" id="item-total-{{ item.id }}">₹{{ item.total_price }}</strong>
+                                <strong class="h5" id="item-total-{{ cart_item.item.id }}">
+                                    ₹{{ cart_item.total_price }}
+                                </strong>
                             </div>
                             
                             <div class="col-md-2 text-end">
-                                <button class="btn btn-outline-secondary btn-sm remove-btn" 
-                                        data-item-id="{{ item.id }}"
+                                <button class="btn btn-outline-danger btn-sm remove-btn" 
+                                        data-item-id="{{ cart_item.item.id }}"
                                         title="Remove from cart">
                                     <i class="fas fa-times me-1"></i> Remove
                                 </button>
@@ -69,28 +81,23 @@
                         </div>
                         
                         <!-- Availability warnings -->
-                        {% if not item.is_available %}
+                        {% if not cart_item.is_available %}
                         <div class="row mt-2">
                             <div class="col-12">
                                 <div class="alert alert-warning py-2 mb-0">
                                     <small>
                                         <i class="fas fa-exclamation-triangle"></i>
-                                        {% if item.is_out_of_stock %}
+                                        {% if cart_item.is_out_of_stock %}
                                         This item is out of stock
-                                        {% elif item.has_low_stock %}
-                                        Only {{ item.variant.stock }} left in stock (you have {{ item.quantity }})
-                                        {% elif not item.product.is_active %}
-                                        Product is unavailable
-                                        {% elif not item.product.category.is_active %}
-                                        Product category is unavailable
-                                        {% elif not item.variant.is_active %}
-                                        Product variant is unavailable
+                                        {% elif cart_item.has_low_stock %}
+                                        Only {{ cart_item.variant.stock }} left in stock (you have {{ cart_item.quantity }})
                                         {% endif %}
                                     </small>
                                 </div>
                             </div>
                         </div>
                         {% endif %}
+                        {% endwith %}
                     </div>
                 </div>
                 {% endfor %}
@@ -112,8 +119,8 @@
                     </div>
                     <div class="card-body">
                         <div class="d-flex justify-content-between mb-2">
-                            <span>Items (<span id="cart-items-count">{{ cart.total_items }}</span>):</span>
-                            <span id="cart-subtotal">₹{{ cart.subtotal }}</span>
+                            <span>Items (<span id="cart-items-count">{{ cart_total_items }}</span>):</span>
+                            <span id="cart-subtotal">₹{{ cart_subtotal }}</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span>Shipping:</span>
@@ -122,7 +129,7 @@
                         <hr>
                         <div class="d-flex justify-content-between mb-3">
                             <strong>Total:</strong>
-                            <strong class="h5 text-primary" id="cart-total">₹{{ cart.subtotal }}</strong>
+                            <strong class="h5 text-primary" id="cart-total">₹{{ cart_subtotal }}</strong>
                         </div>
                         
                         <button class="btn btn-primary btn-lg w-100 {% if not can_checkout %}disabled{% endif %}" 
@@ -160,8 +167,9 @@
 {% endblock %}
 
 {% block extra_js %}
-
 <script>
+// ==================== GLOBAL FUNCTIONS ====================
+
 // Get CSRF token safely
 function getCSRFToken() {
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
@@ -169,7 +177,6 @@ function getCSRFToken() {
         return csrfToken.value;
     }
     
-    // Alternative method to get CSRF token
     const cookieValue = document.cookie
         .split('; ')
         .find(row => row.startsWith('csrftoken='))
@@ -178,7 +185,7 @@ function getCSRFToken() {
     return cookieValue || '';
 }
 
-// Show subtle notification (no popup/alert)
+// Show notification
 function showNotification(message, type = 'info') {
     const container = document.getElementById('notification-container');
     if (!container) return;
@@ -199,7 +206,6 @@ function showNotification(message, type = 'info') {
     
     container.appendChild(notification);
     
-    // Auto remove after 3 seconds
     setTimeout(() => {
         if (notification.parentNode) {
             notification.remove();
@@ -207,13 +213,50 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
-// Update quantity function (silent operation)
+// Update cart badge in header (global function)
+function updateCartBadge(count) {
+    const badges = document.querySelectorAll('.cart-count');
+    badges.forEach(badge => {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'flex' : 'none';
+    });
+    
+    // Store for cross-page updates
+    localStorage.setItem('cartCount', count);
+    sessionStorage.setItem('cartCount', count);
+    
+    console.log('Cart badge updated to:', count);
+}
+
+// Broadcast cart cleared event to other tabs/pages
+function broadcastCartCleared() {
+    localStorage.setItem('cart_cleared', Date.now().toString());
+    setTimeout(() => {
+        localStorage.removeItem('cart_cleared');
+    }, 1000);
+}
+
+// Reset all cart buttons on the site (called after clearing cart)
+function resetAllCartButtons() {
+    // Clear localStorage for cart items
+    Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('added_') || key.startsWith('cart_variant_')) {
+            localStorage.removeItem(key);
+        }
+    });
+    
+    // Broadcast event for other tabs
+    broadcastCartCleared();
+}
+
+// ==================== CART OPERATIONS ====================
+
+// Update quantity
 async function updateQuantity(itemId, action) {
     const quantityDisplay = document.getElementById(`quantity-${itemId}`);
     const incrementBtn = document.querySelector(`.increment-btn[data-item-id="${itemId}"]`);
     const decrementBtn = document.querySelector(`.decrement-btn[data-item-id="${itemId}"]`);
     
-    // Show loading state
     if (quantityDisplay) {
         quantityDisplay.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     }
@@ -233,45 +276,66 @@ async function updateQuantity(itemId, action) {
             body: formData
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
         const data = await response.json();
         
         if (data.success) {
-            updateCartUI(data, itemId);
-            // No popup notification for quantity updates
-            // showNotification('Quantity updated', 'success');
+            // Update UI
+            if (quantityDisplay) {
+                quantityDisplay.textContent = data.item_quantity;
+            }
             
-            // If item was removed, reload page after a delay
+            // Update item total
+            const itemTotal = document.getElementById(`item-total-${itemId}`);
+            if (itemTotal && data.item_total) {
+                itemTotal.textContent = `₹${parseFloat(data.item_total).toFixed(2)}`;
+            }
+            
+            // Update cart totals
+            if (data.cart_total_items !== undefined) {
+                document.getElementById('cart-items-count').textContent = data.cart_total_items;
+            }
+            if (data.subtotal !== undefined) {
+                document.getElementById('cart-subtotal').textContent = `₹${parseFloat(data.subtotal).toFixed(2)}`;
+                document.getElementById('cart-total').textContent = `₹${parseFloat(data.subtotal).toFixed(2)}`;
+            }
+            
+            // Update cart badge in header
+            updateCartBadge(data.cart_total_items);
+            
+            // If item was completely removed, update localStorage
             if (data.item_removed) {
+                // Remove from localStorage if variant ID is available
+                const variantId = getVariantIdFromItem(itemId);
+                if (variantId) {
+                    localStorage.removeItem(`added_${variantId}`);
+                    localStorage.removeItem(`cart_variant_${variantId}`);
+                }
+                
                 setTimeout(() => {
                     location.reload();
                 }, 500);
-                return;
             }
         } else {
             showNotification(data.message, 'error');
-            // Reset quantity display on error
-            if (quantityDisplay) {
-                const currentQuantity = data.item_quantity || 1;
-                quantityDisplay.textContent = currentQuantity;
-            }
         }
     } catch (error) {
         console.error('Error updating quantity:', error);
         showNotification('Error updating quantity', 'error');
-        
-        // Reset quantity display on error
-        if (quantityDisplay) {
-            quantityDisplay.textContent = quantityDisplay.dataset.lastValue || '1';
-        }
     } finally {
-        // Re-enable buttons
         if (incrementBtn) incrementBtn.disabled = false;
         if (decrementBtn) decrementBtn.disabled = false;
     }
+}
+
+// Helper to get variant ID from cart item (you might need to adjust this)
+function getVariantIdFromItem(itemId) {
+    // This is a placeholder - you'll need to get the actual variant ID
+    // Could be stored in a data attribute on the cart item element
+    const itemElement = document.getElementById(`cart-item-${itemId}`);
+    if (itemElement) {
+        return itemElement.dataset.variantId;
+    }
+    return null;
 }
 
 // Remove item from cart
@@ -305,6 +369,9 @@ async function removeFromCart(itemId) {
         if (data.success) {
             showNotification(data.message, 'success');
             
+            // Get variant ID before removing element
+            const variantId = getVariantIdFromItem(itemId);
+            
             // Remove item from UI
             if (itemElement) {
                 itemElement.style.transition = 'all 0.3s ease';
@@ -316,17 +383,31 @@ async function removeFromCart(itemId) {
                 
                 setTimeout(() => {
                     itemElement.remove();
-                    updateCartTotals(data);
                     
-                    // If cart is empty, reload page
+                    // Update cart totals
+                    if (data.cart_total_items !== undefined) {
+                        document.getElementById('cart-items-count').textContent = data.cart_total_items;
+                        updateCartBadge(data.cart_total_items);
+                    }
+                    if (data.subtotal !== undefined) {
+                        document.getElementById('cart-subtotal').textContent = `₹${parseFloat(data.subtotal).toFixed(2)}`;
+                        document.getElementById('cart-total').textContent = `₹${parseFloat(data.subtotal).toFixed(2)}`;
+                    }
+                    
+                    // Remove from localStorage
+                    if (variantId) {
+                        localStorage.removeItem(`added_${variantId}`);
+                        localStorage.removeItem(`cart_variant_${variantId}`);
+                    }
+                    
+                    // If cart is empty, reset all buttons
                     if (data.cart_total_items === 0) {
+                        resetAllCartButtons();
                         setTimeout(() => {
                             location.reload();
                         }, 1000);
                     }
                 }, 300);
-            } else {
-                updateCartTotals(data);
             }
         } else {
             showNotification(data.message, 'error');
@@ -341,48 +422,7 @@ async function removeFromCart(itemId) {
     }
 }
 
-// Function to handle add to cart from any page - ADD THIS FUNCTION
-async function addToCartFromProduct(variantId, quantity = 1) {
-    const addButton = document.querySelector(`[data-variant-id="${variantId}"]`);
-    
-    if (addButton) {
-        addButton.disabled = true;
-        const originalText = addButton.innerHTML;
-        addButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
-        
-        try {
-            const formData = new FormData();
-            formData.append('quantity', quantity);
-            formData.append('csrfmiddlewaretoken', getCSRFToken());
-            
-            const response = await fetch(`/cart/add/${variantId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: formData
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                // Update cart badge in header
-                updateCartBadge(data.cart_total_items);
-                showNotification(data.message, 'success');
-            } else {
-                showNotification(data.message, 'error');
-            }
-        } catch (error) {
-            console.error('Add to cart error:', error);
-            showNotification('Error adding product to cart', 'error');
-        } finally {
-            addButton.disabled = false;
-            addButton.innerHTML = originalText;
-        }
-    }
-}
-
-// Clear entire cart
+// Clear cart - UPDATED VERSION
 async function clearCart() {
     if (!confirm('Are you sure you want to clear your entire cart? This action cannot be undone.')) {
         return;
@@ -407,7 +447,13 @@ async function clearCart() {
         
         if (data.success) {
             showNotification(data.message, 'success');
-            // Reload page to show empty cart
+            
+            // Reset all cart buttons on the site
+            resetAllCartButtons();
+            
+            // Update cart badge
+            updateCartBadge(0);
+            
             setTimeout(() => {
                 location.reload();
             }, 1000);
@@ -422,165 +468,72 @@ async function clearCart() {
     }
 }
 
-// Update cart UI after changes
-function updateCartUI(data, itemId) {
-    // Update quantity display
-    const quantityDisplay = document.getElementById(`quantity-${itemId}`);
-    if (quantityDisplay && data.item_quantity !== undefined) {
-        quantityDisplay.textContent = data.item_quantity;
-        quantityDisplay.dataset.lastValue = data.item_quantity;
-    }
-    
-    // Update item total price
-    const itemTotal = document.getElementById(`item-total-${itemId}`);
-    if (itemTotal && data.item_total !== undefined) {
-        itemTotal.textContent = `₹${parseFloat(data.item_total).toFixed(2)}`;
-    }
-    
-    // Update cart totals
-    updateCartTotals(data);
-    
-    // Update button states
-    updateButtonStates(itemId, data);
-    
-    // Update cart badge in header
-    updateCartBadge(data.cart_total_items);
-}
-
-// Update cart totals
-function updateCartTotals(data) {
-    // Update item count
-    const itemCountEl = document.getElementById('cart-items-count');
-    if (itemCountEl && data.cart_total_items !== undefined) {
-        itemCountEl.textContent = data.cart_total_items;
-    }
-    
-    // Update subtotal and total
-    const subtotalEl = document.getElementById('cart-subtotal');
-    const totalEl = document.getElementById('cart-total');
-    
-    if (subtotalEl && data.subtotal !== undefined) {
-        subtotalEl.textContent = `₹${parseFloat(data.subtotal).toFixed(2)}`;
-    }
-    if (totalEl && data.subtotal !== undefined) {
-        totalEl.textContent = `₹${parseFloat(data.subtotal).toFixed(2)}`;
-    }
-}
-
-// Update button states
-function updateButtonStates(itemId, data) {
-    const incrementBtn = document.querySelector(`.increment-btn[data-item-id="${itemId}"]`);
-    const decrementBtn = document.querySelector(`.decrement-btn[data-item-id="${itemId}"]`);
-    
-    if (incrementBtn) {
-        const canIncrement = data.can_increment !== undefined ? data.can_increment : true;
-        incrementBtn.disabled = !canIncrement;
-        if (canIncrement) {
-            incrementBtn.classList.remove('disabled');
-        } else {
-            incrementBtn.classList.add('disabled');
-        }
-    }
-    
-    if (decrementBtn) {
-        const canDecrement = data.can_decrement !== undefined ? data.can_decrement : true;
-        decrementBtn.disabled = !canDecrement;
-        if (canDecrement) {
-            decrementBtn.classList.remove('disabled');
-        } else {
-            decrementBtn.classList.add('disabled');
-        }
-    }
-}
-
-// Update cart badge in header
-function updateCartBadge(count) {
-    // Update cart badges on current page
-    const badges = document.querySelectorAll('.cart-count, .cart-badge');
-    badges.forEach(badge => {
-        badge.textContent = count;
-        badge.style.display = count > 0 ? 'inline' : 'none';
-    });
-    
-    // Store in localStorage for cross-page updates
-    localStorage.setItem('cartCount', count);
-    sessionStorage.setItem('cartCount', count);
-    
-    // Trigger custom event for same-page listeners
-    const cartEvent = new CustomEvent('cartUpdated', { detail: { count: count } });
-    window.dispatchEvent(cartEvent);
-    
-    console.log('Cart badge updated to:', count);
-}
-
 // Proceed to checkout
 function proceedToCheckout() {
     window.location.href = "{% url 'checkout' %}";
 }
 
-// Event listeners - Robust version with event delegation
+// ==================== EVENT LISTENERS ====================
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Use event delegation for dynamic elements
+    // Event delegation for dynamic elements
     document.addEventListener('click', function(e) {
-        // Increment buttons (in cart page)
+        // Increment buttons
         if (e.target.closest('.increment-btn')) {
             const btn = e.target.closest('.increment-btn');
             const itemId = btn.getAttribute('data-item-id');
-            updateQuantity(itemId, 'increment');
+            if (!btn.disabled && !btn.classList.contains('disabled')) {
+                updateQuantity(itemId, 'increment');
+            }
         }
         
-        // Decrement buttons (in cart page)
+        // Decrement buttons
         if (e.target.closest('.decrement-btn')) {
             const btn = e.target.closest('.decrement-btn');
             const itemId = btn.getAttribute('data-item-id');
-            updateQuantity(itemId, 'decrement');
+            if (!btn.disabled && !btn.classList.contains('disabled')) {
+                updateQuantity(itemId, 'decrement');
+            }
         }
         
-        // Remove buttons (in cart page)
+        // Remove buttons
         if (e.target.closest('.remove-btn')) {
             const btn = e.target.closest('.remove-btn');
             const itemId = btn.getAttribute('data-item-id');
             removeFromCart(itemId);
         }
-        
-        // Add to cart buttons (on product pages & homepage)
-        if (e.target.closest('.add-to-cart-btn')) {
-            e.preventDefault();
-            const btn = e.target.closest('.add-to-cart-btn');
-            const variantId = btn.getAttribute('data-variant-id');
-            const quantity = btn.getAttribute('data-quantity') || 1;
-            
-            if (variantId) {
-                addToCartFromProduct(variantId, quantity);
-            }
-        }
     });
     
-    // Clear cart button (static element, can use direct listener)
+    // Clear cart button
     const clearCartBtn = document.getElementById('clear-cart-btn');
     if (clearCartBtn) {
         clearCartBtn.addEventListener('click', clearCart);
     }
     
-    // Store initial quantity values
-    document.querySelectorAll('.quantity-display').forEach(display => {
-        display.dataset.lastValue = display.textContent;
-    });
+    // Checkout button
+    const checkoutBtn = document.getElementById('checkout-btn');
+    if (checkoutBtn) {
+        checkoutBtn.addEventListener('click', proceedToCheckout);
+    }
     
-    // Initialize cart count
-    updateCartBadge({{ request.user.cart.total_items|default:0 }});
+    // Initialize cart badge
+    updateCartBadge({{ cart_total_items|default:0 }});
+    
+    // Listen for cart cleared events from other tabs
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'cart_cleared') {
+            console.log('Cart cleared event received from another tab');
+            resetAllCartButtons();
+        }
+    });
 });
 </script>
 
 <style>
-.quantity-controls .btn:disabled {
+.quantity-controls .btn:disabled,
+.quantity-controls .btn.disabled {
     opacity: 0.5;
     cursor: not-allowed;
-}
-
-.quantity-controls .btn.disabled {
-    pointer-events: none;
-    opacity: 0.5;
 }
 
 .cart-item {
@@ -598,26 +551,6 @@ document.addEventListener('DOMContentLoaded', function() {
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
-}
-
-/* Remove button styling */
-.remove-btn {
-    background-color: #f8f9fa;
-    border-color: #dee2e6;
-    color: #6c757d;
-    font-size: 0.875rem;
-}
-
-.remove-btn:hover {
-    background-color: #e9ecef;
-    border-color: #adb5bd;
-    color: #495057;
-}
-
-.remove-btn:disabled {
-    background-color: #f8f9fa;
-    border-color: #dee2e6;
-    color: #adb5bd;
 }
 </style>
 {% endblock %}

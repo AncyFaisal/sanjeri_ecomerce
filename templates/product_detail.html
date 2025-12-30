@@ -88,6 +88,22 @@
             cursor: not-allowed;
         }
         
+        /* Go to Cart button style */
+        .btn-go-to-cart {
+            background-color: #28a745 !important;
+            color: white !important;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            border-radius: 25px;
+            transition: all 0.3s;
+        }
+        
+        .btn-go-to-cart:hover {
+            background-color: #218838 !important;
+            transform: translateY(-2px);
+        }
+        
         .variant-option {
             border: 2px solid #e9ecef;
             border-radius: 8px;
@@ -143,6 +159,30 @@
         .related-product:hover {
             transform: translateY(-5px);
         }
+        
+        /* Notification styles */
+        .custom-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 <body>
@@ -151,6 +191,9 @@
 
     <!-- Main Content -->
     <div class="container py-4">
+        <!-- CSRF Token for AJAX requests -->
+        {% csrf_token %}
+        
         <!-- Breadcrumbs -->
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
@@ -247,7 +290,6 @@
                                     <small class="d-block {% if variant.stock > 10 %}text-success{% elif variant.stock > 0 %}text-warning{% else %}text-danger{% endif %}">
                                         {% if variant.stock > 10 %}In Stock{% elif variant.stock > 0 %}Only {{ variant.stock }} left{% else %}Out of Stock{% endif %}
                                     </small>
-                                    <!-- <small class="text-muted">SKU: {{ variant.sku }}</small> -->
                                 </div>
                             </div>
                         </div>
@@ -282,12 +324,11 @@
                                     {{ first_variant.stock }}
                                 </span>
                             </div>
-                            <div class="col-12 mt-2">
-                                <!-- <strong>SKU:</strong> {{ first_variant.sku }} -->
-                            </div>
                         </div>
                         {% endwith %}
                     </div>
+                     <!-- Hidden field to store current variant ID -->
+    <input type="hidden" id="current-variant-id" value="{{ variants.first.id }}">
                 </div>
                 {% endif %}
 
@@ -319,23 +360,12 @@
                     </table>
                 </div>
 
-                <!-- Add to Cart -->
+                <!-- Add to Cart Button -->
                 <div class="d-grid gap-2 d-md-flex">
-                    {% csrf_token %} 
                     {% if variants and variants.first.stock > 0 %}
                         <button class="btn btn-add-cart flex-fill" id="add-to-cart-btn">
                             <i class="fas fa-shopping-cart me-2"></i>Add to Cart
                         </button>
-
-                        
-                    <a href="{% url 'cart' %}" class="icon-btn position-relative text-decoration-none">
-    <i class="fas fa-shopping-cart"></i>
-    {% if cart_item_count > 0 %}
-    <span class="cart-count">{{ cart_item_count }}</span>
-    {% else %}
-    <span class="cart-count" style="display: none;">0</span>
-    {% endif %}
-</a>
                     {% else %}
                         <button class="btn btn-add-cart flex-fill" disabled>
                             <i class="fas fa-times-circle me-2"></i>Out of Stock
@@ -390,7 +420,6 @@
                         </div>
                     </div>
                     <div class="col-md-8">
-                        <!-- Sample reviews - you can replace with real reviews -->
                         <div class="review mb-4">
                             <div class="d-flex justify-content-between">
                                 <h6>John Doe</h6>
@@ -438,7 +467,6 @@
                             <div class="card-body">
                                 <h6 class="card-title">{{ related.name }}</h6>
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <!-- Show price range for related products -->
                                     {% if related.min_price == related.max_price %}
                                         <span class="text-dark fw-bold">₹{{ related.min_price }}</span>
                                     {% else %}
@@ -464,9 +492,22 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // ==================== GLOBAL VARIABLES ====================
         let selectedVariantId = {% if variants %}{{ variants.first.id }}{% else %}null{% endif %};
+        let isButtonGoToCart = false;
 
-        // Image Gallery Functionality
+        // ==================== PAGE LOAD INITIALIZATION ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔄 Product detail page loaded');
+            
+            // Initialize button state
+            initializeButtonState();
+            
+            // Check if variant is already in cart (from localStorage)
+            checkLocalStorageForVariant();
+        });
+
+        // ==================== IMAGE GALLERY FUNCTIONS ====================
         function changeMainImage(src, element) {
             document.getElementById('mainImage').src = src;
             document.getElementById('zoomedImage').src = src;
@@ -480,7 +521,6 @@
             element.classList.add('active');
         }
         
-        // Image Zoom Functionality
         function openZoom() {
             document.getElementById('zoomModal').style.display = 'flex';
         }
@@ -503,7 +543,7 @@
             }
         });
 
-        // Variant Selection Functionality
+        // ==================== VARIANT SELECTION FUNCTIONS ====================
         function selectVariant(element) {
             // Remove selected class from all variants
             document.querySelectorAll('.variant-option').forEach(option => {
@@ -519,8 +559,11 @@
             // Update variant details display
             updateVariantDetails(element);
             
-            // Update add to cart button
+            // Update add to cart button based on stock
             updateAddToCartButton(parseInt(element.dataset.stock));
+            
+            // Check if this variant is already in cart
+            checkIfVariantInCart(selectedVariantId);
         }
         
         function updateVariantDetails(element) {
@@ -546,9 +589,6 @@
                             ${element.dataset.stock}
                         </span>
                     </div>
-                    <div class="col-12 mt-2">
-                        <strong>SKU:</strong> ${element.dataset.sku}
-                    </div>
                 </div>
             `;
             
@@ -557,201 +597,301 @@
         
         function updateAddToCartButton(stock) {
             const addToCartBtn = document.getElementById('add-to-cart-btn');
+            if (!addToCartBtn) return;
+            
             if (stock > 0) {
                 addToCartBtn.disabled = false;
-                addToCartBtn.innerHTML = '<i class="fas fa-shopping-cart me-2"></i>Add to Cart';
+                // Don't change text here - let initializeButtonState handle it
             } else {
                 addToCartBtn.disabled = true;
                 addToCartBtn.innerHTML = '<i class="fas fa-times-circle me-2"></i>Out of Stock';
+                addToCartBtn.classList.remove('btn-go-to-cart');
+                addToCartBtn.classList.add('btn-add-cart');
             }
         }
 
-// Add to cart functionality
-document.getElementById('add-to-cart-btn')?.addEventListener('click', function() {
-    if (selectedVariantId) {
-        console.log('🛒 DEBUG: Add to cart clicked, variant ID:', selectedVariantId);
-        
-        const quantity = 1; // Default quantity
-        
-        // Get CSRF token - multiple ways to find it
-        let csrfToken = '';
-        
-        // Method 1: Look for hidden input
-        const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
-        if (csrfInput) {
-            csrfToken = csrfInput.value;
-            console.log('🛒 DEBUG: CSRF token found via input field');
-        }
-        
-        // Method 2: Look for cookie (fallback)
-        if (!csrfToken) {
-            csrfToken = getCookie('csrftoken');
-            if (csrfToken) {
-                console.log('🛒 DEBUG: CSRF token found via cookie');
-            }
-        }
-        
-        // Method 3: Use Django template variable (fallback)
-        if (!csrfToken && typeof window.CSRF_TOKEN !== 'undefined') {
-            csrfToken = window.CSRF_TOKEN;
-            console.log('🛒 DEBUG: CSRF token found via window variable');
-        }
-        
-        if (!csrfToken) {
-            console.error('❌ DEBUG: CSRF token not found by any method');
-            showNotification('Security error: Please refresh the page and try again.', 'error');
-            return;
-        }
-        // Method 4: Look for meta tag
-if (!csrfToken) {
-    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
-    if (csrfMeta) {
-        csrfToken = csrfMeta.getAttribute('content');
-        console.log('🛒 DEBUG: CSRF token found via meta tag');
-    }
-}
-        console.log('🛒 DEBUG: CSRF token found:', csrfToken.substring(0, 10) + '...');
-        
-        // Create form data
-        const formData = new FormData();
-        formData.append('quantity', quantity);
-        formData.append('csrfmiddlewaretoken', csrfToken);
-        
-        const url = `/cart/add/${selectedVariantId}/`;
-        console.log('🛒 DEBUG: Making POST request to:', url);
-        
-        // Make AJAX request
-        fetch(url, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': csrfToken
-            }
-        })
-        .then(response => {
-            console.log('🛒 DEBUG: Response status:', response.status, response.statusText);
+        // ==================== BUTTON STATE MANAGEMENT ====================
+        function initializeButtonState() {
+            const addToCartBtn = document.getElementById('add-to-cart-btn');
+            if (!addToCartBtn) return;
             
-            // Check content type
-            const contentType = response.headers.get('content-type');
-            console.log('🛒 DEBUG: Content-Type:', contentType);
+            // Set initial click handler
+            addToCartBtn.addEventListener('click', handleAddToCartClick);
+        }
+        
+        function changeButtonToGoToCart() {
+            const addToCartBtn = document.getElementById('add-to-cart-btn');
+            if (!addToCartBtn) return;
             
-            if (contentType && contentType.includes('application/json')) {
-                return response.json().then(data => {
-                    console.log('🛒 DEBUG: JSON response data:', data);
-                    return { type: 'json', data: data };
-                });
-            } else {
-                // If it's HTML, it might be a redirect or error page
-                console.log('🛒 DEBUG: HTML response received');
-                return response.text().then(html => {
-                    console.log('🛒 DEBUG: HTML response length:', html.length);
-                    // Check if it's a redirect to login (user not authenticated)
-                    if (html.includes('login') || html.includes('Log in')) {
-                        return { type: 'redirect', data: '/accounts/login/' };
-                    }
-                    return { type: 'html', data: html };
-                });
+            addToCartBtn.innerHTML = '<i class="fas fa-shopping-cart me-2"></i>Go to Cart';
+            addToCartBtn.classList.remove('btn-add-cart');
+            addToCartBtn.classList.add('btn-go-to-cart');
+            addToCartBtn.disabled = false;
+            
+            // Change the click handler to redirect to cart
+            addToCartBtn.onclick = function() {
+                window.location.href = '{% url "cart" %}';
+            };
+            
+            isButtonGoToCart = true;
+            console.log('✅ Button changed to "Go to Cart"');
+        }
+        
+        function changeButtonToAddToCart() {
+            const addToCartBtn = document.getElementById('add-to-cart-btn');
+            if (!addToCartBtn) return;
+            
+            addToCartBtn.innerHTML = '<i class="fas fa-shopping-cart me-2"></i>Add to Cart';
+            addToCartBtn.classList.remove('btn-go-to-cart');
+            addToCartBtn.classList.add('btn-add-cart');
+            addToCartBtn.disabled = false;
+            
+            // Reset click handler
+            addToCartBtn.onclick = handleAddToCartClick;
+            
+            isButtonGoToCart = false;
+            console.log('✅ Button changed to "Add to Cart"');
+        }
+
+        // ==================== ADD TO CART FUNCTION ====================
+        async function handleAddToCartClick() {
+            const addToCartBtn = this;
+            
+            if (!selectedVariantId) {
+                showNotification('Please select a variant first', 'error');
+                return;
             }
-        })
-        .then(result => {
-            if (result.type === 'json') {
-                // Handle JSON response
-                const data = result.data;
-                if (data.success) {
-                    showNotification(data.message || 'Product added to cart successfully!', 'success');
-                    
-                    // Update cart count in header
-                    if (data.cart_total_items !== undefined) {
-                        updateCartCount(data.cart_total_items);
+            
+            // Check if button already says "Go to Cart"
+            if (isButtonGoToCart) {
+                window.location.href = '{% url "cart" %}';
+                return;
+            }
+            
+            const quantity = 1;
+            
+            // Get CSRF token
+            let csrfToken = getCookie('csrftoken') || document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+            
+            if (!csrfToken) {
+                showNotification('Security error: Please refresh the page and try again.', 'error');
+                return;
+            }
+            
+            // Show loading state
+            const originalText = addToCartBtn.innerHTML;
+            addToCartBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Adding...';
+            addToCartBtn.disabled = true;
+            
+            try {
+                // Create form data
+                const formData = new FormData();
+                formData.append('quantity', quantity);
+                formData.append('csrfmiddlewaretoken', csrfToken);
+                
+                console.log('🛒 Adding variant to cart:', selectedVariantId);
+                
+                // Make AJAX request
+                const response = await fetch(`/cart/add/${selectedVariantId}/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
                     }
+                });
+                
+                // Check response type
+                const contentType = response.headers.get('content-type');
+                let result;
+                
+                if (contentType && contentType.includes('application/json')) {
+                    result = await response.json();
+                    console.log('🛒 JSON Response:', result);
                     
-                    // Redirect to cart page after short delay
+                    if (result.success) {
+                        // Show success message
+                        showNotification(result.message || 'Product added to cart!', 'success');
+                        
+                        // Update cart count in header
+                        if (result.cart_total_items !== undefined) {
+                            updateCartCount(result.cart_total_items);
+                        }
+                        
+                        // Change button to "Go to Cart"
+                        changeButtonToGoToCart();
+                        
+                        // Store in localStorage
+                        localStorage.setItem(`cart_variant_${selectedVariantId}`, 'true');
+                        
+                        // Optionally redirect after delay
+                        // setTimeout(() => {
+                        //     window.location.href = '{% url "cart" %}';
+                        // }, 1500);
+                        
+                    } else {
+                        showNotification(result.message || 'Error adding to cart', 'error');
+                        addToCartBtn.innerHTML = originalText;
+                        addToCartBtn.disabled = false;
+                    }
+                } else {
+                    // Handle HTML response (redirect)
+                    console.log('🛒 HTML response received');
+                    showNotification('Product added! Redirecting...', 'success');
                     setTimeout(() => {
                         window.location.href = '{% url "cart" %}';
-                    }, 1500);
-                } else {
-                    showNotification(data.message || 'Error adding product to cart', 'error');
+                    }, 1000);
                 }
-            } else if (result.type === 'redirect') {
-                // Handle redirect (usually to login page)
-                console.log('🛒 DEBUG: Redirect detected to:', result.data);
-                showNotification('Please log in to add items to cart', 'warning');
-                setTimeout(() => {
-                    window.location.href = result.data;
-                }, 2000);
-            } else {
-                // Handle HTML response (redirect happened)
-                console.log('🛒 DEBUG: HTML response - assuming redirect worked');
-                showNotification('Product added to cart! Redirecting...', 'success');
+                
+            } catch (error) {
+                console.error('❌ Add to cart error:', error);
+                showNotification('Network error. Please try again.', 'error');
+                addToCartBtn.innerHTML = originalText;
+                addToCartBtn.disabled = false;
             }
-        })
-        .catch(error => {
-            console.error('❌ DEBUG: Fetch error:', error);
-            console.error('❌ DEBUG: Error details:', error.message);
-            showNotification('Network error: Could not add to cart. Please try again.', 'error');
-        });
-    } else {
-        console.error('❌ DEBUG: No variant selected');
-        showNotification('Please select a variant first', 'error');
+        }
+
+        // ==================== HELPER FUNCTIONS ====================
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        function showNotification(message, type) {
+            // Remove any existing notifications
+            document.querySelectorAll('.custom-notification').forEach(el => el.remove());
+            
+            // Create new notification
+            const notification = document.createElement('div');
+            notification.className = `custom-notification alert alert-${type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'danger'}`;
+            notification.innerHTML = `
+                <strong>${type === 'success' ? '✅ Success!' : type === 'warning' ? '⚠️ Warning!' : '❌ Error!'}</strong>
+                <div>${message}</div>
+                <button type="button" class="btn-close" onclick="this.parentElement.remove()" style="float: right;"></button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+        
+        function updateCartCount(count) {
+            const cartCountElements = document.querySelectorAll('.cart-count');
+            cartCountElements.forEach(element => {
+                element.textContent = count;
+                element.style.display = count > 0 ? 'flex' : 'none';
+            });
+            console.log('🛒 Cart count updated to:', count);
+        }
+        
+        function checkLocalStorageForVariant() {
+            if (selectedVariantId) {
+                const inCart = localStorage.getItem(`cart_variant_${selectedVariantId}`);
+                if (inCart === 'true') {
+                    console.log('📦 Variant found in localStorage, updating button');
+                    changeButtonToGoToCart();
+                }
+            }
+        }
+        
+        function checkIfVariantInCart(variantId) {
+            // First check localStorage
+            const inCart = localStorage.getItem(`cart_variant_${variantId}`);
+            if (inCart === 'true') {
+                changeButtonToGoToCart();
+            } else {
+                changeButtonToAddToCart();
+            }
+            
+            // Optionally check with server (if you have an API endpoint)
+            // checkWithServer(variantId);
+        }
+        
+        // Optional: Server check function
+        async function checkWithServer(variantId) {
+            try {
+                const response = await fetch(`/cart/check/${variantId}/`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.in_cart) {
+                        changeButtonToGoToCart();
+                        localStorage.setItem(`cart_variant_${variantId}`, 'true');
+                    }
+                }
+            } catch (error) {
+                console.log('Server check failed, using localStorage only');
+            }
+        }
+
+        // ==================== ADD TO CART BUTTON MANAGEMENT ====================
+
+// Function to check if variant is in cart (server check)
+async function checkCartForVariant(variantId, button) {
+    try {
+        const response = await fetch(`/cart/check-variant/${variantId}/`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.in_cart) {
+                changeButtonToGoToCart();
+            } else {
+                changeButtonToAddToCart();
+            }
+        }
+    } catch (error) {
+        console.log('Server check failed, using localStorage');
+        // Fallback to localStorage
+        if (localStorage.getItem(`cart_variant_${variantId}`)) {
+            changeButtonToGoToCart();
+        }
+    }
+}
+
+// Function to reset cart button (called when cart is cleared)
+function resetCartButton() {
+    const button = document.getElementById('add-to-cart-btn');
+    if (button) {
+        changeButtonToAddToCart();
+        
+        // Remove from localStorage
+        const variantId = selectedVariantId || document.getElementById('current-variant-id')?.value;
+        if (variantId) {
+            localStorage.removeItem(`cart_variant_${variantId}`);
+            localStorage.removeItem(`added_${variantId}`);
+        }
+    }
+}
+
+// Listen for cart cleared events
+window.addEventListener('storage', function(e) {
+    if (e.key === 'cart_cleared') {
+        console.log('Cart cleared event received on product detail page');
+        resetCartButton();
+        updateCartBadge(0);
     }
 });
 
-// Helper function to get cookie value
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
+// Check cart status for current variant on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const currentVariantId = selectedVariantId || document.getElementById('current-variant-id')?.value;
+    if (currentVariantId) {
+        checkCartForVariant(currentVariantId);
     }
-    return cookieValue;
-}
-
-function showNotification(message, type) {
-    // Remove any existing notifications
-    document.querySelectorAll('.custom-notification').forEach(el => el.remove());
-    
-    // Create new notification
-    const notification = document.createElement('div');
-    notification.className = `custom-notification alert alert-${type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'danger'} position-fixed`;
-    notification.style.cssText = `
-        top: 20px; 
-        right: 20px; 
-        z-index: 9999; 
-        min-width: 300px;
-        padding: 15px;
-        border-radius: 5px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    `;
-    notification.innerHTML = `
-        <strong>${type === 'success' ? '✅ Success!' : type === 'warning' ? '⚠️ Warning!' : '❌ Error!'}</strong>
-        <div>${message}</div>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.remove();
-        }
-    }, 5000);
-}
-
-function updateCartCount(count) {
-    const cartCountElements = document.querySelectorAll('.cart-count');
-    console.log('🛒 DEBUG: Updating cart count to:', count, 'found', cartCountElements.length, 'elements');
-    cartCountElements.forEach(element => {
-        element.textContent = count;
-        element.style.display = count > 0 ? 'flex' : 'none';
-    });
-}
+});
     </script>
 </body>
 </html>

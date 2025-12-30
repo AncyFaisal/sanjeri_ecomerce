@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+
+# Django
+db.sqlite3
+media/
+
+# Virtual environment
+venv/
+
+# Environment variables
+.env
+
+# Static images (keep css & js only)
+static/images/
+static/css/images/

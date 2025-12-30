@@ -5,24 +5,52 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
+
+<style>
+.avatar-img {
+    width: 150px !important;
+    height: 150px !important;
+    max-width: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+</style>
 <div class="container mt-4">
     <div class="row">
-        <div class="col-md-3">
-            <!-- User Profile Sidebar -->
+          <div class="col-md-3">
             <div class="card">
                 <div class="card-body text-center">
-                    {% if user.profile_image %}
-                        <img src="{{ user.profile_image.url }}" alt="Profile" class="rounded-circle mb-3" width="150" height="150">
+                    <!-- FIXED: Proper if/elif/else structure -->
+                    {% if user.profile_image and user.profile_image.url == '/media/profile_images/default_profile.png' %}
+                        <img src="{% static 'images/default_profile.png' %}" 
+                             alt="Default Profile" 
+                             class="avatar-img">
+                    {% elif user.profile_image %}
+                        <img src="{{ user.profile_image.url }}" 
+                             alt="Profile" 
+                             class="avatar-img">
                     {% else %}
-                        <img src="{% static 'images/default_profile.png' %}" alt="Profile" class="rounded-circle mb-3" width="150" height="150">
+                        <img src="{% static 'images/default_profile.png' %}" 
+                             alt="Default Profile" 
+                             class="avatar-img">
                     {% endif %}
-                    <h5 class="card-title">{{ user.get_full_name }}</h5>
-                    <p class="text-muted">{{ user.email }}</p>
+                    
+                    <!-- Debug info (optional - remove after testing) -->
+                    <!-- <div class="mt-2 small text-muted">
+                        <small>
+                            {% if user.profile_image %}
+                                Has profile image
+                            {% else %}
+                                Using default
+                            {% endif %}
+                        </small>
+                    </div> -->
                 </div>
+                
                 <div class="list-group list-group-flush">
-                    <a href="{% url 'user_profile' %}" class="list-group-item list-group-item-action">Profile</a>
-                    <a href="{% url 'user_address_list' %}" class="list-group-item list-group-item-action active">Addresses</a>
-                    <a href="{% url 'order_history' %}" class="list-group-item list-group-item-action">Order History</a>
+                    <a href="{% url 'user_profile' %}" class="list-group-item list-group-item-action active">Profile</a>
+                    <a href="{% url 'user_address_list' %}" class="list-group-item list-group-item-action">Addresses</a>
+                    <a href="{% url 'order_list' %}" class="list-group-item list-group-item-action">My Orders</a>
                     <a href="{% url 'change_password' %}" class="list-group-item list-group-item-action">Change Password</a>
                 </div>
             </div>

@@ -38,10 +38,24 @@
                                 {% endif %}
                             </div>
 
-                            <a href="{% url 'wishlist' %}" class="icon-btn">
-                                <i class="far fa-heart"></i>
-                                <span class="wishlist-count">0</span>
-                            </a>
+ <!-- Wishlist Icon -->
+<a href="{% url 'wishlist' %}" class="icon-btn position-relative text-decoration-none">
+    <i class="fas fa-heart"></i>
+    <span class="cart-count wishlist-badge" 
+          style="{% if wishlist_count == 0 %}display: none;{% endif %}">
+        {{ wishlist_count|default:0 }}
+    </span>
+</a>
+    <!-- Cart Icon -->
+    <!-- <a href="{% url 'cart' %}" class="icon-btn position-relative text-decoration-none">
+        <i class="fas fa-shopping-cart"></i>
+        {% if cart_item_count > 0 %}
+        <span class="cart-count">{{ cart_item_count }}</span>
+        {% else %}
+        <span class="cart-count" style="display: none;">0</span>
+        {% endif %}
+    </a> -->
+</div>
 
                             <!-- SINGLE CART ICON -->
                             <a href="{% url 'cart' %}" class="icon-btn position-relative text-decoration-none">
@@ -89,6 +103,7 @@
     justify-content: flex-end;
     width: 100%;
     height: 100%;
+    gap: 10px;
 }
 
 .nav-icons {

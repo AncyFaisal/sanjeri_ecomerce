@@ -80,7 +80,9 @@ def _otp_key(purpose: str, email: str) -> str:
     """Build a namespaced cache key so signup/forgot OTPs never clash."""
     return f"otp:{purpose}:{email}"
 
-def generate_and_send_otp(email: str, purpose: str, ttl_seconds: int = 120) -> int:
+def generate_and_send_otp(email: str, username: str, purpose: str, ttl_seconds: int = 120) -> int:
+
+# def generate_and_send_otp(email: str, purpose: str, ttl_seconds: int = 120) -> int:
     """
     Generates a 6-digit OTP, stores it in cache for `ttl_seconds`, and emails it.
     purpose: "signup" | "forgot" | "email_change" | "password_change"
@@ -91,16 +93,45 @@ def generate_and_send_otp(email: str, purpose: str, ttl_seconds: int = 120) -> i
 
     if purpose == "signup":
         subject = "Verify Your Email - SANJERI"
-        body = f"Your signup OTP is {otp}. It will expire in {ttl_seconds // 60} minutes."
+        body = (f"Hi {username},\n\n"
+        "Thank you for signing up with Sanjeri Perfumes!\n\n"
+        f"Your One-Time Password (OTP) is: {otp}\n\n"
+        f"This OTP is valid for {ttl_seconds // 60} minutes. "
+        "Please do not share it with anyone.\n\n"
+        "If you did not request this OTP, please ignore this email "
+        "or contact our support team.\n\n"
+        "We’re excited to have you join our community!\n\n"
+        "Warm regards,\n"
+        "The Sanjeri Perfumes Team")
+        # Your signup OTP is {otp}. It will expire in {ttl_seconds // 60} minutes."
     elif purpose == "email_change":
         subject = "Verify Email Change - SANJERI"
-        body = f"Your email change verification OTP is {otp}. It will expire in {ttl_seconds // 60} minutes."
+        body = (
+    f"Hi {username},\n\n"
+    "You requested to change your registered email address.\n"
+    f"Your verification OTP is {otp} and is valid for {ttl_seconds // 60} minutes.\n\n"
+    "If this wasn’t you, please contact our support team.\n\n"
+    "Warm regards,\n"
+    "The Sanjeri Perfumes Team"
+)
     elif purpose == "password_change":
         subject = "Verify Password Change - SANJERI"
-        body = f"Your password change verification OTP is {otp}. It will expire in {ttl_seconds // 60} minutes."
+        body = (f"Hi {username},\n\n"
+    "You requested to change your password.\n"
+    f"Your verification OTP is {otp}. It will expire in {ttl_seconds // 60} minutes.\n\n"
+    "If this wasn’t you, please secure your account immediately.\n\n"
+    "Warm regards,\n"
+    "The Sanjeri Perfumes Team")
     else:  # forgot password
         subject = "Password Reset OTP - SANJERI"
-        body = f"Your password reset OTP is {otp}. It will expire in {ttl_seconds // 60} minutes."
+        body = (
+    f"Hi {username},\n\n"
+    "We received a request to reset your password.\n"
+    f"Use this OTP to continue: {otp}. It is valid for {ttl_seconds // 60} minutes.\n\n"
+    "If you didn’t request this, you can safely ignore this email.\n\n"
+    "Warm regards,\n"
+    "The Sanjeri Perfumes Team"
+)
 
     send_mail(subject, body, settings.EMAIL_HOST_USER, [email])
     return otp
@@ -140,15 +171,15 @@ def user_signup(request):
     Send OTP and store form data in session as 'pending_user'.
     """
     if request.method == "POST":
-        fname = request.POST.get("firstName")
-        lname = request.POST.get("lastName")
+        # fname = request.POST.get("firstName")
+        # lname = request.POST.get("lastName")
         username = request.POST.get("username")
         email = request.POST.get("email")
         password = request.POST.get("password")
         confirm = request.POST.get("confirmPassword")
         phone = request.POST.get("phone")
-        address = request.POST.get("address")
-        gender = request.POST.get("gender")
+        # address = request.POST.get("address")
+        # gender = request.POST.get("gender")
         agree = request.POST.get("agree")
 
         # Validations
@@ -157,7 +188,7 @@ def user_signup(request):
             return redirect("user_signup")
 
         if password != confirm:
-            messages.error(request, "Passwords do not match.")
+            messages.error(request, "Password and confirmation do not match.")
             return redirect("user_signup")
 
         if CustomUser.objects.filter(username=username).exists():
@@ -170,21 +201,21 @@ def user_signup(request):
 
         # Save data temporarily in session (server-side)
         request.session["pending_user"] = {
-            "first_name": fname,
-            "last_name": lname,
+            # "first_name": fname,
+            # "last_name": lname,
             "username": username,
             "email": email,
             "password": password,  # Will be hashed only after OTP verification
             "phone": phone,
-            "address": address,
-            "gender": gender,
+            # "address": address,
+            # "gender": gender,
             "status": "active",  # ADD THIS LINE - New users are active by default
             "wallet_balance": 0.00,  # ADD THIS LINE - Start with zero balance
         }
         request.session["otp_email"] = email  # for signup OTP flow
 
         # Send OTP
-        generate_and_send_otp(email, purpose="signup", ttl_seconds=120)
+        generate_and_send_otp(email,username ,purpose="signup", ttl_seconds=120)
         messages.success(request, "OTP sent to your email. Please verify.")
         return redirect("verify_signup_otp")
 
@@ -224,13 +255,13 @@ def verify_signup_otp(request):
         data = request.session.get("pending_user")
         try:
             user = CustomUser.objects.create(
-                first_name=data["first_name"],
-                last_name=data["last_name"],
+                # first_name=data["first_name"],
+                # last_name=data["last_name"],
                 username=data["username"],
                 email=data["email"],
                 phone=data.get("phone"),
-                address=data.get("address"),
-                gender=data.get("gender"),
+                # address=data.get("address"),
+                # gender=data.get("gender"),
                 status=data.get("status", "active"),  # ADD THIS - status field
                 wallet_balance=data.get("wallet_balance", 0.00),  # ADD THIS - wallet field
                 password=make_password(data["password"]),
@@ -252,11 +283,15 @@ def verify_signup_otp(request):
 
 def resend_signup_otp(request):
     email = request.session.get("otp_email")
-    if not email or not request.session.get("pending_user"):
+    pending_user = request.session.get("pending_user")
+
+    if not email or not pending_user:
         messages.error(request, "Session expired. Please sign up again.")
         return redirect("user_signup")
 
-    generate_and_send_otp(email, purpose="signup", ttl_seconds=120)
+    username = pending_user.get("username")
+
+    generate_and_send_otp(email,username, purpose="signup", ttl_seconds=120)
     messages.success(request, "A new OTP has been sent to your email.")
     return redirect("verify_signup_otp")
 
@@ -316,13 +351,13 @@ def forgot_password(request):
     if request.method == "POST":
         email = (request.POST.get("email") or "").strip()
         try:
-            User.objects.get(email=email)
+            user=User.objects.get(email=email)
         except User.DoesNotExist:
             messages.error(request, "Email not registered.")
             return redirect("forgot_password")
 
         request.session["reset_email"] = email
-        generate_and_send_otp(email, purpose="forgot", ttl_seconds=120)
+        generate_and_send_otp(email,user.username,purpose="forgot", ttl_seconds=120)
         messages.success(request, "OTP sent to your email. Please verify.")
         return redirect("verify_otp")
 
@@ -375,7 +410,13 @@ def resend_reset_otp(request):
         messages.error(request, "Session expired. Please try again.")
         return redirect("forgot_password")
 
-    generate_and_send_otp(email, purpose="forgot", ttl_seconds=120)
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        messages.error(request, "User not found.")
+        return redirect("forgot_password")
+
+    generate_and_send_otp(email,user.username ,purpose="forgot", ttl_seconds=120)
     messages.success(request, "A new OTP has been sent to your email.")
     return redirect("verify_otp")
 

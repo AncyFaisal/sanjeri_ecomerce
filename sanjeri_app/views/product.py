@@ -162,8 +162,8 @@ def product_add(request):
                     variant.is_active = True
                     variant.is_deleted = False
                     variant.save()
-
-                # Handle additional images with processing
+                
+                # Handle additional images
                 images = request.FILES.getlist('images')
                 if len(images) < 3:
                     messages.error(request, "Please upload at least 3 images.")
@@ -171,12 +171,13 @@ def product_add(request):
                         'form': form, 
                         'variant_formset': variant_formset
                     })
-
-                for img in images:
+                
+                for i, img in enumerate(images[:10]):  # Limit to 10 images
                     try:
                         # Process each additional image
                         image = Image.open(img)
-                        image = image.convert("RGB")
+                        if image.mode != 'RGB':
+                            image = image.convert('RGB')
                         
                         # Resize to optimal size
                         image.thumbnail((600, 600), Image.Resampling.LANCZOS)
@@ -186,11 +187,13 @@ def product_add(request):
                         image.save(buffer, format="JPEG", quality=85, optimize=True)
                         buffer.seek(0)
                         
+                        # Create ProductImage instance
                         product_image = ProductImage(
                             product=product,
                             image=ContentFile(buffer.read(), f"optimized_{img.name}")
                         )
-                        if not product.images.exists():
+                        # Set first image as default
+                        if i == 0:
                             product_image.is_default = True
                         product_image.save()
                         
@@ -198,7 +201,7 @@ def product_add(request):
                         print(f"Error processing image {img.name}: {e}")
                         messages.warning(request, f"Could not process image {img.name}")
                         continue
-
+                
                 messages.success(request, "Product added successfully!")
                 return redirect("product_list")
                 
@@ -217,7 +220,6 @@ def product_add(request):
         'form': form,
         'variant_formset': variant_formset
     })
-
 # views/product.py
 def product_edit(request, pk):
     product = get_object_or_404(Product, pk=pk, is_deleted=False)

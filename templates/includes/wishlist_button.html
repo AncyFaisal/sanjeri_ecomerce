@@ -1,0 +1,48 @@
+<!-- templates/includes/wishlist_button.html -->
+<button class="btn-wishlist add-to-wishlist-btn {% if is_in_wishlist %}in-wishlist{% endif %}" 
+    data-product-id="{{ product.id }}"
+    data-csrf="{{ csrf_token }}"
+    title="{% if is_in_wishlist %}Remove from Wishlist{% else %}Add to Wishlist{% endif %}">
+    
+    {% if is_in_wishlist %}
+        <i class="fas fa-heart text-danger"></i>
+    {% else %}
+        <i class="far fa-heart"></i>
+    {% endif %}
+</button>
+
+<style>
+.btn-wishlist {
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    transition: all 0.3s;
+    font-size: 0.9rem;
+    cursor: pointer;
+    z-index: 10;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    
+}
+
+.btn-wishlist:hover {
+    background: white;
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.btn-wishlist .fa-heart {
+    font-size: 1.1rem;
+}
+
+.btn-wishlist.in-wishlist .fa-heart {
+    color: #dc3545;
+}
+</style>

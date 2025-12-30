@@ -5,6 +5,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
 <style>
 /* Image Cropping Styles */
 .image-crop-container {
@@ -781,11 +782,14 @@ let originalFile = null;
 
 // Initialize when document is ready
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Product Edit Form Initialized');
+    
     // Main image preview
     const mainImageInput = document.querySelector('input[name="main_image"]');
     if (mainImageInput) {
         mainImageInput.addEventListener('change', function(e) {
             if (this.files && this.files[0]) {
+                console.log('Main image selected:', this.files[0].name);
                 originalFile = this.files[0];
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -802,61 +806,65 @@ document.addEventListener('DOMContentLoaded', function() {
     // Additional images preview
     const imagesInput = document.getElementById('images');
     const newPreview = document.getElementById('newPreview');
-    imagesInput?.addEventListener('change', function() {
-        newPreview.innerHTML = '';
-        
-        if (this.files.length === 0) {
-            newPreview.innerHTML = `
-                <div class="text-center text-muted">
-                    <i class="fas fa-plus fa-2x mb-2"></i>
-                    <p class="mb-0">New images will appear here after selection</p>
-                </div>
-            `;
-            return;
-        }
-
-        const previewRow = document.createElement('div');
-        previewRow.className = 'row g-2';
-        
-        Array.from(this.files).forEach((file, index) => {
-            if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const col = document.createElement('div');
-                    col.className = 'col-auto';
-                    
-                    const imgContainer = document.createElement('div');
-                    imgContainer.className = 'text-center';
-                    
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.className = 'img-thumbnail mb-2';
-                    img.style.height = '80px';
-                    img.style.width = '80px';
-                    img.style.objectFit = 'cover';
-                    
-                    const imgNumber = document.createElement('div');
-                    imgNumber.className = 'small text-success fw-semibold';
-                    imgNumber.textContent = `New ${index + 1}`;
-                    
-                    imgContainer.appendChild(img);
-                    imgContainer.appendChild(imgNumber);
-                    col.appendChild(imgContainer);
-                    previewRow.appendChild(col);
-                };
-                reader.readAsDataURL(file);
+    if (imagesInput) {
+        imagesInput.addEventListener('change', function() {
+            console.log('Additional images selected:', this.files.length);
+            newPreview.innerHTML = '';
+            
+            if (this.files.length === 0) {
+                newPreview.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-plus fa-2x mb-2"></i>
+                        <p class="mb-0">New images will appear here after selection</p>
+                    </div>
+                `;
+                return;
             }
+
+            const previewRow = document.createElement('div');
+            previewRow.className = 'row g-2';
+            
+            Array.from(this.files).forEach((file, index) => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const col = document.createElement('div');
+                        col.className = 'col-auto';
+                        
+                        const imgContainer = document.createElement('div');
+                        imgContainer.className = 'text-center';
+                        
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'img-thumbnail mb-2';
+                        img.style.height = '80px';
+                        img.style.width = '80px';
+                        img.style.objectFit = 'cover';
+                        
+                        const imgNumber = document.createElement('div');
+                        imgNumber.className = 'small text-success fw-semibold';
+                        imgNumber.textContent = `New ${index + 1}`;
+                        
+                        imgContainer.appendChild(img);
+                        imgContainer.appendChild(imgNumber);
+                        col.appendChild(imgContainer);
+                        previewRow.appendChild(col);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            newPreview.innerHTML = '';
+            newPreview.appendChild(previewRow);
         });
-        
-        newPreview.innerHTML = '';
-        newPreview.appendChild(previewRow);
-    });
+    }
 
     // Variant image previews
     document.addEventListener('change', function(e) {
         if (e.target.matches('input[name*="variant_image"]')) {
             const fileInput = e.target;
             if (fileInput.files && fileInput.files[0]) {
+                console.log('Variant image selected:', fileInput.files[0].name);
                 originalFile = fileInput.files[0];
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -874,7 +882,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <img src="${e.target.result}" class="img-thumbnail" 
                                  style="height: 80px; width: 80px; object-fit: cover;">
                             <button type="button" class="btn btn-outline-primary btn-sm" 
-                                    onclick="openVariantCropModal(this, '${e.target.result}')">
+                                    onclick="openVariantCropModal(this, '${e.target.result.replace(/'/g, "\\'")}')">
                                 <i class="fas fa-crop me-1"></i>Crop
                             </button>
                         </div>
@@ -885,15 +893,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Variant formset functionality
+    // Variant formset functionality - FIXED
     const addVariantBtn = document.getElementById('add-variant');
     const variantForms = document.getElementById('variant-forms');
     const totalForms = document.getElementById('id_variants-TOTAL_FORMS');
 
     if (addVariantBtn && variantForms && totalForms) {
+        console.log('Variant formset initialized');
+        
         addVariantBtn.addEventListener('click', function() {
+            console.log('Add variant button clicked');
             const formNum = parseInt(totalForms.value);
-            const newForm = variantForms.children[0].cloneNode(true);
+            
+            // Get all variant forms to clone the last one
+            const allForms = variantForms.querySelectorAll('.variant-form');
+            if (allForms.length === 0) {
+                console.error('No variant forms found');
+                return;
+            }
+            
+            // Clone the last form (most recent template)
+            const lastForm = allForms[allForms.length - 1];
+            const newForm = lastForm.cloneNode(true);
             
             // Update all field names and IDs
             const formRegex = /variants-(\d+)-/g;
@@ -905,19 +926,59 @@ document.addEventListener('DOMContentLoaded', function() {
             // Clear input values and reset states
             newForm.querySelectorAll('input, select, textarea').forEach(input => {
                 const name = input.name;
+                const id = input.id;
                 
-                if (name && !name.includes('csrfmiddlewaretoken') && !name.includes('TOTAL_FORMS') && !name.includes('INITIAL_FORMS')) {
+                // Update IDs
+                if (id) {
+                    input.id = id.replace(/-\d+-/, `-${formNum}-`);
+                }
+                
+                // Clear values for new forms
+                if (name && !name.includes('csrfmiddlewaretoken') && 
+                    !name.includes('TOTAL_FORMS') && 
+                    !name.includes('INITIAL_FORMS') &&
+                    !name.includes('MIN_NUM_FORMS') &&
+                    !name.includes('MAX_NUM_FORMS')) {
+                    
                     if (input.type === 'checkbox') {
-                        input.checked = true; // Default to active for new variants
+                        // Set defaults for checkboxes
+                        if (name.includes('is_active')) input.checked = true;
+                        if (name.includes('DELETE')) input.checked = false;
                     } else if (input.type === 'select-one') {
                         input.selectedIndex = 0;
                     } else if (input.type === 'file') {
                         input.value = '';
+                        // Clear any existing preview
+                        const previewContainer = newForm.querySelector('.variant-image-preview');
+                        if (previewContainer) {
+                            previewContainer.remove();
+                        }
                     } else if (input.type === 'number') {
-                        input.value = '';
+                        // Set reasonable defaults
+                        if (name.includes('volume_ml')) input.value = 50;
+                        else if (name.includes('price') || name.includes('discount_price')) input.value = '';
+                        else if (name.includes('stock')) input.value = 0;
+                        else input.value = '';
                     } else if (input.type === 'text') {
                         input.value = '';
+                        // Auto-generate SKU if volume and gender are set
+                        if (name.includes('sku')) {
+                            setTimeout(() => autoGenerateSKU(newForm), 100);
+                        }
                     }
+                }
+                
+                // Remove any existing ID field value for new variants
+                if (name && name.includes('-id') && input.type === 'hidden') {
+                    input.value = '';
+                }
+            });
+            
+            // Update labels
+            newForm.querySelectorAll('label').forEach(label => {
+                const forAttr = label.getAttribute('for');
+                if (forAttr) {
+                    label.setAttribute('for', forAttr.replace(/-\d+-/, `-${formNum}-`));
                 }
             });
             
@@ -930,8 +991,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Remove DELETE checkbox for new forms
             const deleteCheckbox = newForm.querySelector('input[type="checkbox"][name*="DELETE"]');
             const deleteLabel = newForm.querySelector('label[for*="DELETE"]');
-            if (deleteCheckbox && deleteLabel) {
-                deleteCheckbox.closest('.form-check').remove();
+            if (deleteCheckbox) {
+                deleteCheckbox.closest('.form-check')?.remove();
             }
             
             // Update the header for new forms
@@ -950,99 +1011,179 @@ document.addEventListener('DOMContentLoaded', function() {
                 editLink.remove();
             }
             
+            // Ensure product ID is set in hidden field
+            const productIdField = newForm.querySelector('input[name*="-product"]');
+            if (productIdField) {
+                productIdField.value = '{{ product.id }}';
+            }
+            
             variantForms.appendChild(newForm);
             totalForms.value = formNum + 1;
+            
+            console.log(`Added variant ${formNum + 1}`);
+            
+            // Add event listeners to the new form
+            setupVariantFormEvents(newForm);
             
             // Scroll to the new form
             newForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         });
     }
 
-    // Auto-generate SKU based on volume and gender
-    function generateVariantSKU(input) {
-        const variantForm = input.closest('.variant-form');
+    // Auto-generate SKU function
+    function autoGenerateSKU(variantForm) {
         const volumeInput = variantForm.querySelector('input[name*="volume_ml"]');
         const genderSelect = variantForm.querySelector('select[name*="gender"]');
         const skuInput = variantForm.querySelector('input[name*="sku"]');
         
         if (volumeInput && genderSelect && skuInput && !skuInput.value) {
-            const volume = volumeInput.value;
-            const gender = genderSelect.value;
-            const baseSKU = '{{ product.sku }}';
+            const checkAndGenerate = () => {
+                const volume = volumeInput.value;
+                const gender = genderSelect.value;
+                const baseSKU = '{{ product.sku }}';
+                
+                if (volume && gender && baseSKU) {
+                    const genderCode = gender.substring(0, 3).toUpperCase();
+                    const generatedSKU = `${baseSKU}-${volume}-${genderCode}`;
+                    
+                    // Check if SKU already exists
+                    const existingSKUs = new Set();
+                    document.querySelectorAll('input[name*="sku"]').forEach(input => {
+                        if (input !== skuInput && input.value) {
+                            existingSKUs.add(input.value);
+                        }
+                    });
+                    
+                    // Generate unique SKU
+                    let finalSKU = generatedSKU;
+                    let counter = 1;
+                    while (existingSKUs.has(finalSKU)) {
+                        finalSKU = `${generatedSKU}-${counter}`;
+                        counter++;
+                    }
+                    
+                    skuInput.value = finalSKU;
+                }
+            };
             
-            if (volume && gender && baseSKU) {
-                const genderCode = gender.substring(0, 3).toUpperCase();
-                skuInput.value = `${baseSKU}-${volume}-${genderCode}`;
-            }
+            // Listen for changes
+            volumeInput.addEventListener('input', checkAndGenerate);
+            genderSelect.addEventListener('change', checkAndGenerate);
+            
+            // Initial check
+            checkAndGenerate();
         }
     }
 
-    // Add event listeners for auto SKU generation
-    document.addEventListener('input', function(e) {
-        if (e.target.matches('input[name*="volume_ml"]') || e.target.matches('select[name*="gender"]')) {
-            generateVariantSKU(e.target);
-        }
-    });
-
-    // Price validation
-    document.addEventListener('input', function(e) {
-        if (e.target.matches('input[name*="discount_price"]')) {
-            const variantForm = e.target.closest('.variant-form');
-            const priceInput = variantForm.querySelector('input[name*="price"]');
-            const discountInput = e.target;
-            
-            if (priceInput.value && discountInput.value) {
-                const price = parseFloat(priceInput.value);
-                const discount = parseFloat(discountInput.value);
+    // Setup event listeners for variant forms
+    function setupVariantFormEvents(form) {
+        // Price validation
+        const priceInput = form.querySelector('input[name*="price"]');
+        const discountInput = form.querySelector('input[name*="discount_price"]');
+        
+        if (priceInput && discountInput) {
+            const validatePrices = () => {
+                const price = parseFloat(priceInput.value) || 0;
+                const discount = parseFloat(discountInput.value) || 0;
                 
-                if (discount >= price) {
+                if (discount > 0 && discount >= price) {
                     discountInput.classList.add('is-invalid');
+                    discountInput.title = 'Discount price must be less than regular price';
                 } else {
                     discountInput.classList.remove('is-invalid');
+                    discountInput.title = '';
                 }
-            }
+            };
+            
+            priceInput.addEventListener('input', validatePrices);
+            discountInput.addEventListener('input', validatePrices);
+            
+            // Initial validation
+            validatePrices();
         }
-    });
+        
+        // Auto-generate SKU
+        autoGenerateSKU(form);
+    }
+
+    // Setup events for initial forms
+    document.querySelectorAll('.variant-form').forEach(setupVariantFormEvents);
 
     // Form submission validation
     const productForm = document.getElementById('productForm');
-    productForm?.addEventListener('submit', function(e) {
-        let hasErrors = false;
-        
-        // Check if at least one variant is active
-        const activeVariants = document.querySelectorAll('input[name*="is_active"]:checked');
-        if (activeVariants.length === 0) {
-            alert('Warning: No active variants. The product will not be visible to customers.');
-        }
-        
-        // Check for duplicate SKUs
-        const skus = new Set();
-        const skuInputs = document.querySelectorAll('input[name*="sku"]');
-        
-        skuInputs.forEach(input => {
-            if (input.value) {
-                if (skus.has(input.value)) {
-                    input.classList.add('is-invalid');
-                    hasErrors = true;
-                    alert(`Duplicate SKU found: ${input.value}. Please ensure all variant SKUs are unique.`);
-                } else {
-                    skus.add(input.value);
-                    input.classList.remove('is-invalid');
+    if (productForm) {
+        productForm.addEventListener('submit', function(e) {
+            console.log('Form submission validation');
+            
+            let hasErrors = false;
+            
+            // Check if at least one variant is active
+            const activeVariants = document.querySelectorAll('input[name*="is_active"]:checked');
+            if (activeVariants.length === 0) {
+                if (!confirm('Warning: No active variants. The product will not be visible to customers. Continue?')) {
+                    e.preventDefault();
+                    return;
                 }
             }
+            
+            // Check for duplicate SKUs
+            const skus = new Set();
+            const skuInputs = document.querySelectorAll('input[name*="sku"]');
+            
+            skuInputs.forEach(input => {
+                if (input.value) {
+                    if (skus.has(input.value)) {
+                        input.classList.add('is-invalid');
+                        hasErrors = true;
+                    } else {
+                        skus.add(input.value);
+                        input.classList.remove('is-invalid');
+                    }
+                }
+            });
+            
+            if (hasErrors) {
+                e.preventDefault();
+                alert('Please ensure all variant SKUs are unique.');
+                return;
+            }
+            
+            // Validate prices
+            let priceError = false;
+            document.querySelectorAll('.variant-form').forEach(form => {
+                const priceInput = form.querySelector('input[name*="price"]');
+                const discountInput = form.querySelector('input[name*="discount_price"]');
+                
+                if (priceInput && discountInput) {
+                    const price = parseFloat(priceInput.value) || 0;
+                    const discount = parseFloat(discountInput.value) || 0;
+                    
+                    if (discount > 0 && discount >= price) {
+                        discountInput.classList.add('is-invalid');
+                        priceError = true;
+                    }
+                }
+            });
+            
+            if (priceError) {
+                e.preventDefault();
+                alert('Some variant prices have issues. Please check that discount prices are less than regular prices.');
+            }
         });
-        
-        if (hasErrors) {
-            e.preventDefault();
-        }
-    });
+    }
 });
 
 // Cropping Functions
 function openCropModal(imageType) {
+    console.log('Opening crop modal for:', imageType);
     currentImageType = imageType;
     const previewImg = document.getElementById('mainImagePreviewImg');
     const cropImage = document.getElementById('cropImage');
+    
+    if (!previewImg || !previewImg.src) {
+        alert('Please select an image first.');
+        return;
+    }
     
     cropImage.src = previewImg.src;
     document.getElementById('cropModal').style.display = 'flex';
@@ -1062,31 +1203,50 @@ function openCropModal(imageType) {
             responsive: true,
             restore: false,
             checkCrossOrigin: false,
-            autoCropArea: 0.8
+            autoCropArea: 0.8,
+            ready: function() {
+                console.log('Cropper initialized for', currentImageType);
+            }
         });
         
         // Aspect ratio change handler
-        document.getElementById('aspectRatio').addEventListener('change', function() {
-            const ratio = this.value;
-            if (ratio === '0') {
-                currentCropper.setAspectRatio(NaN);
-            } else {
-                currentCropper.setAspectRatio(eval(ratio));
-            }
-        });
+        const aspectRatioSelect = document.getElementById('aspectRatio');
+        if (aspectRatioSelect) {
+            aspectRatioSelect.addEventListener('change', function() {
+                const ratio = this.value;
+                if (ratio === '0') {
+                    currentCropper.setAspectRatio(NaN);
+                } else {
+                    currentCropper.setAspectRatio(eval(ratio));
+                }
+            });
+        }
     }, 100);
 }
 
 function openVariantCropModal(button, imageSrc) {
+    console.log('Opening variant crop modal');
     currentImageType = 'variant';
     const cropImage = document.getElementById('cropImage');
     
-    cropImage.src = imageSrc;
-    document.getElementById('cropModal').style.display = 'flex';
-    
     // Store reference to the button and file input
     currentFileInput = button.closest('.variant-form').querySelector('input[name*="variant_image"]');
-    originalFile = currentFileInput.files[0];
+    if (currentFileInput && currentFileInput.files && currentFileInput.files[0]) {
+        originalFile = currentFileInput.files[0];
+    }
+    
+    // Use the provided imageSrc or get from button
+    const imgElement = button.closest('.d-flex').querySelector('img');
+    if (imgElement && imgElement.src) {
+        cropImage.src = imgElement.src;
+    } else if (imageSrc) {
+        cropImage.src = imageSrc;
+    } else {
+        alert('No image available to crop.');
+        return;
+    }
+    
+    document.getElementById('cropModal').style.display = 'flex';
     
     // Initialize cropper
     setTimeout(() => {
@@ -1103,61 +1263,97 @@ function openVariantCropModal(button, imageSrc) {
             responsive: true,
             restore: false,
             checkCrossOrigin: false,
-            autoCropArea: 0.8
+            autoCropArea: 0.8,
+            ready: function() {
+                console.log('Cropper initialized for variant image');
+            }
         });
         
         // Aspect ratio change handler
-        document.getElementById('aspectRatio').addEventListener('change', function() {
-            const ratio = this.value;
-            if (ratio === '0') {
-                currentCropper.setAspectRatio(NaN);
-            } else {
-                currentCropper.setAspectRatio(eval(ratio));
-            }
-        });
+        const aspectRatioSelect = document.getElementById('aspectRatio');
+        if (aspectRatioSelect) {
+            aspectRatioSelect.addEventListener('change', function() {
+                const ratio = this.value;
+                if (ratio === '0') {
+                    currentCropper.setAspectRatio(NaN);
+                } else {
+                    currentCropper.setAspectRatio(eval(ratio));
+                }
+            });
+        }
     }, 100);
 }
 
 function cropImage() {
     if (currentCropper) {
-        const canvas = currentCropper.getCroppedCanvas({
-            width: 800,
-            height: 800,
-            fillColor: '#fff'
-        });
-        
-        canvas.toBlob(function(blob) {
-            // Create a new file from the cropped blob
-            const file = new File([blob], originalFile.name, {
-                type: 'image/jpeg',
-                lastModified: new Date().getTime()
+        try {
+            console.log('Cropping image...');
+            const canvas = currentCropper.getCroppedCanvas({
+                width: 800,
+                height: 800,
+                fillColor: '#fff'
             });
             
-            // Create a new DataTransfer object to set the file
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(file);
-            
-            // Update the file input with the cropped image
-            if (currentImageType === 'main') {
-                const mainImageInput = document.querySelector('input[name="main_image"]');
-                mainImageInput.files = dataTransfer.files;
-                
-                // Update preview
-                const previewImg = document.getElementById('mainImagePreviewImg');
-                previewImg.src = URL.createObjectURL(file);
-            } else if (currentImageType === 'variant') {
-                currentFileInput.files = dataTransfer.files;
-                
-                // Update variant preview
-                const variantPreview = currentFileInput.closest('.variant-form').querySelector('.variant-image-preview img');
-                if (variantPreview) {
-                    variantPreview.src = URL.createObjectURL(file);
-                }
+            if (!canvas) {
+                throw new Error('Failed to create cropped canvas');
             }
             
-            closeCropModal();
-            
-        }, 'image/jpeg', 0.9);
+            canvas.toBlob(function(blob) {
+                if (!blob) {
+                    alert('Failed to create cropped image blob.');
+                    return;
+                }
+                
+                // Create a new file from the cropped blob
+                const fileName = originalFile ? originalFile.name : 'cropped-image.jpg';
+                const file = new File([blob], fileName, {
+                    type: 'image/jpeg',
+                    lastModified: new Date().getTime()
+                });
+                
+                // Create a new DataTransfer object
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                
+                // Update the appropriate file input
+                if (currentImageType === 'main') {
+                    const mainImageInput = document.querySelector('input[name="main_image"]');
+                    if (mainImageInput) {
+                        mainImageInput.files = dataTransfer.files;
+                        
+                        // Update preview
+                        const previewImg = document.getElementById('mainImagePreviewImg');
+                        if (previewImg) {
+                            previewImg.src = URL.createObjectURL(file);
+                        }
+                        
+                        console.log('Main image cropped and updated');
+                    }
+                } else if (currentImageType === 'variant' && currentFileInput) {
+                    currentFileInput.files = dataTransfer.files;
+                    
+                    // Update variant preview
+                    const variantPreview = currentFileInput.closest('.variant-form').querySelector('.variant-image-preview img');
+                    if (variantPreview) {
+                        variantPreview.src = URL.createObjectURL(file);
+                    }
+                    
+                    // Trigger change event
+                    const event = new Event('change', { bubbles: true });
+                    currentFileInput.dispatchEvent(event);
+                    
+                    console.log('Variant image cropped and updated');
+                }
+                
+                closeCropModal();
+                
+            }, 'image/jpeg', 0.9);
+        } catch (error) {
+            console.error('Error cropping image:', error);
+            alert('Error cropping image: ' + error.message);
+        }
+    } else {
+        alert('Cropper not initialized. Please try again.');
     }
 }
 
@@ -1167,10 +1363,11 @@ function closeCropModal() {
         currentCropper.destroy();
         currentCropper = null;
     }
+    console.log('Crop modal closed');
 }
 
 // Close modal when clicking outside
-document.getElementById('cropModal').addEventListener('click', function(e) {
+document.getElementById('cropModal')?.addEventListener('click', function(e) {
     if (e.target === this) {
         closeCropModal();
     }

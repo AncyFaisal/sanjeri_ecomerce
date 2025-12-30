@@ -1,0 +1,145 @@
+<!-- templates/cart_debug.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Cart Debug Information</h1>
+    
+    {% if error %}
+    <div class="alert alert-danger">
+        <h4>Error:</h4>
+        <p>{{ error }}</p>
+    </div>
+    {% endif %}
+    
+    {% if debug_data %}
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Cart Summary</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Cart ID:</strong> {{ debug_data.cart_id }}</p>
+                    <p><strong>User:</strong> {{ debug_data.user }}</p>
+                    <p><strong>Total Items (property):</strong> {{ debug_data.total_items }}</p>
+                    <p><strong>Items Count (queryset):</strong> {{ debug_data.items_count }}</p>
+                    <p><strong>Subtotal:</strong> ₹{{ debug_data.subtotal }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Raw Query Results</h5>
+                </div>
+                <div class="card-body">
+                    <p>Number of items in queryset: {{ raw_items|length }}</p>
+                    {% if raw_items %}
+                    <ul>
+                        {% for item in raw_items %}
+                        <li>
+                            ID: {{ item.id }} - 
+                            {{ item.variant.product.name }} - 
+                            Qty: {{ item.quantity }} - 
+                            Price: ₹{{ item.total_price }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p>No items in queryset</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>Detailed Item Information</h5>
+        </div>
+        <div class="card-body">
+            {% if debug_data.items %}
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Product</th>
+                        <th>Variant ID</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                        <th>Available</th>
+                        <th>Stock</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in debug_data.items %}
+                    <tr>
+                        <td>{{ item.id }}</td>
+                        <td>{{ item.product_name }}</td>
+                        <td>{{ item.variant_id }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>₹{{ item.variant_price }}</td>
+                        <td>₹{{ item.total_price }}</td>
+                        <td>
+                            {% if item.is_available %}
+                            <span class="badge bg-success">Yes</span>
+                            {% else %}
+                            <span class="badge bg-danger">No</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.stock }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No items found in debug_data.items</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Test template rendering -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>Template Test</h5>
+        </div>
+        <div class="card-body">
+            <p>Testing if template can render cart items directly:</p>
+            
+            {% if raw_items %}
+            <div class="row">
+                {% for item in raw_items %}
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6>{{ item.variant.product.name }}</h6>
+                            <p>Quantity: {{ item.quantity }}</p>
+                            <p>Price: ₹{{ item.total_price }}</p>
+                            <p>Variant: {{ item.variant.volume_ml }}ml</p>
+                            <p>Available: {{ item.is_available|yesno:"Yes,No" }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-danger">NO ITEMS FOUND IN raw_items!</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% else %}
+    <div class="alert alert-warning">
+        No debug data available. Cart might not exist.
+    </div>
+    {% endif %}
+    
+    <div class="mt-4">
+        <a href="{% url 'cart' %}" class="btn btn-primary">Go Back to Cart</a>
+        <a href="{% url 'homepage' %}" class="btn btn-secondary">Go to Homepage</a>
+    </div>
+</div>
+{% endblock %}

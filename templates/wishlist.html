@@ -1,0 +1,498 @@
+<!-- templates/wishlist.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Wishlist - Sanjeri Perfumes{% endblock %}
+
+{% block extra_css %}
+<style>
+    .wishlist-card {
+        border: 1px solid #eaeaea;
+        border-radius: 10px;
+        overflow: hidden;
+        transition: transform 0.3s, box-shadow 0.3s;
+        height: 100%;
+    }
+    
+    .wishlist-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .product-image-container {
+        height: 250px;
+        overflow: hidden;
+        position: relative;
+        background: #f8f9fa;
+    }
+    
+    .product-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        padding: 15px;
+    }
+    
+    .no-image-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    }
+    
+    .no-image-placeholder i {
+        font-size: 3rem;
+        color: #6c757d;
+    }
+    
+    .remove-wishlist-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: white;
+        border: 1px solid #dee2e6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #dc3545;
+        transition: all 0.3s;
+        z-index: 10;
+    }
+    
+    .remove-wishlist-btn:hover {
+        background: #dc3545;
+        color: white;
+        transform: scale(1.1);
+    }
+    
+    .empty-wishlist {
+        padding: 80px 20px;
+        text-align: center;
+    }
+    
+    .empty-wishlist-icon {
+        font-size: 4rem;
+        color: #e9ecef;
+        margin-bottom: 20px;
+    }
+    
+    .product-price {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+    
+    .product-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    @media (max-width: 768px) {
+        .product-image-container {
+            height: 200px;
+        }
+        
+        .product-actions {
+            flex-direction: column;
+        }
+        
+        .product-actions .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">My Wishlist</h1>
+        <span class="badge bg-primary" style="font-size: 1rem;">
+            {{ wishlist_items|length }} item{{ wishlist_items|length|pluralize }}
+        </span>
+    </div>
+    
+    {% if wishlist_items %}
+    <div class="row">
+        {% for item in wishlist_items %}
+        {% with product=item.product %}
+        <div class="col-xl-3 col-lg-4 col-md-6 mb-4 wishlist-item" data-item-id="{{ item.id }}">
+            <div class="wishlist-card">
+                <div class="product-image-container position-relative">
+                    <!-- Remove button -->
+                    <button class="remove-wishlist-btn remove-from-wishlist" 
+                            data-item-id="{{ item.id }}"
+                            data-csrf="{{ csrf_token }}"
+                            title="Remove from wishlist">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    
+                    <!-- Product Image -->
+                    {% if product.images.exists %}
+                        <img src="{{ product.images.first.image.url }}" 
+                             class="product-image" 
+                             alt="{{ product.name }}"
+                             loading="lazy">
+                    {% elif product.main_image %}
+                        <img src="{{ product.main_image.url }}" 
+                             class="product-image" 
+                             alt="{{ product.name }}"
+                             loading="lazy">
+                    {% else %}
+                        <div class="no-image-placeholder">
+                            <i class="fas fa-perfume-bottle"></i>
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Discount badge if any -->
+                    {% with variant=product.variants.first %}
+                        {% if variant.discount_price and variant.discount_price < variant.price %}
+                        <span class="badge bg-success position-absolute top-0 start-0 m-2">
+                            {{ variant.get_discount_percentage }}% OFF
+                        </span>
+                        {% endif %}
+                    {% endwith %}
+                </div>
+                
+                <div class="p-3">
+                    <h5 class="product-title mb-2">
+                        <a href="{% url 'product_detail' product.id %}" class="text-decoration-none text-dark">
+                            {{ product.name|truncatechars:40 }}
+                        </a>
+                    </h5>
+                    
+                    <div class="mb-2">
+                        <small class="text-muted">
+                            <i class="fas fa-tag me-1"></i>
+                            {{ product.brand.name|default:"No Brand" }}
+                        </small>
+                    </div>
+                    
+                    <div class="mb-2">
+                        <small class="text-muted">
+                            <i class="fas fa-venus-mars me-1"></i>
+                            {{ product.get_gender_display }}
+                        </small>
+                    </div>
+                    
+                    <!-- Price -->
+                    <div class="mb-3">
+                        {% with variant=product.variants.first %}
+                            {% if variant %}
+                                {% if variant.discount_price and variant.discount_price < variant.price %}
+                                    <div class="d-flex align-items-center">
+                                        <span class="product-price">₹{{ variant.discount_price }}</span>
+                                        <small class="text-muted text-decoration-line-through ms-2">
+                                            ₹{{ variant.price }}
+                                        </small>
+                                    </div>
+                                {% else %}
+                                    <span class="product-price">₹{{ variant.price }}</span>
+                                {% endif %}
+                                <small class="text-muted d-block">
+                                    {{ variant.volume_ml }}ml • SKU: {{ variant.sku|default:"N/A" }}
+                                </small>
+                            {% else %}
+                                <span class="text-muted">No variants available</span>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="product-actions">
+                        {% with variant=product.variants.first %}
+                            {% if variant and variant.stock > 0 %}
+                            <button class="btn btn-primary btn-sm add-to-cart-from-wishlist" 
+                                    data-variant-id="{{ variant.id }}"
+                                    style="flex: 1;">
+                                <i class="fas fa-shopping-cart me-1"></i> Add to Cart
+                            </button>
+                            {% else %}
+                            <button class="btn btn-secondary btn-sm" disabled style="flex: 1;">
+                                <i class="fas fa-times me-1"></i> Out of Stock
+                            </button>
+                            {% endif %}
+                        {% endwith %}
+                        
+                        <a href="{% url 'product_detail' product.id %}" 
+                           class="btn btn-outline-dark btn-sm" 
+                           style="flex: 1;">
+                            <i class="fas fa-eye me-1"></i> View
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endwith %}
+        {% endfor %}
+    </div>
+    
+    <!-- Move to cart all button -->
+    <div class="text-center mt-4">
+        <button class="btn btn-success" id="add-all-to-cart">
+            <i class="fas fa-cart-plus me-2"></i> Add All Available to Cart
+        </button>
+    </div>
+    
+    {% else %}
+    <div class="empty-wishlist">
+        <div class="empty-wishlist-icon">
+            <i class="far fa-heart"></i>
+        </div>
+        <h3 class="mb-3">Your wishlist is empty</h3>
+        <p class="text-muted mb-4">Looks like you haven't added any products to your wishlist yet.</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{% url 'men' %}" class="btn btn-outline-primary">Browse Men's</a>
+            <a href="{% url 'women' %}" class="btn btn-outline-primary">Browse Women's</a>
+            <a href="{% url 'unisex' %}" class="btn btn-outline-primary">Browse Unisex</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Remove from wishlist
+    document.querySelectorAll('.remove-from-wishlist').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const itemId = this.getAttribute('data-item-id');
+            const csrfToken = this.getAttribute('data-csrf');
+            
+            if (confirm('Remove this item from your wishlist?')) {
+                removeFromWishlist(itemId, csrfToken, this);
+            }
+        });
+    });
+    
+    // Add to cart from wishlist
+    document.querySelectorAll('.add-to-cart-from-wishlist').forEach(button => {
+        button.addEventListener('click', function() {
+            const variantId = this.getAttribute('data-variant-id');
+            addToCartFromWishlist(variantId, this);
+        });
+    });
+    
+    // Add all available to cart
+    const addAllBtn = document.getElementById('add-all-to-cart');
+    if (addAllBtn) {
+        addAllBtn.addEventListener('click', function() {
+            addAllToCart();
+        });
+    }
+    
+    // Functions
+    async function removeFromWishlist(itemId, csrfToken, buttonElement) {
+        const originalHtml = buttonElement.innerHTML;
+        buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        buttonElement.disabled = true;
+        
+        try {
+            const response = await fetch(`/wishlist/remove/${itemId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken,
+                },
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Remove the card
+                const card = buttonElement.closest('.wishlist-item');
+                card.style.opacity = '0.5';
+                card.style.transition = 'opacity 0.3s';
+                
+                setTimeout(() => {
+                    card.remove();
+                    
+                    // Update wishlist count
+                    if (window.wishlistManager) {
+                        window.wishlistManager.updateWishlistBadge(data.wishlist_total_items);
+                    }
+                    
+                    // Show notification
+                    showNotification(data.message || 'Removed from wishlist', 'success');
+                    
+                    // If no items left, reload page
+                    if (document.querySelectorAll('.wishlist-item').length === 0) {
+                        setTimeout(() => location.reload(), 1000);
+                    }
+                }, 300);
+            }
+        } catch (error) {
+            console.error('Error removing from wishlist:', error);
+            buttonElement.innerHTML = originalHtml;
+            buttonElement.disabled = false;
+            showNotification('Error removing item', 'error');
+        }
+    }
+    
+    async function addToCartFromWishlist(variantId, buttonElement) {
+        const originalHtml = buttonElement.innerHTML;
+        buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        buttonElement.disabled = true;
+        
+        try {
+            const csrfToken = getCookie('csrftoken');
+            
+            const response = await fetch(`/cart/add/${variantId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: `quantity=1`
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Update button
+                buttonElement.innerHTML = '<i class="fas fa-check me-1"></i> Added';
+                buttonElement.classList.remove('btn-primary');
+                buttonElement.classList.add('btn-success');
+                
+                // Update cart count
+                if (window.wishlistManager && window.wishlistManager.updateCartBadge) {
+                    window.wishlistManager.updateCartBadge(data.cart_total_items);
+                }
+                
+                showNotification('Added to cart!', 'success');
+                
+                // Reset button after 2 seconds
+                setTimeout(() => {
+                    buttonElement.innerHTML = '<i class="fas fa-shopping-cart me-1"></i> Add to Cart';
+                    buttonElement.classList.remove('btn-success');
+                    buttonElement.classList.add('btn-primary');
+                    buttonElement.disabled = false;
+                }, 2000);
+            } else {
+                buttonElement.innerHTML = originalHtml;
+                buttonElement.disabled = false;
+                showNotification(data.message || 'Error adding to cart', 'error');
+            }
+        } catch (error) {
+            console.error('Error adding to cart:', error);
+            buttonElement.innerHTML = originalHtml;
+            buttonElement.disabled = false;
+            showNotification('Network error. Please try again.', 'error');
+        }
+    }
+    
+    async function addAllToCart() {
+        const buttons = document.querySelectorAll('.add-to-cart-from-wishlist:not(:disabled)');
+        const addAllBtn = document.getElementById('add-all-to-cart');
+        const originalText = addAllBtn.innerHTML;
+        
+        addAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Adding...';
+        addAllBtn.disabled = true;
+        
+        let addedCount = 0;
+        let errorCount = 0;
+        
+        for (const button of buttons) {
+            const variantId = button.getAttribute('data-variant-id');
+            if (variantId) {
+                try {
+                    const csrfToken = getCookie('csrftoken');
+                    
+                    const response = await fetch(`/cart/add/${variantId}/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': csrfToken,
+                        },
+                        body: `quantity=1`
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        addedCount++;
+                        button.innerHTML = '<i class="fas fa-check me-1"></i> Added';
+                        button.classList.remove('btn-primary');
+                        button.classList.add('btn-success');
+                        button.disabled = true;
+                    } else {
+                        errorCount++;
+                    }
+                } catch (error) {
+                    errorCount++;
+                }
+            }
+        }
+        
+        // Update cart count
+        try {
+            const cartResponse = await fetch('/cart/count/');
+            const cartData = await cartResponse.json();
+            if (cartData.count !== undefined && window.wishlistManager) {
+                window.wishlistManager.updateCartBadge(cartData.count);
+            }
+        } catch (error) {
+            console.log('Could not update cart count');
+        }
+        
+        // Show result
+        let message = '';
+        if (addedCount > 0 && errorCount === 0) {
+            message = `Successfully added ${addedCount} item${addedCount > 1 ? 's' : ''} to cart!`;
+            showNotification(message, 'success');
+        } else if (addedCount > 0 && errorCount > 0) {
+            message = `Added ${addedCount} item${addedCount > 1 ? 's' : ''}, ${errorCount} failed`;
+            showNotification(message, 'info');
+        } else {
+            message = 'No items could be added to cart';
+            showNotification(message, 'error');
+        }
+        
+        addAllBtn.innerHTML = originalText;
+        addAllBtn.disabled = false;
+    }
+    
+    // Utility functions
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    function showNotification(message, type = 'info') {
+        // Create notification if it doesn't exist
+        let notification = document.getElementById('global-notification');
+        if (!notification) {
+            notification = document.createElement('div');
+            notification.id = 'global-notification';
+            notification.className = 'notification';
+            document.body.appendChild(notification);
+        }
+        
+        notification.textContent = message;
+        notification.className = `notification ${type} show`;
+        
+        setTimeout(() => {
+            notification.classList.remove('show');
+        }, 3000);
+    }
+});
+</script>
+{% endblock %}

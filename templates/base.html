@@ -1,4 +1,6 @@
 <!-- base.html -->
+     <!-- Load wishlist JavaScript -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -748,7 +750,39 @@
     color: white;
     transform: translateY(-1px);
 }
+
+.notification {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 5px;
+    color: white;
+    z-index: 9999;
+    max-width: 300px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification.success {
+    background-color: #28a745;
+}
+
+.notification.error {
+    background-color: #dc3545;
+}
+
+.notification.info {
+    background-color: #17a2b8;
+}
     </style>
+
+
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -772,6 +806,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     
     {% block extra_js %}{% endblock %}
+
+
     
     <!-- Common Scripts -->
     <script>
@@ -896,5 +932,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // });
 
  </script>
+    {% load static %}
+    <script src="{% static 'js/wishlist.js' %}"></script>
 </body>
 </html>

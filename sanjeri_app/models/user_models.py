@@ -3,6 +3,8 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
 from django.db.models import Q, UniqueConstraint
+from django.conf import settings 
+import os 
 
 class CustomUser(AbstractUser):
     # email = models.EmailField(unique=True)   
@@ -37,8 +39,12 @@ class CustomUser(AbstractUser):
     wallet_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     date_joined = models.DateTimeField(default=timezone.now)
     is_deleted = models.BooleanField(default=False)
-    profile_image = models.ImageField(upload_to='profile_images/',null=True,blank=True,default='profile_images/default_profile.png'
-)
+    profile_image = models.ImageField(
+        upload_to='profile_images/',
+        null=True,
+        blank=True,
+        default=None  # This is the default
+    )
 
     class Meta:
         constraints = [
@@ -53,6 +59,14 @@ class CustomUser(AbstractUser):
                 name="unique_email_not_deleted"
             ),
         ]
+    def get_profile_image_url(self):
+        """
+        Always return static default if no custom image uploaded
+        """
+        if self.profile_image and self.profile_image.name:
+            return self.profile_image.url
+        return '/static/images/default_profile.png'
+    
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}".strip()
     
