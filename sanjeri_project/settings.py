@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure--^v2*dd7n=%tr0g%=s46wfv4!t3sl%u)p=9j4cq(wf!zr7h%3&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['ancyfaisal.pythonanywhere.com', '127.0.0.1']
 # ALLOWED_HOSTS = ['https://ancyfaisal.github.io/sanjeri_ecomerce/']
 
 
