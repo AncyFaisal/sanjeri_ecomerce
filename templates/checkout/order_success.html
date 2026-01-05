@@ -30,6 +30,23 @@
                     </p>
                 </div>
             </div>
+
+            {% if order.payment_method == 'online' and order.payment_status == 'completed' %}
+<div class="card border-success mb-4">
+    <div class="card-body">
+        <h5 class="card-title">
+            <i class="fas fa-credit-card me-2 text-success"></i>
+            Payment Details
+        </h5>
+        <p class="card-text">
+            <strong>Payment ID:</strong> {{ order.razorpay_payment_id|default:"N/A" }}<br>
+            <strong>Payment Method:</strong> Online Payment<br>
+            <strong>Payment Status:</strong> <span class="badge bg-success">Completed</span><br>
+            <strong>Payment Date:</strong> {{ order.updated_at|date:"F d, Y \\a\\t g:i A" }}
+        </p>
+    </div>
+</div>
+{% endif %}
             
             <!-- Delivery Address -->
             <div class="card mb-4">

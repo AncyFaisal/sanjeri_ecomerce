@@ -205,3 +205,24 @@ SOCIALACCOUNT_PROVIDERS = {
         }
     }
 }
+
+# Payment Gateway Settings
+RAZORPAY_KEY_ID = 'rzp_test_YOUR_KEY_ID'  # Get from Razorpay dashboard
+RAZORPAY_KEY_SECRET = 'YOUR_RAZORPAY_SECRET'  # Get from Razorpay dashboard
+
+# PayPal Settings
+PAYPAL_CLIENT_ID = 'YOUR_PAYPAL_CLIENT_ID'
+PAYPAL_CLIENT_SECRET = 'YOUR_PAYPAL_SECRET'
+PAYPAL_MODE = 'sandbox'  # 'sandbox' or 'live'
+
+# ==================== RAZORPAY TEST ====================
+# TEMPORARY - Replace with your actual keys
+RAZORPAY_KEY_ID = 'rzp_test_1DP5mmOlF5G5ag'  # Example format
+RAZORPAY_KEY_SECRET = 'wFYmNv4Wt5ZbM7fE8qH3rK6pL9'  # Example format
+
+print("=" * 50)
+print("RAZORPAY CONFIG CHECK:")
+print(f"Key ID: {RAZORPAY_KEY_ID}")
+print(f"Key ID Length: {len(RAZORPAY_KEY_ID)}")
+print(f"Key Secret Length: {len(RAZORPAY_KEY_SECRET)}")
+print("=" * 50)

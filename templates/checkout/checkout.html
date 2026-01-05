@@ -94,41 +94,50 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="payment-options">
-                        <div class="payment-option border rounded p-3 mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="payment_method" 
-                                       id="payment_cod" value="cod" checked>
-                                <label class="form-check-label w-100" for="payment_cod">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <strong>Cash on Delivery</strong>
-                                            <p class="mb-0 text-muted small">Pay when you receive your order</p>
-                                        </div>
-                                        <i class="fas fa-money-bill-wave text-success fa-2x"></i>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-                        
-                        <!-- You can add more payment methods here later -->
-                        <div class="payment-option border rounded p-3 opacity-50">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="payment_method" 
-                                       id="payment_online" value="online" disabled>
-                                <label class="form-check-label w-100" for="payment_online">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <strong>Online Payment</strong>
-                                            <p class="mb-0 text-muted small">Pay securely with your card or UPI</p>
-                                            <small class="text-warning"><i class="fas fa-clock"></i> Coming Soon</small>
-                                        </div>
-                                        <i class="fas fa-credit-card text-primary fa-2x"></i>
-                                    </div>
-                                </label>
-                            </div>
+                   <!-- Update the payment options section -->
+<div class="payment-options">
+    <div class="payment-option border rounded p-3 mb-3">
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="payment_method" 
+                   id="payment_cod" value="cod" checked>
+            <label class="form-check-label w-100" for="payment_cod">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Cash on Delivery</strong>
+                        <p class="mb-0 text-muted small">Pay when you receive your order</p>
+                    </div>
+                    <i class="fas fa-money-bill-wave text-success fa-2x"></i>
+                </div>
+            </label>
+        </div>
+    </div>
+    
+    {% if show_online_payment %}
+    <div class="payment-option border rounded p-3">
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="payment_method" 
+                   id="payment_online" value="online">
+            <label class="form-check-label w-100" for="payment_online">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Online Payment</strong>
+                        <p class="mb-0 text-muted small">Pay securely with your card or UPI</p>
+                        <small class="text-success"><i class="fas fa-shield-alt"></i> 100% Secure Payment</small>
+                    </div>
+                    <div class="text-end">
+                        <i class="fas fa-credit-card text-primary fa-2x"></i>
+                        <div class="mt-1">
+                            <small class="badge bg-primary">Visa</small>
+                            <small class="badge bg-success">MasterCard</small>
+                            <small class="badge bg-warning">UPI</small>
                         </div>
                     </div>
+                </div>
+            </label>
+        </div>
+    </div>
+    {% endif %}
+</div>
                 </div>
             </div>
         </div>
@@ -586,6 +595,64 @@ function loadAddressList() {
                 console.error('Error:', error);
                 showAlert('Network error. Please try again.', 'danger');
             });
+        });
+    }
+});
+
+// Update the place order function to handle different payment methods
+document.addEventListener('DOMContentLoaded', function() {
+    const placeOrderBtn = document.getElementById('placeOrderBtn');
+    
+    if (placeOrderBtn) {
+        placeOrderBtn.addEventListener('click', async function() {
+            const selectedAddress = document.querySelector('input[name="address"]:checked');
+            const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
+            
+            if (!selectedAddress) {
+                showAlert('Please select a delivery address.', 'warning');
+                return;
+            }
+            
+            if (!selectedPayment) {
+                showAlert('Please select a payment method.', 'warning');
+                return;
+            }
+            
+            loadingModal.show();
+            
+            const formData = new FormData();
+            formData.append('address_id', selectedAddress.value);
+            formData.append('payment_method', selectedPayment.value);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            
+            try {
+                const response = await fetch('{% url "place_order" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    }
+                });
+                
+                const data = await response.json();
+                loadingModal.hide();
+                
+                if (data.success) {
+                    if (data.payment_required) {
+                        // Redirect to payment gateway
+                        window.location.href = data.redirect_url;
+                    } else {
+                        // COD - redirect to success page
+                        window.location.href = data.redirect_url;
+                    }
+                } else {
+                    showAlert('Error: ' + data.message, 'danger');
+                }
+            } catch (error) {
+                loadingModal.hide();
+                console.error('Error:', error);
+                showAlert('Network error. Please try again.', 'danger');
+            }
         });
     }
 });

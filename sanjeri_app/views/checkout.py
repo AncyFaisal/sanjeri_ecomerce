@@ -8,6 +8,7 @@ from django.db import transaction
 from decimal import Decimal
 from ..models import Cart, CartItem, Address, Order, OrderItem
 
+# Update the checkout_view to include payment options
 @login_required
 def checkout_view(request):
     """Checkout page with address selection and order summary"""
@@ -35,7 +36,7 @@ def checkout_view(request):
             discount_amount = subtotal * Decimal('0.10')
         shipping_charge = Decimal('0') if subtotal > Decimal('500') else Decimal('40')
         tax_amount = subtotal * Decimal('0.18')
-        total_amount = subtotal + shipping_charge + tax_amount
+        total_amount = subtotal + shipping_charge + tax_amount - discount_amount
         
         context = {
             'cart': cart,
@@ -47,17 +48,19 @@ def checkout_view(request):
             'shipping_charge': shipping_charge,
             'tax_amount': tax_amount,
             'total_amount': total_amount,
+            'show_online_payment': True,  # Enable online payment option
         }
         return render(request, 'checkout/checkout.html', context)
         
     except Cart.DoesNotExist:
         messages.warning(request, "Your cart is empty. Add some products to checkout.")
         return redirect('cart')
+    
 
 @login_required
 @require_POST
 def place_order(request):
-    """Place order with Cash on Delivery"""
+    """Place order with payment method selection"""
     try:
         with transaction.atomic():
             cart = Cart.objects.get(user=request.user)
@@ -84,9 +87,12 @@ def place_order(request):
                     'message': 'Please select a delivery address.'
                 })
             
+            # Get payment method
+            payment_method = request.POST.get('payment_method', 'cod')
+            
             address = get_object_or_404(Address, id=address_id, user=request.user)
             
-             # Calculate discount (same logic as checkout view)
+            # Calculate discount (same logic as checkout view)
             subtotal = cart.subtotal
             discount_amount = Decimal('0')
             if subtotal > Decimal('1000'):
@@ -96,8 +102,8 @@ def place_order(request):
             order = Order.objects.create(
                 user=request.user,
                 shipping_address=address,
-                payment_method='cod',
-                payment_status='pending',
+                payment_method=payment_method,
+                payment_status='pending' if payment_method == 'online' else 'pending',
                 subtotal=subtotal,
                 discount_amount=discount_amount,
             )
@@ -125,19 +131,34 @@ def place_order(request):
             # Clear cart after successful order
             cart.clear_cart()
             
-            return JsonResponse({
-                'success': True,
-                'order_id': order.id,
-                'order_number': order.order_number,
-                'redirect_url': f'/order-success/{order.id}/'
-            })
+            # Handle different payment methods
+            if payment_method == 'online':
+                # Store order ID in session for failed payments
+                request.session['last_order_id'] = order.id
+                
+                return JsonResponse({
+                    'success': True,
+                    'payment_required': True,
+                    'redirect_url': f'/payment/initiate/{order.id}/'
+                })
+            else:
+                # COD - redirect directly to success
+                order.payment_status = 'pending'  # COD is pending until delivered
+                order.save()
+                
+                return JsonResponse({
+                    'success': True,
+                    'payment_required': False,
+                    'redirect_url': f'/order-success/{order.id}/'
+                })
             
     except Exception as e:
         return JsonResponse({
             'success': False,
             'message': f'Error placing order: {str(e)}'
         })
-
+    
+    
 @login_required
 def order_success(request, order_id):
     """Order success page"""

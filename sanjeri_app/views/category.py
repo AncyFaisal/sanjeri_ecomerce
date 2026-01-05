@@ -5,6 +5,8 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Q
+from .payment import initiate_payment
+
 
 from ..models import Category, Product
 from ..forms.category import CategoryForm, ProductFormSet

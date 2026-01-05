@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Secure Payment - Sanjeri{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-white py-4">
+                    <div class="text-center">
+                        <i class="fas fa-lock text-success fa-3x mb-3"></i>
+                        <h2 class="text-dark">Secure Payment Gateway</h2>
+                        <p class="text-muted">Complete your payment securely</p>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Order Summary -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5>Order Details</h5>
+                            <p class="mb-1"><strong>Order #:</strong> {{ order.order_number }}</p>
+                            <p class="mb-1"><strong>Amount:</strong> ₹{{ order.total_amount }}</p>
+                            <p class="mb-0"><strong>Date:</strong> {{ order.created_at|date:"F d, Y" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Customer Details</h5>
+                            <p class="mb-1"><strong>Name:</strong> {{ user_name }}</p>
+                            <p class="mb-1"><strong>Email:</strong> {{ user_email }}</p>
+                            {% if user_phone %}
+                            <p class="mb-0"><strong>Phone:</strong> {{ user_phone }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Options -->
+                    <div class="payment-options mb-4">
+                        <h5 class="mb-3">Select Payment Method</h5>
+                        
+                        <div class="row">
+                            <!-- Razorpay Option -->
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-primary h-100">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-credit-card fa-2x text-primary mb-3"></i>
+                                        <h5>Credit/Debit Card</h5>
+                                        <p class="text-muted small">Visa, MasterCard, RuPay, etc.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- UPI Option -->
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-success h-100">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-mobile-alt fa-2x text-success mb-3"></i>
+                                        <h5>UPI</h5>
+                                        <p class="text-muted small">Google Pay, PhonePe, Paytm</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- More Options -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-warning h-100">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-university fa-2x text-warning mb-3"></i>
+                                        <h5>Net Banking</h5>
+                                        <p class="text-muted small">All major banks</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-info h-100">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-wallet fa-2x text-info mb-3"></i>
+                                        <h5>Wallet</h5>
+                                        <p class="text-muted small">Paytm Wallet, PhonePe, etc.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Razorpay Payment Form -->
+                    <div class="text-center">
+                        <form action="{% url 'payment_success' %}" method="POST" id="payment-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="razorpay_order_id" value="{{ razorpay_order_id }}">
+                            
+                            <script
+                                src="https://checkout.razorpay.com/v1/checkout.js"
+                                data-key="{{ razorpay_key_id }}"
+                                data-amount="{{ amount }}"
+                                data-currency="{{ currency }}"
+                                data-order_id="{{ razorpay_order_id }}"
+                                data-buttontext="Pay ₹{{ order.total_amount }}"
+                                data-name="Sanjeri Perfumes"
+                                data-description="Order #{{ order.order_number }}"
+                                data-image="{% static 'images/logo.png' %}"
+                                data-prefill.name="{{ user_name }}"
+                                data-prefill.email="{{ user_email }}"
+                                data-prefill.contact="{{ user_phone|default:'' }}"
+                                data-theme.color="#431405"
+                                data-notes.order_id="{{ order.id }}"
+                            >
+                            </script>
+                            
+                            <input type="hidden" custom="Hidden Element" name="hidden">
+                        </form>
+                        
+                        <!-- Alternative Button (if script doesn't load) -->
+                        <button type="button" id="manual-pay-btn" class="btn btn-primary btn-lg mt-3">
+                            <i class="fas fa-credit-card me-2"></i>
+                            Pay ₹{{ order.total_amount }}
+                        </button>
+                        
+                        <!-- Cancel Payment -->
+                        <div class="mt-4">
+                            <a href="{% url 'order_detail' order.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>
+                                Cancel Payment
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Security Assurance -->
+                <div class="card-footer bg-light">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-2">
+                            <i class="fas fa-shield-alt text-primary"></i>
+                            <small class="d-block">100% Secure</small>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <i class="fas fa-lock text-success"></i>
+                            <small class="d-block">SSL Encrypted</small>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <i class="fas fa-user-shield text-warning"></i>
+                            <small class="d-block">PCI DSS Compliant</small>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <i class="fas fa-handshake text-info"></i>
+                            <small class="d-block">Trusted by Millions</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h4>Processing Payment...</h4>
+                <p class="text-muted">Please don't refresh or close this window.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.payment-options .card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.payment-options .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    padding: 12px 30px;
+    font-size: 1.1rem;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const manualPayBtn = document.getElementById('manual-pay-btn');
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    
+    if (manualPayBtn) {
+        manualPayBtn.addEventListener('click', function() {
+            loadingModal.show();
+            
+            // Trigger Razorpay checkout
+            setTimeout(() => {
+                const razorpayButton = document.querySelector('.razorpay-payment-button');
+                if (razorpayButton) {
+                    razorpayButton.click();
+                } else {
+                    loadingModal.hide();
+                    alert('Payment gateway not loaded. Please refresh the page.');
+                }
+            }, 1000);
+        });
+    }
+    
+    // Handle payment success/failure
+    document.addEventListener('payment.success', function(e) {
+        loadingModal.hide();
+    });
+    
+    document.addEventListener('payment.error', function(e) {
+        loadingModal.hide();
+        alert('Payment failed. Please try again.');
+    });
+});
+</script>
+{% endblock %}

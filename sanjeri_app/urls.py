@@ -12,6 +12,7 @@ from .views.user_address_manage import *
 from .views.cart import *
 from .views.checkout import *
 from .views.admin_order_management import *
+from .views.payment import *
 from .views.wishlist import *
 from .views.view_userside import (
     home, men_products, women_products, unisex_products, 
@@ -158,4 +159,10 @@ path('order-management/<int:order_id>/update-status/', update_order_status, name
 # Inventory Management URLs
 path('inventory-management/', admin_inventory_management, name='admin_inventory_management'),
 path('inventory-management/<int:variant_id>/update-stock/', update_stock, name='update_stock'),
+
+ # Payment URLs
+    path('payment/initiate/<int:order_id>/', initiate_payment, name='initiate_payment'),
+    path('payment/success/', payment_success, name='payment_success'),
+    path('payment/failed/', payment_failed, name='payment_failed'),
+    path('payment/retry/<int:order_id>/', retry_payment, name='retry_payment'),
 ]

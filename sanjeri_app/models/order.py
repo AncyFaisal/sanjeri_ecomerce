@@ -59,6 +59,12 @@ class Order(models.Model):
     cancelled_at = models.DateTimeField(null=True, blank=True)
     returned_at = models.DateTimeField(null=True, blank=True)
     
+    # Payment gateway fields
+    razorpay_order_id = models.CharField(max_length=100, blank=True, null=True)
+    razorpay_payment_id = models.CharField(max_length=100, blank=True, null=True)
+    razorpay_signature = models.CharField(max_length=200, blank=True, null=True)
+    paypal_payment_id = models.CharField(max_length=100, blank=True, null=True)
+
     # Additional info
     notes = models.TextField(blank=True, null=True)
     tracking_number = models.CharField(max_length=100, blank=True, null=True)
@@ -144,6 +150,13 @@ class Order(models.Model):
             self.save()
             return True
         return False
+    
+    @property
+    def can_pay_online(self):
+        """Check if order can be paid online"""
+        return (self.payment_method == 'online' and 
+            self.payment_status == 'pending' and 
+            self.status != 'cancelled')
 
 class OrderItem(models.Model):
     """Individual items within an order"""
