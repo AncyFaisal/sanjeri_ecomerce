@@ -127,6 +127,9 @@ if 'RENDER' in os.environ:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
     
     # Allowed hosts
     RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
@@ -148,6 +151,10 @@ if 'RENDER' in os.environ:
     
     # Add Whitenoise to middleware
     MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+    
+    # Fix allauth deprecation warnings
+    ACCOUNT_LOGIN_METHODS = {'email'}
+    ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
 
 # Email configuration (AFTER Render section)
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
