@@ -56,6 +56,19 @@
         Order Management
     </a>
 </li>
+  <li class="nav-item">
+                    <a href="{% url 'admin_coupon_list' %}" class="nav-link {% if 'coupon' in request.path %}active{% endif %}">
+                        <i class="fas fa-ticket-alt"></i>
+                        <span>Coupon Management</span>
+                    </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a href="{% url 'sales_report' %}" class="nav-link {% if 'sales-report' in request.path %}active{% endif %}">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Sales Report</span>
+                    </a>
+                </li>
 <li class="nav-item">
     <a class="nav-link" href="{% url 'admin_inventory_management' %}">
         <i class="fas fa-boxes"></i>

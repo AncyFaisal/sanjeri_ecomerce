@@ -544,7 +544,7 @@
 
 .pagination .page-link:hover {
     background-color: var(--primary-color);
-    color: white;
+    color: rgb(50, 27, 27);
     border-color: var(--primary-color);
 }
 
@@ -893,43 +893,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
    
-
-    // Auto-suggest functionality
-// document.addEventListener('DOMContentLoaded', function() {
-//     const searchInput = document.querySelector('.search-input');
-//     const searchForm = document.querySelector('.search-form');
-    
-//     if (searchInput) {
-//         let timeoutId;
-        
-//         searchInput.addEventListener('input', function() {
-//             clearTimeout(timeoutId);
-//             const query = this.value.trim();
-            
-//             if (query.length > 2) {
-//                 timeoutId = setTimeout(() => {
-//                     fetch(`/api/search-suggestions?q=${encodeURIComponent(query)}`)
-//                         .then(response => response.json())
-//                         .then(data => {
-//                             showSuggestions(data);
-//                         })
-//                         .catch(error => console.error('Error:', error));
-//                 }, 300);
-//             } else {
-//                 hideSuggestions();
-//             }
-//         });
-        
-//         function showSuggestions(suggestions) {
-//             // Implement suggestion dropdown UI
-//             console.log('Suggestions:', suggestions);
-//         }
-        
-//         function hideSuggestions() {
-//             // Hide suggestion dropdown
-//         }
-//     }
-// });
 
  </script>
     {% load static %}

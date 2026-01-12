@@ -104,6 +104,39 @@
             transform: translateY(-2px);
         }
         
+        /* Wishlist Button Styles */
+        .btn-wishlist {
+            background-color: transparent;
+            color: #dc3545;
+            border: 2px solid #dc3545;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            border-radius: 25px;
+            transition: all 0.3s;
+        }
+        
+        .btn-wishlist:hover {
+            background-color: #dc3545;
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .btn-wishlist.active {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .btn-wishlist:disabled {
+            background-color: #6c757d;
+            border-color: #6c757d;
+            color: white;
+            cursor: not-allowed;
+        }
+        
+        .wishlist-icon {
+            transition: all 0.3s;
+        }
+        
         .variant-option {
             border: 2px solid #e9ecef;
             border-radius: 8px;
@@ -183,6 +216,24 @@
                 opacity: 1;
             }
         }
+        
+        /* Product Actions Container */
+        .product-actions-container {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .product-actions-container {
+                flex-direction: column;
+            }
+            
+            .product-actions-container .btn {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -192,7 +243,7 @@
     <!-- Main Content -->
     <div class="container py-4">
         <!-- CSRF Token for AJAX requests -->
-        {% csrf_token %}
+        <input type="hidden" id="csrf_token" value="{{ csrf_token }}">
         
         <!-- Breadcrumbs -->
         <nav aria-label="breadcrumb">
@@ -219,6 +270,13 @@
                         style="height: 500px; object-fit: cover; cursor: zoom-in;"
                         onclick="openZoom()"
                     >
+                    <!-- Wishlist Quick Button on Image -->
+                    <button class="btn btn-wishlist position-absolute top-0 end-0 m-3 rounded-circle p-0" 
+                            style="width: 45px; height: 45px;"
+                            id="quick-wishlist-btn"
+                            data-product-id="{{ product.id }}">
+                        <i class="fas fa-heart wishlist-icon"></i>
+                    </button>
                 </div>
                 
                 <!-- Thumbnail Gallery -->
@@ -241,7 +299,12 @@
 
             <!-- Product Details -->
             <div class="col-md-6">
-                <h1 class="h2 mb-3">{{ product.name }}</h1>
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h1 class="h2 mb-0">{{ product.name }}</h1>
+                    <!-- <button class="btn btn-outline-danger btn-sm" id="wishlist-btn" data-product-id="{{ product.id }}">
+                        <i class="far fa-heart me-1"></i> Add to Wishlist
+                    </button> -->
+                </div>
                 
                 <!-- Ratings -->
                 <div class="d-flex align-items-center mb-3">
@@ -328,9 +391,26 @@
                         {% endwith %}
                     </div>
                      <!-- Hidden field to store current variant ID -->
-    <input type="hidden" id="current-variant-id" value="{{ variants.first.id }}">
+                    <input type="hidden" id="current-variant-id" value="{{ variants.first.id }}">
                 </div>
                 {% endif %}
+
+                <!-- Product Actions (Add to Cart + Wishlist) -->
+                <div class="product-actions-container mb-4">
+                    {% if variants and variants.first.stock > 0 %}
+                        <button class="btn btn-add-cart flex-fill" id="add-to-cart-btn">
+                            <i class="fas fa-shopping-cart me-2"></i>Add to Cart
+                        </button>
+                    {% else %}
+                        <button class="btn btn-add-cart flex-fill" disabled>
+                            <i class="fas fa-times-circle me-2"></i>Out of Stock
+                        </button>
+                    {% endif %}
+                    
+                    <button class="btn btn-wishlist flex-fill" id="main-wishlist-btn" data-product-id="{{ product.id }}">
+                        <i class="far fa-heart me-2"></i>Add to Wishlist
+                    </button>
+                </div>
 
                 <!-- Description -->
                 <div class="mb-4">
@@ -358,19 +438,6 @@
                             <td>{{ product.sku }}</td>
                         </tr>
                     </table>
-                </div>
-
-                <!-- Add to Cart Button -->
-                <div class="d-grid gap-2 d-md-flex">
-                    {% if variants and variants.first.stock > 0 %}
-                        <button class="btn btn-add-cart flex-fill" id="add-to-cart-btn">
-                            <i class="fas fa-shopping-cart me-2"></i>Add to Cart
-                        </button>
-                    {% else %}
-                        <button class="btn btn-add-cart flex-fill" disabled>
-                            <i class="fas fa-times-circle me-2"></i>Out of Stock
-                        </button>
-                    {% endif %}
                 </div>
 
                 <!-- Additional Info -->
@@ -456,14 +523,22 @@
                     {% for related in related_products %}
                     <div class="col-lg-3 col-md-4 col-6 mb-4">
                         <div class="card related-product h-100">
-                            <a href="{% url 'product_detail' related.id %}">
-                                <img 
-                                    src="{% if related.main_image %}{{ related.main_image.url }}{% else %}https://via.placeholder.com/300x300?text=No+Image{% endif %}" 
-                                    class="card-img-top" 
-                                    alt="{{ related.name }}"
-                                    style="height: 200px; object-fit: cover;"
-                                >
-                            </a>
+                            <div class="position-relative">
+                                <a href="{% url 'product_detail' related.id %}">
+                                    <img 
+                                        src="{% if related.main_image %}{{ related.main_image.url }}{% else %}https://via.placeholder.com/300x300?text=No+Image{% endif %}" 
+                                        class="card-img-top" 
+                                        alt="{{ related.name }}"
+                                        style="height: 200px; object-fit: cover;"
+                                    >
+                                </a>
+                                <!-- Quick Wishlist Button for Related Products -->
+                                <button class="btn btn-wishlist position-absolute top-0 end-0 m-2 rounded-circle p-0" 
+                                        style="width: 40px; height: 40px;"
+                                        data-product-id="{{ related.id }}">
+                                    <i class="far fa-heart"></i>
+                                </button>
+                            </div>
                             <div class="card-body">
                                 <h6 class="card-title">{{ related.name }}</h6>
                                 <div class="d-flex justify-content-between align-items-center">
@@ -495,18 +570,26 @@
         // ==================== GLOBAL VARIABLES ====================
         let selectedVariantId = {% if variants %}{{ variants.first.id }}{% else %}null{% endif %};
         let isButtonGoToCart = false;
+        let isInWishlist = false;
 
-        // ==================== PAGE LOAD INITIALIZATION ====================
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔄 Product detail page loaded');
-            
-            // Initialize button state
-            initializeButtonState();
-            
-            // Check if variant is already in cart (from localStorage)
-            checkLocalStorageForVariant();
-        });
-
+   // ==================== PAGE LOAD INITIALIZATION ====================
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔄 Product detail page loaded');
+    
+    // Initialize button state
+    initializeButtonState();
+    
+    // Check if variant is already in cart (from localStorage)
+    checkLocalStorageForVariant();
+    
+    // Initialize wishlist buttons
+    initializeWishlistButtons();
+    
+    // Check if product is in wishlist (with delay to ensure DOM is ready)
+    setTimeout(() => {
+        checkWishlistStatus();
+    }, 100);
+});
         // ==================== IMAGE GALLERY FUNCTIONS ====================
         function changeMainImage(src, element) {
             document.getElementById('mainImage').src = src;
@@ -653,6 +736,391 @@
             console.log('✅ Button changed to "Add to Cart"');
         }
 
+ // ==================== WISHLIST FUNCTIONS ====================
+function initializeWishlistButtons() {
+    const mainWishlistBtn = document.getElementById('main-wishlist-btn');
+    const quickWishlistBtn = document.getElementById('quick-wishlist-btn');
+    
+    // Main button click handler
+    if (mainWishlistBtn) {
+        mainWishlistBtn.addEventListener('click', function(e) {
+            const icon = this.querySelector('i');
+            // If already in wishlist (solid heart), go to wishlist page
+            if (icon.classList.contains('fas')) {
+                e.preventDefault();
+                e.stopPropagation();
+                window.location.href = '{% url "wishlist" %}';
+                return;
+            }
+            // Otherwise, add to wishlist
+            handleWishlistAdd.call(this, e);
+        });
+    }
+    
+    // Quick button (icon) click handler - toggles add/remove
+    if (quickWishlistBtn) {
+        quickWishlistBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleWishlistToggle.call(this, e);
+        });
+    }
+    
+    // Related product buttons - only add to wishlist
+    document.querySelectorAll('[data-product-id].btn-wishlist').forEach(btn => {
+        if (btn && !btn.id) {
+            btn.addEventListener('click', handleWishlistAdd);
+        }
+    });
+}
+
+// Handle adding to wishlist (for main button and related products)
+async function handleWishlistAdd(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    const button = this;
+    const productId = button.dataset.productId;
+    
+    await toggleWishlist(productId, button, 'add');
+}
+
+// Handle toggling wishlist (for icon - add/remove)
+async function handleWishlistToggle(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    const button = this;
+    const productId = button.dataset.productId;
+    const isCurrentlyInWishlist = localStorage.getItem(`wishlist_product_${productId}`) === 'true';
+    
+    if (isCurrentlyInWishlist) {
+        await removeFromWishlist(productId, button);
+    } else {
+        await addToWishlist(productId, button);
+    }
+}
+
+// Add to wishlist
+async function addToWishlist(productId, button) {
+    if (!productId) {
+        showNotification('Product ID not found', 'error');
+        return;
+    }
+    
+    // Get CSRF token
+    const csrfToken = getCookie('csrftoken');
+    if (!csrfToken) {
+        showNotification('Please refresh the page and try again.', 'error');
+        return;
+    }
+    
+    // Show loading state
+    const originalHtml = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    button.disabled = true;
+    
+    try {
+        // Try to use the wishlist add endpoint
+        const response = await fetch(`/wishlist/add/${productId}/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken
+            }
+        });
+        
+        let data;
+        
+        // Try to parse response
+        try {
+            data = await response.json();
+        } catch {
+            // If response is not JSON, check status
+            if (response.ok) {
+                data = { success: true, message: 'Added to wishlist!' };
+            } else {
+                data = { success: false, message: 'Failed to add to wishlist' };
+            }
+        }
+        
+        if (data.success) {
+            // Success - update UI
+            updateWishlistButtons(true);
+            localStorage.setItem(`wishlist_product_${productId}`, 'true');
+            
+            // Update wishlist count
+            updateWishlistCountInHeader('increment');
+            
+            // Show success message
+            showNotification(data.message || 'Added to wishlist successfully!', 'success');
+            
+        } else {
+            // Fallback to localStorage
+            updateWishlistButtons(true);
+            localStorage.setItem(`wishlist_product_${productId}`, 'true');
+            updateWishlistCountInHeader('increment');
+            showNotification('Added to wishlist!', 'success');
+        }
+        
+    } catch (error) {
+        console.error('Wishlist error:', error);
+        
+        // Fallback to localStorage
+        updateWishlistButtons(true);
+        localStorage.setItem(`wishlist_product_${productId}`, 'true');
+        updateWishlistCountInHeader('increment');
+        showNotification('Added to wishlist!', 'success');
+        
+    } finally {
+        // Always re-enable button
+        setTimeout(() => {
+            button.innerHTML = originalHtml;
+            button.disabled = false;
+        }, 500);
+    }
+}
+
+// Remove from wishlist
+async function removeFromWishlist(productId, button) {
+    if (!productId) {
+        showNotification('Product ID not found', 'error');
+        return;
+    }
+    
+    // Get CSRF token
+    const csrfToken = getCookie('csrftoken');
+    if (!csrfToken) {
+        showNotification('Please refresh the page and try again.', 'error');
+        return;
+    }
+    
+    // Show loading state
+    const originalHtml = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    button.disabled = true;
+    
+    try {
+        // Try to use the wishlist remove endpoint
+        const response = await fetch(`/wishlist/remove/${productId}/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken
+            }
+        });
+        
+        let data;
+        
+        // Try to parse response
+        try {
+            data = await response.json();
+        } catch {
+            // If response is not JSON, check status
+            if (response.ok) {
+                data = { success: true, message: 'Removed from wishlist!' };
+            } else {
+                data = { success: false, message: 'Failed to remove from wishlist' };
+            }
+        }
+        
+        if (data.success) {
+            // Success - update UI
+            updateWishlistButtons(false);
+            localStorage.removeItem(`wishlist_product_${productId}`);
+            
+            // Update wishlist count
+            updateWishlistCountInHeader('decrement');
+            
+            // Show success message
+            showNotification(data.message || 'Removed from wishlist!', 'success');
+            
+        } else {
+            // Fallback to localStorage
+            updateWishlistButtons(false);
+            localStorage.removeItem(`wishlist_product_${productId}`);
+            updateWishlistCountInHeader('decrement');
+            showNotification('Removed from wishlist!', 'success');
+        }
+        
+    } catch (error) {
+        console.error('Wishlist error:', error);
+        
+        // Fallback to localStorage
+        updateWishlistButtons(false);
+        localStorage.removeItem(`wishlist_product_${productId}`);
+        updateWishlistCountInHeader('decrement');
+        showNotification('Removed from wishlist!', 'success');
+        
+    } finally {
+        // Always re-enable button
+        setTimeout(() => {
+            button.innerHTML = originalHtml;
+            button.disabled = false;
+        }, 500);
+    }
+}
+
+function updateWishlistButtons(isAdded) {
+    const productId = document.querySelector('[data-product-id]')?.dataset.productId;
+    if (!productId) return;
+    
+    console.log('Updating wishlist buttons, isAdded:', isAdded);
+    
+    // Update all buttons for this product
+    document.querySelectorAll(`[data-product-id="${productId}"]`).forEach(button => {
+        const icon = button.querySelector('i');
+        if (icon) {
+            if (isAdded) {
+                // Item is in wishlist
+                icon.className = 'fas fa-heart'; // Solid heart
+                button.classList.add('active');
+                
+                // Update main button text to "In Wishlist"
+                if (button.id === 'main-wishlist-btn') {
+                    button.innerHTML = '<i class="fas fa-heart me-2"></i>In Wishlist';
+                }
+            } else {
+                // Item is NOT in wishlist
+                icon.className = 'far fa-heart'; // Outline heart
+                button.classList.remove('active');
+                
+                // Update main button text to "Add to Wishlist"
+                if (button.id === 'main-wishlist-btn') {
+                    button.innerHTML = '<i class="far fa-heart me-2"></i>Add to Wishlist';
+                }
+            }
+        }
+    });
+    
+    isInWishlist = isAdded;
+}
+
+function updateWishlistCountInHeader(action) {
+    const wishlistCountElements = document.querySelectorAll('.wishlist-count');
+    wishlistCountElements.forEach(element => {
+        let currentCount = parseInt(element.textContent) || 0;
+        
+        if (action === 'increment') {
+            currentCount++;
+        } else if (action === 'decrement' && currentCount > 0) {
+            currentCount--;
+        }
+        
+        element.textContent = currentCount;
+        element.style.display = currentCount > 0 ? 'flex' : 'none';
+    });
+}
+
+async function checkWishlistStatus() {
+    const productId = document.querySelector('[data-product-id]')?.dataset.productId;
+    if (!productId) {
+        console.log('No product ID found for wishlist check');
+        return;
+    }
+    
+    try {
+        // First check localStorage (fastest)
+        const localWishlist = localStorage.getItem(`wishlist_product_${productId}`);
+        if (localWishlist === 'true') {
+            updateWishlistButtons(true);
+            return;
+        }
+        
+        // If not in localStorage, check with server
+        const csrfToken = getCookie('csrftoken');
+        
+        // Try different endpoints that might exist
+        const endpoints = [
+            `/wishlist/check/${productId}/`,
+            `/wishlist/?product_id=${productId}`,
+            `/wishlist/contains/${productId}/`
+        ];
+        
+        for (const endpoint of endpoints) {
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.in_wishlist || data.exists) {
+                        updateWishlistButtons(true);
+                        localStorage.setItem(`wishlist_product_${productId}`, 'true');
+                        return;
+                    }
+                    break; // If we got a valid response, stop trying endpoints
+                }
+            } catch (error) {
+                console.log(`Endpoint ${endpoint} failed, trying next`);
+                continue;
+            }
+        }
+        
+    } catch (error) {
+        console.log('Using localStorage for wishlist status');
+        // Just use localStorage if server check fails
+    }
+}
+
+// Get CSRF token from cookie
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Show notification
+function showNotification(message, type = 'success') {
+    // Remove any existing notifications
+    const existingNotifications = document.querySelectorAll('.custom-notification');
+    existingNotifications.forEach(notification => notification.remove());
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `custom-notification alert alert-${type}`;
+    
+    // Set icon based on type
+    let icon = '✅';
+    if (type === 'error') icon = '❌';
+    if (type === 'warning') icon = '⚠️';
+    if (type === 'info') icon = 'ℹ️';
+    
+    notification.innerHTML = `
+        <div class="d-flex align-items-center">
+            <span class="me-2">${icon}</span>
+            <span>${message}</span>
+            <button type="button" class="btn-close ms-auto" onclick="this.parentElement.parentElement.remove()"></button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 3000);
+}
+
         // ==================== ADD TO CART FUNCTION ====================
         async function handleAddToCartClick() {
             const addToCartBtn = this;
@@ -723,11 +1191,6 @@
                         
                         // Store in localStorage
                         localStorage.setItem(`cart_variant_${selectedVariantId}`, 'true');
-                        
-                        // Optionally redirect after delay
-                        // setTimeout(() => {
-                        //     window.location.href = '{% url "cart" %}';
-                        // }, 1500);
                         
                     } else {
                         showNotification(result.message || 'Error adding to cart', 'error');
@@ -817,81 +1280,59 @@
             } else {
                 changeButtonToAddToCart();
             }
-            
-            // Optionally check with server (if you have an API endpoint)
-            // checkWithServer(variantId);
         }
         
-        // Optional: Server check function
-        async function checkWithServer(variantId) {
+        // ==================== ADD TO CART BUTTON MANAGEMENT ====================
+        async function checkCartForVariant(variantId, button) {
             try {
-                const response = await fetch(`/cart/check/${variantId}/`);
+                const response = await fetch(`/cart/check-variant/${variantId}/`);
                 if (response.ok) {
                     const data = await response.json();
                     if (data.in_cart) {
                         changeButtonToGoToCart();
-                        localStorage.setItem(`cart_variant_${variantId}`, 'true');
+                    } else {
+                        changeButtonToAddToCart();
                     }
                 }
             } catch (error) {
-                console.log('Server check failed, using localStorage only');
+                console.log('Server check failed, using localStorage');
+                // Fallback to localStorage
+                if (localStorage.getItem(`cart_variant_${variantId}`)) {
+                    changeButtonToGoToCart();
+                }
             }
         }
 
-        // ==================== ADD TO CART BUTTON MANAGEMENT ====================
-
-// Function to check if variant is in cart (server check)
-async function checkCartForVariant(variantId, button) {
-    try {
-        const response = await fetch(`/cart/check-variant/${variantId}/`);
-        if (response.ok) {
-            const data = await response.json();
-            if (data.in_cart) {
-                changeButtonToGoToCart();
-            } else {
+        function resetCartButton() {
+            const button = document.getElementById('add-to-cart-btn');
+            if (button) {
                 changeButtonToAddToCart();
+                
+                // Remove from localStorage
+                const variantId = selectedVariantId || document.getElementById('current-variant-id')?.value;
+                if (variantId) {
+                    localStorage.removeItem(`cart_variant_${variantId}`);
+                    localStorage.removeItem(`added_${variantId}`);
+                }
             }
         }
-    } catch (error) {
-        console.log('Server check failed, using localStorage');
-        // Fallback to localStorage
-        if (localStorage.getItem(`cart_variant_${variantId}`)) {
-            changeButtonToGoToCart();
-        }
-    }
-}
 
-// Function to reset cart button (called when cart is cleared)
-function resetCartButton() {
-    const button = document.getElementById('add-to-cart-btn');
-    if (button) {
-        changeButtonToAddToCart();
-        
-        // Remove from localStorage
-        const variantId = selectedVariantId || document.getElementById('current-variant-id')?.value;
-        if (variantId) {
-            localStorage.removeItem(`cart_variant_${variantId}`);
-            localStorage.removeItem(`added_${variantId}`);
-        }
-    }
-}
+        // Listen for cart cleared events
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'cart_cleared') {
+                console.log('Cart cleared event received on product detail page');
+                resetCartButton();
+                updateCartBadge(0);
+            }
+        });
 
-// Listen for cart cleared events
-window.addEventListener('storage', function(e) {
-    if (e.key === 'cart_cleared') {
-        console.log('Cart cleared event received on product detail page');
-        resetCartButton();
-        updateCartBadge(0);
-    }
-});
-
-// Check cart status for current variant on page load
-document.addEventListener('DOMContentLoaded', function() {
-    const currentVariantId = selectedVariantId || document.getElementById('current-variant-id')?.value;
-    if (currentVariantId) {
-        checkCartForVariant(currentVariantId);
-    }
-});
+        // Check cart status for current variant on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentVariantId = selectedVariantId || document.getElementById('current-variant-id')?.value;
+            if (currentVariantId) {
+                checkCartForVariant(currentVariantId);
+            }
+        });
     </script>
 </body>
 </html>

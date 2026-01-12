@@ -1,0 +1,504 @@
+{% extends 'common_admin.html' %}
+{% load static %}
+
+{% block page_title %}Sales Report{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    <div class="top-nav mb-4">
+        <div class="nav-left">
+            <h2 class="page-title">Sales Report</h2>
+            <p class="text-muted mb-0">{{ date_label }}</p>
+        </div>
+        <div class="nav-right">
+            <!-- Export buttons -->
+            <div class="btn-group me-2">
+                <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="fas fa-download"></i> Export
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="?{% for key, value in request.GET.items %}{% if key != 'export' %}{{ key }}={{ value }}&{% endif %}{% endfor %}export=pdf">
+                        <i class="fas fa-file-pdf text-danger"></i> PDF
+                    </a></li>
+                    <li><a class="dropdown-item" href="?{% for key, value in request.GET.items %}{% if key != 'export' %}{{ key }}={{ value }}&{% endif %}{% endfor %}export=excel">
+                        <i class="fas fa-file-excel text-success"></i> Excel
+                    </a></li>
+                    <li><a class="dropdown-item" href="?{% for key, value in request.GET.items %}{% if key != 'export' %}{{ key }}={{ value }}&{% endif %}{% endfor %}export=csv">
+                        <i class="fas fa-file-csv text-info"></i> CSV
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="admin-card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3" id="filterForm">
+                <div class="col-md-3">
+                    <label class="form-label">Report Type</label>
+                    <select name="report_type" class="form-select" id="reportType">
+                        <option value="daily" {% if report_type == 'daily' %}selected{% endif %}>Daily</option>
+                        <option value="weekly" {% if report_type == 'weekly' %}selected{% endif %}>Weekly</option>
+                        <option value="monthly" {% if report_type == 'monthly' %}selected{% endif %}>Monthly</option>
+                        <option value="yearly" {% if report_type == 'yearly' %}selected{% endif %}>Yearly</option>
+                        <option value="custom" {% if report_type == 'custom' %}selected{% endif %}>Custom Date Range</option>
+                    </select>
+                </div>
+                
+                <!-- Custom Date Range Fields (hidden by default) -->
+                <div class="col-md-4 {% if report_type != 'custom' %}d-none{% endif %}" id="customDateRange">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">From Date</label>
+                            <input type="date" name="custom_start" class="form-control" 
+                                   value="{{ custom_start|default:'' }}" max="{{ today|date:'Y-m-d' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">To Date</label>
+                            <input type="date" name="custom_end" class="form-control" 
+                                   value="{{ custom_end|default:'' }}" max="{{ today|date:'Y-m-d' }}">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter"></i> Generate Report
+                    </button>
+                </div>
+                
+                {% if request.GET %}
+                <div class="col-md-2 d-flex align-items-end">
+                    <a href="{% url 'sales_report' %}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-times"></i> Clear Filters
+                    </a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="admin-card h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Total Sales</h6>
+                    <h3 class="card-title text-primary">{{ total_sales_count }}</h3>
+                    <p class="card-text small">Total Orders</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="admin-card h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Total Revenue</h6>
+                    <h3 class="card-title text-success">₹{{ total_order_amount }}</h3>
+                    <p class="card-text small">Gross Amount</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="admin-card h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Total Discount</h6>
+                    <h3 class="card-title text-warning">₹{{ total_discount }}</h3>
+                    <p class="card-text small">Product Discounts</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="admin-card h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Coupon Savings</h6>
+                    <h3 class="card-title text-info">₹{{ total_coupon_discount }}</h3>
+                    <p class="card-text small">Coupon Discounts</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="admin-card h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Net Revenue</h6>
+                    <h3 class="card-title text-success">₹{{ net_revenue }}</h3>
+                    <p class="card-text small">After Discounts</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="admin-card h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Avg. Order Value</h6>
+                    <h3 class="card-title text-primary">₹{{ avg_order_value|floatformat:2 }}</h3>
+                    <p class="card-text small">Per Order</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="admin-card h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Total Tax</h6>
+                    <h3 class="card-title text-secondary">₹{{ total_tax }}</h3>
+                    <p class="card-text small">Tax Collected</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="admin-card h-100">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Shipping</h6>
+                    <h3 class="card-title text-secondary">₹{{ total_shipping }}</h3>
+                    <p class="card-text small">Shipping Charges</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts and Detailed Reports -->
+    <div class="row">
+        <!-- Sales Chart -->
+        <div class="col-md-8">
+            <div class="admin-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Sales Trend (Last 7 Days)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="salesChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Payment Methods -->
+        <div class="col-md-4">
+            <div class="admin-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Payment Methods</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Method</th>
+                                    <th>Orders</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for method in payment_methods %}
+                                <tr>
+                                    <td>{{ method.payment_method|title }}</td>
+                                    <td>{{ method.count }}</td>
+                                    <td>₹{{ method.total|default:0 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">No payment data</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Products and Coupons -->
+    <div class="row mt-4">
+        <!-- Top Products -->
+        <div class="col-md-6">
+            <div class="admin-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Top Selling Products</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Volume</th>
+                                    <th>Gender</th>
+                                    <th>Quantity</th>
+                                    <th>Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in top_products %}
+                                <tr>
+                                    <td>{{ product.variant__product__name|truncatechars:30 }}</td>
+                                    <td>{{ product.variant__volume_ml }}ml</td>
+                                    <td>{{ product.variant__gender|title }}</td>
+                                    <td>{{ product.total_quantity }}</td>
+                                    <td>₹{{ product.total_revenue|default:0 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No sales data</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Coupon Usage -->
+        <div class="col-md-6">
+            <div class="admin-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Top Coupons Used</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Coupon Code</th>
+                                    <th>Times Used</th>
+                                    <th>Total Discount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for coupon in coupon_stats %}
+                                <tr>
+                                    <td><code>{{ coupon.coupon__code }}</code></td>
+                                    <td>{{ coupon.usage_count }}</td>
+                                    <td>₹{{ coupon.total_discount|default:0 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">No coupon usage</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="admin-card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Recent Orders</h5>
+            <a href="{% url 'admin_order_list' %}" class="btn btn-sm btn-outline-primary">
+                View All Orders
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table styled-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Items</th>
+                            <th>Amount</th>
+                            <th>Discount</th>
+                            <th>Coupon</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td>#{{ order.id }}</td>
+                            <td>{{ order.created_at|date:"d M Y H:i" }}</td>
+                            <td>{{ order.user.email|default:"Guest" }}</td>
+                            <td>{{ order.items.count }}</td>
+                            <td>₹{{ order.total_amount }}</td>
+                            <td>
+                                {% if order.discount_amount %}
+                                <span class="text-success">-₹{{ order.discount_amount }}</span>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if order.coupon %}
+                                <span class="badge bg-info">{{ order.coupon.code }}</span>
+                                <br><small>-₹{{ order.coupon_discount }}</small>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ order.status|yesno:'success,secondary' }}">
+                                    {{ order.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                                <h5>No orders found</h5>
+                                <p class="text-muted">No sales data for the selected period</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Toggle custom date range
+document.getElementById('reportType').addEventListener('change', function() {
+    const customRange = document.getElementById('customDateRange');
+    if (this.value === 'custom') {
+        customRange.classList.remove('d-none');
+    } else {
+        customRange.classList.add('d-none');
+    }
+});
+
+// Sales Chart
+const ctx = document.getElementById('salesChart').getContext('2d');
+const salesChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: {{ last_7_days|safe }},
+        datasets: [{
+            label: 'Daily Sales (₹)',
+            data: {{ daily_sales_data|safe }},
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top',
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return '₹' + value;
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Form validation for custom dates
+document.getElementById('filterForm').addEventListener('submit', function(e) {
+    const reportType = document.getElementById('reportType').value;
+    const customStart = document.querySelector('input[name="custom_start"]');
+    const customEnd = document.querySelector('input[name="custom_end"]');
+    
+    if (reportType === 'custom') {
+        if (!customStart.value || !customEnd.value) {
+            e.preventDefault();
+            alert('Please select both start and end dates for custom range.');
+            return false;
+        }
+        
+        const startDate = new Date(customStart.value);
+        const endDate = new Date(customEnd.value);
+        
+        if (startDate > endDate) {
+            e.preventDefault();
+            alert('Start date cannot be after end date.');
+            return false;
+        }
+    }
+    
+    return true;
+});
+
+// Set max date for date inputs
+const today = new Date().toISOString().split('T')[0];
+document.querySelectorAll('input[type="date"]').forEach(input => {
+    input.max = today;
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl + E for export
+    if (e.ctrlKey && e.key === 'e') {
+        e.preventDefault();
+        document.querySelector('.dropdown-toggle').click();
+    }
+    
+    // Ctrl + G for generate
+    if (e.ctrlKey && e.key === 'g') {
+        e.preventDefault();
+        document.querySelector('button[type="submit"]').click();
+    }
+});
+</script>
+
+<style>
+.admin-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    border: 1px solid #e0e0e0;
+}
+
+.admin-card .card-body {
+    padding: 1.5rem;
+}
+
+.card-title.text-primary { color: #3498db !important; }
+.card-title.text-success { color: #27ae60 !important; }
+.card-title.text-warning { color: #f39c12 !important; }
+.card-title.text-info { color: #17a2b8 !important; }
+.card-title.text-secondary { color: #6c757d !important; }
+
+.styled-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.styled-table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    padding: 12px;
+    font-weight: 600;
+    text-align: left;
+}
+
+.styled-table td {
+    padding: 12px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.styled-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+.badge {
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: 4px;
+}
+
+.bg-success { background-color: #27ae60 !important; }
+.bg-secondary { background-color: #95a5a6 !important; }
+.bg-info { background-color: #17a2b8 !important; }
+</style>
+{% endblock %}

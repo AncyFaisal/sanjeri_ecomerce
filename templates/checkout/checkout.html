@@ -6,487 +6,487 @@
 
 {% block extra_css %}
 <style>
-/* Modern Checkout Styles */
-.checkout-container {
-    max-width: 1200px;
-    margin: 0 auto;
-}
+    /* Modern Checkout Styles */
+    .checkout-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
 
-.checkout-step {
-    border-radius: 12px;
-    border: 1px solid #eaeaea;
-    background: white;
-    transition: all 0.3s ease;
-    overflow: hidden;
-}
-
-.checkout-step:hover {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    border-color: #d1d5db;
-}
-
-.checkout-step-header {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    border-bottom: 1px solid #e5e7eb;
-    padding: 1.25rem 1.5rem;
-}
-
-.checkout-step-title {
-    color: #1f2937;
-    font-weight: 600;
-    font-size: 1.125rem;
-    margin: 0;
-}
-
-.checkout-step-icon {
-    color: #431405;
-    font-size: 1.25rem;
-}
-
-.checkout-step-body {
-    padding: 1.5rem;
-}
-
-/* Address Selection */
-.address-card {
-    border: 2px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 1.25rem;
-    margin-bottom: 1rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    background: white;
-}
-
-.address-card:hover {
-    border-color: #431405;
-    transform: translateY(-2px);
-}
-
-.address-card.selected {
-    border-color: #431405;
-    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-}
-
-.address-badge {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-}
-
-.address-default-badge {
-    background: #10b981;
-    color: white;
-}
-
-.address-type-badge {
-    background: #3b82f6;
-    color: white;
-}
-
-.address-details {
-    color: #4b5563;
-    font-size: 0.875rem;
-    line-height: 1.5;
-}
-
-/* Payment Options */
-.payment-option-card {
-    border: 2px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 1.25rem;
-    margin-bottom: 1rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.payment-option-card:hover {
-    border-color: #431405;
-    background: #f9fafb;
-}
-
-.payment-option-card.selected {
-    border-color: #431405;
-    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-}
-
-.payment-icon {
-    font-size: 2rem;
-    color: #431405;
-}
-
-.payment-badges {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-}
-
-.payment-badge {
-    font-size: 0.7rem;
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-}
-
-/* Coupon Section */
-.coupon-section {
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    border-radius: 10px;
-    padding: 1.5rem;
-    margin: 1.5rem 0;
-}
-
-.coupon-input-group {
-    display: flex;
-    gap: 0.75rem;
-    max-width: 400px;
-}
-
-.coupon-input {
-    flex: 1;
-    padding: 0.75rem 1rem;
-    border: 2px solid #cbd5e1;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    transition: all 0.2s ease;
-}
-
-.coupon-input:focus {
-    outline: none;
-    border-color: #431405;
-    box-shadow: 0 0 0 3px rgba(67, 20, 5, 0.1);
-}
-
-.coupon-btn {
-    padding: 0.75rem 1.5rem;
-    background: #431405;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.coupon-btn:hover {
-    background: #5a2a0e;
-    transform: translateY(-1px);
-}
-
-.coupon-success {
-    background: #d1fae5;
-    border: 2px solid #10b981;
-    border-radius: 8px;
-    padding: 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.coupon-available {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-top: 0.75rem;
-}
-
-.coupon-chip {
-    background: white;
-    border: 1px solid #d1d5db;
-    border-radius: 20px;
-    padding: 0.4rem 0.8rem;
-    font-size: 0.85rem;
-    color: #4b5563;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.coupon-chip:hover {
-    background: #f3f4f6;
-    border-color: #431405;
-    color: #431405;
-}
-
-/* Order Summary */
-.order-summary-card {
-    position: sticky;
-    top: 100px;
-    border-radius: 12px;
-    border: 1px solid #eaeaea;
-    background: white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    overflow: hidden;
-}
-
-.order-summary-header {
-    background: linear-gradient(135deg, #431405 0%, #5a2a0e 100%);
-    color: white;
-    padding: 1.25rem 1.5rem;
-}
-
-.order-summary-title {
-    color: white;
-    font-weight: 600;
-    font-size: 1.25rem;
-    margin: 0;
-}
-
-.order-item {
-    padding: 1rem;
-    border-bottom: 1px solid #f3f4f6;
-    transition: background 0.2s ease;
-}
-
-.order-item:hover {
-    background: #f9fafb;
-}
-
-.product-image {
-    width: 60px;
-    height: 60px;
-    border-radius: 8px;
-    object-fit: cover;
-    border: 1px solid #e5e7eb;
-}
-
-.product-details {
-    flex: 1;
-}
-
-.product-name {
-    color: #1f2937;
-    font-weight: 500;
-    font-size: 0.95rem;
-    margin-bottom: 0.25rem;
-}
-
-.product-variant {
-    color: #6b7280;
-    font-size: 0.85rem;
-    margin-bottom: 0.25rem;
-}
-
-.product-quantity {
-    color: #4b5563;
-    font-size: 0.85rem;
-}
-
-.product-price {
-    color: #1f2937;
-    font-weight: 600;
-    font-size: 1rem;
-}
-
-/* Price Breakdown */
-.price-breakdown {
-    background: #f9fafb;
-    border-radius: 8px;
-    padding: 1.25rem;
-}
-
-.price-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.price-row:last-child {
-    border-bottom: none;
-}
-
-.price-label {
-    color: #4b5563;
-    font-size: 0.95rem;
-}
-
-.price-value {
-    color: #1f2937;
-    font-weight: 500;
-    font-size: 0.95rem;
-}
-
-.price-total {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: #431405;
-}
-
-.discount-amount {
-    color: #10b981;
-    font-weight: 500;
-}
-
-.free-shipping {
-    color: #10b981;
-    font-weight: 500;
-}
-
-.shipping-info {
-    background: #e0f2fe;
-    border: 1px solid #bae6fd;
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    margin-top: 1rem;
-    font-size: 0.9rem;
-    color: #0369a1;
-}
-
-/* Place Order Button */
-.place-order-btn {
-    width: 100%;
-    padding: 1rem;
-    background: linear-gradient(135deg, #431405 0%, #5a2a0e 100%);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    margin-top: 1.5rem;
-}
-
-.place-order-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(67, 20, 5, 0.2);
-}
-
-.place-order-btn:disabled {
-    background: #9ca3af;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-
-/* Security Badges */
-.security-badges {
-    display: flex;
-    justify-content: space-around;
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid #e5e7eb;
-}
-
-.security-badge {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.security-icon {
-    color: #431405;
-    font-size: 1.5rem;
-}
-
-.security-text {
-    color: #6b7280;
-    font-size: 0.85rem;
-    text-align: center;
-}
-
-/* Modal Styles */
-.modal-overlay {
-    background: rgba(0, 0, 0, 0.5);
-}
-
-.modal-content {
-    border-radius: 12px;
-    border: none;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-}
-
-.modal-header {
-    background: linear-gradient(135deg, #431405 0%, #5a2a0e 100%);
-    color: white;
-    border: none;
-    border-radius: 12px 12px 0 0;
-    padding: 1.25rem 1.5rem;
-}
-
-.modal-title {
-    color: white;
-    font-weight: 600;
-    font-size: 1.25rem;
-    margin: 0;
-}
-
-.form-label {
-    color: #374151;
-    font-weight: 500;
-    font-size: 0.95rem;
-    margin-bottom: 0.5rem;
-}
-
-.form-control {
-    border: 2px solid #d1d5db;
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    font-size: 0.95rem;
-    transition: all 0.2s ease;
-}
-
-.form-control:focus {
-    border-color: #431405;
-    box-shadow: 0 0 0 3px rgba(67, 20, 5, 0.1);
-    outline: none;
-}
-
-.form-check-input:checked {
-    background-color: #431405;
-    border-color: #431405;
-}
-
-.modal-footer {
-    border-top: 1px solid #e5e7eb;
-    padding: 1.25rem 1.5rem;
-}
-
-/* Loading Modal */
-.loading-modal .modal-content {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-}
-
-.loading-spinner {
-    width: 60px;
-    height: 60px;
-    border-width: 4px;
-    color: #431405;
-}
-
-/* Responsive Design */
-@media (max-width: 992px) {
     .checkout-step {
-        margin-bottom: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid #eaeaea;
+        background: white;
+        transition: all 0.3s ease;
+        overflow: hidden;
     }
-    
-    .order-summary-card {
-        position: static;
-        margin-top: 2rem;
-    }
-}
 
-@media (max-width: 576px) {
+    .checkout-step:hover {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border-color: #d1d5db;
+    }
+
+    .checkout-step-header {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-bottom: 1px solid #e5e7eb;
+        padding: 1.25rem 1.5rem;
+    }
+
+    .checkout-step-title {
+        color: #1f2937;
+        font-weight: 600;
+        font-size: 1.125rem;
+        margin: 0;
+    }
+
+    .checkout-step-icon {
+        color: #431405;
+        font-size: 1.25rem;
+    }
+
     .checkout-step-body {
-        padding: 1rem;
+        padding: 1.5rem;
     }
-    
+
+    /* Address Selection */
+    .address-card {
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: white;
+    }
+
+    .address-card:hover {
+        border-color: #431405;
+        transform: translateY(-2px);
+    }
+
+    .address-card.selected {
+        border-color: #431405;
+        background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+    }
+
+    .address-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+    }
+
+    .address-default-badge {
+        background: #10b981;
+        color: white;
+    }
+
+    .address-type-badge {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .address-details {
+        color: #4b5563;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+
+    /* Payment Options */
+    .payment-option-card {
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .payment-option-card:hover {
+        border-color: #431405;
+        background: #f9fafb;
+    }
+
+    .payment-option-card.selected {
+        border-color: #431405;
+        background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+    }
+
+    .payment-icon {
+        font-size: 2rem;
+        color: #431405;
+    }
+
+    .payment-badges {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .payment-badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+    }
+
+    /* Coupon Section */
+    .coupon-section {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+    }
+
     .coupon-input-group {
-        flex-direction: column;
+        display: flex;
+        gap: 0.75rem;
+        max-width: 400px;
     }
-    
+
+    .coupon-input {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        border: 2px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+    }
+
+    .coupon-input:focus {
+        outline: none;
+        border-color: #431405;
+        box-shadow: 0 0 0 3px rgba(67, 20, 5, 0.1);
+    }
+
     .coupon-btn {
+        padding: 0.75rem 1.5rem;
+        background: #431405;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .coupon-btn:hover {
+        background: #5a2a0e;
+        transform: translateY(-1px);
+    }
+
+    .coupon-success {
+        background: #d1fae5;
+        border: 2px solid #10b981;
+        border-radius: 8px;
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .coupon-available {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 0.75rem;
+    }
+
+    .coupon-chip {
+        background: white;
+        border: 1px solid #d1d5db;
+        border-radius: 20px;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+        color: #4b5563;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .coupon-chip:hover {
+        background: #f3f4f6;
+        border-color: #431405;
+        color: #431405;
+    }
+
+    /* Order Summary */
+    .order-summary-card {
+        position: sticky;
+        top: 100px;
+        border-radius: 12px;
+        border: 1px solid #eaeaea;
+        background: white;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
+
+    .order-summary-header {
+        background: linear-gradient(135deg, #431405 0%, #5a2a0e 100%);
+        color: white;
+        padding: 1.25rem 1.5rem;
+    }
+
+    .order-summary-title {
+        color: white;
+        font-weight: 600;
+        font-size: 1.25rem;
+        margin: 0;
+    }
+
+    .order-item {
+        padding: 1rem;
+        border-bottom: 1px solid #f3f4f6;
+        transition: background 0.2s ease;
+    }
+
+    .order-item:hover {
+        background: #f9fafb;
+    }
+
+    .product-image {
+        width: 60px;
+        height: 60px;
+        border-radius: 8px;
+        object-fit: cover;
+        border: 1px solid #e5e7eb;
+    }
+
+    .product-details {
+        flex: 1;
+    }
+
+    .product-name {
+        color: #1f2937;
+        font-weight: 500;
+        font-size: 0.95rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .product-variant {
+        color: #6b7280;
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .product-quantity {
+        color: #4b5563;
+        font-size: 0.85rem;
+    }
+
+    .product-price {
+        color: #1f2937;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    /* Price Breakdown */
+    .price-breakdown {
+        background: #f9fafb;
+        border-radius: 8px;
+        padding: 1.25rem;
+    }
+
+    .price-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .price-row:last-child {
+        border-bottom: none;
+    }
+
+    .price-label {
+        color: #4b5563;
+        font-size: 0.95rem;
+    }
+
+    .price-value {
+        color: #1f2937;
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+
+    .price-total {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #431405;
+    }
+
+    .discount-amount {
+        color: #10b981;
+        font-weight: 500;
+    }
+
+    .free-shipping {
+        color: #10b981;
+        font-weight: 500;
+    }
+
+    .shipping-info {
+        background: #e0f2fe;
+        border: 1px solid #bae6fd;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        color: #0369a1;
+    }
+
+    /* Place Order Button */
+    .place-order-btn {
         width: 100%;
+        padding: 1rem;
+        background: linear-gradient(135deg, #431405 0%, #5a2a0e 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 1.5rem;
     }
-    
+
+    .place-order-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(67, 20, 5, 0.2);
+    }
+
+    .place-order-btn:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    /* Security Badges */
     .security-badges {
-        flex-direction: column;
-        gap: 1rem;
+        display: flex;
+        justify-content: space-around;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e5e7eb;
     }
-}
+
+    .security-badge {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .security-icon {
+        color: #431405;
+        font-size: 1.5rem;
+    }
+
+    .security-text {
+        color: #6b7280;
+        font-size: 0.85rem;
+        text-align: center;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-content {
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, #431405 0%, #5a2a0e 100%);
+        color: white;
+        border: none;
+        border-radius: 12px 12px 0 0;
+        padding: 1.25rem 1.5rem;
+    }
+
+    .modal-title {
+        color: white;
+        font-weight: 600;
+        font-size: 1.25rem;
+        margin: 0;
+    }
+
+    .form-label {
+        color: #374151;
+        font-weight: 500;
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        border: 2px solid #d1d5db;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+    }
+
+    .form-control:focus {
+        border-color: #431405;
+        box-shadow: 0 0 0 3px rgba(67, 20, 5, 0.1);
+        outline: none;
+    }
+
+    .form-check-input:checked {
+        background-color: #431405;
+        border-color: #431405;
+    }
+
+    .modal-footer {
+        border-top: 1px solid #e5e7eb;
+        padding: 1.25rem 1.5rem;
+    }
+
+    /* Loading Modal */
+    .loading-modal .modal-content {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+    }
+
+    .loading-spinner {
+        width: 60px;
+        height: 60px;
+        border-width: 4px;
+        color: #431405;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 992px) {
+        .checkout-step {
+            margin-bottom: 1.5rem;
+        }
+
+        .order-summary-card {
+            position: static;
+            margin-top: 2rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .checkout-step-body {
+            padding: 1rem;
+        }
+
+        .coupon-input-group {
+            flex-direction: column;
+        }
+
+        .coupon-btn {
+            width: 100%;
+        }
+
+        .security-badges {
+            flex-direction: column;
+            gap: 1rem;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -524,18 +524,17 @@
                             <h3 class="checkout-step-title">1. Delivery Address</h3>
                         </div>
                     </div>
-                    
+
                     <div class="checkout-step-body">
                         {% if addresses %}
                         <div class="address-selection">
                             {% for address in addresses %}
-                            <div class="address-card {% if address.is_default %}selected{% endif %}" 
-                                 data-address-id="{{ address.id }}">
+                            <div class="address-card {% if address.is_default %}selected{% endif %}"
+                                data-address-id="{{ address.id }}">
                                 <div class="form-check mb-0">
-                                    <input class="form-check-input" type="radio" name="address_id" 
-                                           id="address{{ address.id }}" 
-                                           value="{{ address.id }}"
-                                           {% if address.is_default %}checked{% endif %} required>
+                                    <input class="form-check-input" type="radio" name="address_id"
+                                        id="address{{ address.id }}" value="{{ address.id }}" 
+                                        {% if address.is_default %}checked{% endif %} required>
                                     <label class="form-check-label w-100" for="address{{ address.id }}">
                                         <div class="d-flex justify-content-between align-items-start">
                                             <div class="flex-grow-1">
@@ -569,8 +568,8 @@
                                                     <p class="mb-0">{{ address.country }}</p>
                                                 </div>
                                             </div>
-                                            <a href="{% url 'user_edit_address' address.id %}" 
-                                               class="btn btn-sm btn-outline-amber-900 ms-3">
+                                            <a href="{% url 'user_edit_address' address.id %}"
+                                                class="btn btn-sm btn-outline-amber-900 ms-3">
                                                 Edit
                                             </a>
                                         </div>
@@ -579,11 +578,11 @@
                             </div>
                             {% endfor %}
                         </div>
-                        
+
                         <!-- Add New Address Button -->
                         <div class="text-center mt-4">
-                            <button type="button" class="btn btn-outline-amber-900" 
-                                    data-bs-toggle="modal" data-bs-target="#addAddressModal">
+                            <button type="button" class="btn btn-outline-amber-900" data-bs-toggle="modal"
+                                data-bs-target="#addAddressModal">
                                 <i class="fas fa-plus me-2"></i>Add New Address
                             </button>
                         </div>
@@ -592,8 +591,8 @@
                             <i class="fas fa-map-marker-alt fa-4x text-gray-300 mb-4"></i>
                             <h5 class="text-gray-600 mb-3">No Addresses Found</h5>
                             <p class="text-gray-500 mb-4">Please add a delivery address to continue with your order.</p>
-                            <button type="button" class="btn btn-amber-900" 
-                                    data-bs-toggle="modal" data-bs-target="#addAddressModal">
+                            <button type="button" class="btn btn-amber-900" data-bs-toggle="modal"
+                                data-bs-target="#addAddressModal">
                                 <i class="fas fa-plus me-2"></i>Add Your First Address
                             </button>
                         </div>
@@ -609,13 +608,13 @@
                             <h3 class="checkout-step-title">2. Payment Method</h3>
                         </div>
                     </div>
-                    
+
                     <div class="checkout-step-body">
                         <div class="payment-options">
                             <div class="payment-option-card selected">
                                 <div class="form-check mb-0">
-                                    <input class="form-check-input" type="radio" name="payment_method" 
-                                           id="payment_cod" value="COD" checked>
+                                    <input class="form-check-input" type="radio" name="payment_method" id="payment_cod"
+                                        value="COD" checked>
                                     <label class="form-check-label w-100" for="payment_cod">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div>
@@ -627,11 +626,11 @@
                                     </label>
                                 </div>
                             </div>
-                            
+
                             <div class="payment-option-card">
                                 <div class="form-check mb-0">
-                                    <input class="form-check-input" type="radio" name="payment_method" 
-                                           id="payment_online" value="ONLINE">
+                                    <input class="form-check-input" type="radio" name="payment_method"
+                                        id="payment_online" value="ONLINE">
                                     <label class="form-check-label w-100" for="payment_online">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div>
@@ -665,7 +664,7 @@
                         <i class="fas fa-tag me-2 text-amber-900"></i>
                         <h5 class="mb-0">Apply Coupon Code</h5>
                     </div>
-                    
+
                     {% if applied_coupon %}
                     <div class="coupon-success">
                         <div>
@@ -684,14 +683,14 @@
                     {% else %}
                     <div class="coupon-input-section">
                         <div class="coupon-input-group">
-                            <input type="text" class="coupon-input" id="coupon_code" 
-                                   placeholder="Enter coupon code" maxlength="50">
+                            <input type="text" class="coupon-input" id="coupon_code" placeholder="Enter coupon code"
+                                maxlength="50">
                             <button class="coupon-btn" type="button" id="apply_coupon_btn">
                                 Apply
                             </button>
                         </div>
                         <div class="coupon-message mt-2" id="coupon_message"></div>
-                        
+
                         <!-- Available Coupons -->
                         <div class="coupon-available">
                             <span class="small text-gray-600 me-2">Available coupons:</span>
@@ -716,11 +715,11 @@
                             <h3 class="checkout-step-title">3. Wallet Payment</h3>
                         </div>
                     </div>
-                    
+
                     <div class="checkout-step-body">
                         <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" id="use_wallet" 
-                                   name="use_wallet" value="true" {% if form.use_wallet.value %}checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" id="use_wallet" name="use_wallet"
+                                value="true" {% if form.use_wallet.value %}checked{% endif %}>
                             <label class="form-check-label fw-semibold" for="use_wallet">
                                 Use Wallet Balance
                                 <span class="text-success ms-2">
@@ -728,15 +727,15 @@
                                 </span>
                             </label>
                         </div>
-                        
+
                         <div id="wallet_amount_section" style="display: none;">
                             <div class="mb-3">
                                 <label for="wallet_amount" class="form-label">
                                     Amount to pay from wallet:
                                 </label>
-                                <input type="number" class="form-control" id="wallet_amount" 
-                                       name="wallet_amount" min="0" max="{{ wallet_balance }}"
-                                       step="0.01" value="{{ form.wallet_amount.value|default:0 }}">
+                                <input type="number" class="form-control" id="wallet_amount" name="wallet_amount"
+                                    min="0" max="{{ wallet_balance }}" step="0.01"
+                                    value="{{ form.wallet_amount.value|default:0 }}">
                                 <small class="text-muted">
                                     Maximum: ₹{{ max_wallet_amount|floatformat:2 }}
                                 </small>
@@ -746,6 +745,7 @@
                 </div>
                 {% endif %}
             </div>
+            <!-- End Left Column -->
 
             <!-- Right Column - Order Summary -->
             <div class="col-lg-4">
@@ -755,7 +755,7 @@
                             <i class="fas fa-receipt me-2"></i>Order Summary
                         </h3>
                     </div>
-                    
+
                     <div class="p-4">
                         <!-- Order Items -->
                         <div class="mb-4">
@@ -765,13 +765,11 @@
                             {% for item in cart_items %}
                             <div class="order-item d-flex align-items-center">
                                 {% if item.product.main_image %}
-                                <img src="{{ item.product.main_image.url }}" 
-                                     alt="{{ item.product.name }}" 
-                                     class="product-image me-3">
+                                <img src="{{ item.product.main_image.url }}" alt="{{ item.product.name }}"
+                                    class="product-image me-3">
                                 {% else %}
-                                <img src="{% static 'images/placeholder.jpg' %}" 
-                                     alt="{{ item.product.name }}" 
-                                     class="product-image me-3">
+                                <img src="{% static 'images/placeholder.jpg' %}" alt="{{ item.product.name }}"
+                                    class="product-image me-3">
                                 {% endif %}
                                 <div class="product-details">
                                     <div class="product-name">{{ item.product.name }}</div>
@@ -788,45 +786,54 @@
                         <!-- Price Breakdown -->
                         <div class="price-breakdown mb-4">
                             <h6 class="fw-semibold mb-3 text-gray-700">Price Details</h6>
-                            
+
                             <div class="price-row">
                                 <span class="price-label">Subtotal</span>
                                 <span class="price-value">₹{{ subtotal|floatformat:2 }}</span>
                             </div>
-                            
+
+                            <!-- Show seasonal discount -->
+                            {% if additional_discount > 0 %}
+                            <div class="price-row text-success">
+                                <span class="price-label">Seasonal Discount (10% off)</span>
+                                <span class="price-value">-₹{{ additional_discount|floatformat:2 }}</span>
+                            </div>
+                            {% endif %}
+
+                            <!-- Show coupon discount -->
                             {% if coupon_discount > 0 %}
                             <div class="price-row">
                                 <span class="price-label">Coupon Discount</span>
                                 <span class="price-value discount-amount">-₹{{ coupon_discount|floatformat:2 }}</span>
                             </div>
                             {% endif %}
-                            
+
                             <div class="price-row">
                                 <span class="price-label">Shipping</span>
                                 <span class="price-value {% if shipping_charge == 0 %}free-shipping{% endif %}">
-                                    {% if shipping_charge == 0 %}FREE{% else %}₹{{ shipping_charge|floatformat:2}}{% endif %}
+                                    {% if shipping_charge == 0 %}FREE{% else %}₹{{ shipping_charge|floatformat:2 }}{% endif %}
                                 </span>
                             </div>
-                            
+
                             <div class="price-row">
                                 <span class="price-label">Tax (18% GST)</span>
-                                <span class="price-value">₹{{ tax_amount|floatformat:2}}</span>
+                                <span class="price-value">₹{{ tax_amount|floatformat:2 }}</span>
                             </div>
-                            
+
                             {% if shipping_charge > 0 and subtotal < 500 %}
                             <div class="shipping-info">
                                 <i class="fas fa-info-circle me-2"></i>
-                                Add ₹{{ 500|sub:subtotal|floatformat:0}} more for FREE shipping!
+                                Add ₹{{ 500|sub:subtotal|floatformat:0 }} more for FREE shipping!
                             </div>
                             {% endif %}
-                            
+
                             {% if wallet_discount > 0 %}
                             <div class="price-row">
                                 <span class="price-label">Wallet Payment</span>
                                 <span class="price-value discount-amount">-₹{{ wallet_discount|floatformat:2 }}</span>
                             </div>
                             {% endif %}
-                            
+
                             <div class="price-row pt-3 mt-3 border-top border-gray-200">
                                 <span class="price-label fw-semibold">Total Amount</span>
                                 <span class="price-value price-total">₹{{ total_amount|floatformat:2 }}</span>
@@ -846,7 +853,7 @@
                         {% endif %}
 
                         <p class="text-center text-gray-500 small mt-3">
-                            By placing your order, you agree to our 
+                            By placing your order, you agree to our
                             <a href="#" class="text-amber-900">Terms & Conditions</a>
                         </p>
 
@@ -868,9 +875,12 @@
                     </div>
                 </div>
             </div>
+            <!-- End Right Column -->
         </div>
+        <!-- End Row -->
     </form>
 </div>
+<!-- End Checkout Container -->
 
 <!-- Add Address Modal -->
 <div class="modal fade" id="addAddressModal" tabindex="-1">
@@ -953,210 +963,210 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Address selection styling
-    document.querySelectorAll('.address-card').forEach(card => {
-        card.addEventListener('click', function() {
-            const radio = this.querySelector('input[type="radio"]');
-            if (radio) {
-                radio.checked = true;
-                document.querySelectorAll('.address-card').forEach(c => c.classList.remove('selected'));
-                this.classList.add('selected');
-            }
+    document.addEventListener('DOMContentLoaded', function () {
+        // Address selection styling
+        document.querySelectorAll('.address-card').forEach(card => {
+            card.addEventListener('click', function () {
+                const radio = this.querySelector('input[type="radio"]');
+                if (radio) {
+                    radio.checked = true;
+                    document.querySelectorAll('.address-card').forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+                }
+            });
         });
-    });
 
-    // Payment method selection styling
-    document.querySelectorAll('.payment-option-card').forEach(card => {
-        card.addEventListener('click', function() {
-            const radio = this.querySelector('input[type="radio"]');
-            if (radio) {
-                radio.checked = true;
-                document.querySelectorAll('.payment-option-card').forEach(c => c.classList.remove('selected'));
-                this.classList.add('selected');
-            }
+        // Payment method selection styling
+        document.querySelectorAll('.payment-option-card').forEach(card => {
+            card.addEventListener('click', function () {
+                const radio = this.querySelector('input[type="radio"]');
+                if (radio) {
+                    radio.checked = true;
+                    document.querySelectorAll('.payment-option-card').forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+                }
+            });
         });
-    });
 
-    // Wallet toggle
-    const useWalletCheckbox = document.getElementById('use_wallet');
-    const walletAmountSection = document.getElementById('wallet_amount_section');
-    
-    if (useWalletCheckbox && walletAmountSection) {
-        useWalletCheckbox.addEventListener('change', function() {
-            walletAmountSection.style.display = this.checked ? 'block' : 'none';
-        });
-        
-        // Initialize on page load
-        if (useWalletCheckbox.checked) {
-            walletAmountSection.style.display = 'block';
+        // Wallet toggle
+        const useWalletCheckbox = document.getElementById('use_wallet');
+        const walletAmountSection = document.getElementById('wallet_amount_section');
+
+        if (useWalletCheckbox && walletAmountSection) {
+            useWalletCheckbox.addEventListener('change', function () {
+                walletAmountSection.style.display = this.checked ? 'block' : 'none';
+            });
+
+            // Initialize on page load
+            if (useWalletCheckbox.checked) {
+                walletAmountSection.style.display = 'block';
+            }
         }
-    }
 
-    // Form submission handling
-    const checkoutForm = document.getElementById('checkoutForm');
-    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
-    
-    if (checkoutForm) {
-        checkoutForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            // Validate required fields
-            const selectedAddress = document.querySelector('input[name="address_id"]:checked');
-            if (!selectedAddress) {
-                alert('Please select a delivery address');
-                return;
-            }
-            
-            // Validate wallet amount if using wallet
-            if (useWalletCheckbox && useWalletCheckbox.checked) {
-                const walletAmount = parseFloat(document.getElementById('wallet_amount').value) || 0;
-                const maxAmount = parseFloat("{{ wallet_balance }}");
-                
-                if (walletAmount > maxAmount) {
-                    alert(`Wallet amount cannot exceed ₹${maxAmount.toFixed(2)}`);
+        // Form submission handling
+        const checkoutForm = document.getElementById('checkoutForm');
+        const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+
+        if (checkoutForm) {
+            checkoutForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                // Validate required fields
+                const selectedAddress = document.querySelector('input[name="address_id"]:checked');
+                if (!selectedAddress) {
+                    alert('Please select a delivery address');
                     return;
                 }
-                
-                if (walletAmount < 0) {
-                    alert('Wallet amount must be positive');
-                    return;
+
+                // Validate wallet amount if using wallet
+                if (useWalletCheckbox && useWalletCheckbox.checked) {
+                    const walletAmount = parseFloat(document.getElementById('wallet_amount').value) || 0;
+                    const maxAmount = parseFloat("{{ wallet_balance }}");
+
+                    if (walletAmount > maxAmount) {
+                        alert(`Wallet amount cannot exceed ₹${maxAmount.toFixed(2)}`);
+                        return;
+                    }
+
+                    if (walletAmount < 0) {
+                        alert('Wallet amount must be positive');
+                        return;
+                    }
                 }
-            }
-            
-            // Show loading modal
-            loadingModal.show();
-            
-            try {
-                // Prepare form data
-                const formData = new FormData(this);
-                
-                // Send AJAX request
-                const response = await fetch('{% url "place_order" %}', {
+
+                // Show loading modal
+                loadingModal.show();
+
+                try {
+                    // Prepare form data
+                    const formData = new FormData(this);
+
+                    // Send AJAX request
+                    const response = await fetch('{% url "place_order" %}', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        if (data.payment_required) {
+                            // Redirect to payment page
+                            window.location.href = data.redirect_url;
+                        } else {
+                            // COD or wallet-only payment
+                            window.location.href = data.redirect_url;
+                        }
+                    } else {
+                        loadingModal.hide();
+                        alert('Error: ' + data.message);
+                    }
+                } catch (error) {
+                    loadingModal.hide();
+                    console.error('Error:', error);
+                    alert('Network error. Please try again.');
+                }
+            });
+        }
+
+        // Add new address via AJAX
+        const saveAddressBtn = document.getElementById('saveAddressBtn');
+        const addAddressModal = new bootstrap.Modal(document.getElementById('addAddressModal'));
+
+        if (saveAddressBtn) {
+            saveAddressBtn.addEventListener('click', function () {
+                const formData = new FormData(document.getElementById('addAddressForm'));
+
+                fetch('{% url "user_add_address" %}', {
                     method: 'POST',
                     body: formData,
                     headers: {
                         'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                        'X-Requested-With': 'XMLHttpRequest'
                     }
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    if (data.payment_required) {
-                        // Redirect to payment page
-                        window.location.href = data.redirect_url;
-                    } else {
-                        // COD or wallet-only payment
-                        window.location.href = data.redirect_url;
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            addAddressModal.hide();
+                            window.location.reload();
+                        } else {
+                            // Handle errors
+                            alert('Error adding address: ' + (data.message || 'Please check all fields'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Network error. Please try again.');
+                    });
+            });
+        }
+
+        // Apply coupon functionality
+        const applyCouponBtn = document.getElementById('apply_coupon_btn');
+        const removeCouponBtn = document.querySelector('.remove-coupon-btn');
+
+        if (applyCouponBtn) {
+            applyCouponBtn.addEventListener('click', function () {
+                const couponCode = document.getElementById('coupon_code').value.trim();
+                if (!couponCode) {
+                    alert('Please enter a coupon code');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('coupon_code', couponCode);
+                formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+                fetch('{% url "apply_coupon" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
                     }
-                } else {
-                    loadingModal.hide();
-                    alert('Error: ' + data.message);
-                }
-            } catch (error) {
-                loadingModal.hide();
-                console.error('Error:', error);
-                alert('Network error. Please try again.');
-            }
-        });
-    }
-
-    // Add new address via AJAX
-    const saveAddressBtn = document.getElementById('saveAddressBtn');
-    const addAddressModal = new bootstrap.Modal(document.getElementById('addAddressModal'));
-    
-    if (saveAddressBtn) {
-        saveAddressBtn.addEventListener('click', function() {
-            const formData = new FormData(document.getElementById('addAddressForm'));
-            
-            fetch('{% url "user_add_address" %}', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    addAddressModal.hide();
-                    window.location.reload();
-                } else {
-                    // Handle errors
-                    alert('Error adding address: ' + (data.message || 'Please check all fields'));
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Network error. Please try again.');
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.reload();
+                        } else {
+                            alert(data.message || 'Invalid coupon code');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Network error. Please try again.');
+                    });
             });
-        });
-    }
+        }
 
-    // Apply coupon functionality
-    const applyCouponBtn = document.getElementById('apply_coupon_btn');
-    const removeCouponBtn = document.querySelector('.remove-coupon-btn');
-    
-    if (applyCouponBtn) {
-        applyCouponBtn.addEventListener('click', function() {
-            const couponCode = document.getElementById('coupon_code').value.trim();
-            if (!couponCode) {
-                alert('Please enter a coupon code');
-                return;
-            }
-            
-            const formData = new FormData();
-            formData.append('coupon_code', couponCode);
-            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-            
-            fetch('{% url "apply_coupon" %}', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    alert(data.message || 'Invalid coupon code');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Network error. Please try again.');
+        if (removeCouponBtn) {
+            removeCouponBtn.addEventListener('click', function () {
+                fetch('{% url "remove_coupon" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.reload();
+                        }
+                    });
             });
-        });
-    }
-    
-    if (removeCouponBtn) {
-        removeCouponBtn.addEventListener('click', function() {
-            fetch('{% url "remove_coupon" %}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                    'X-Requested-With': 'XMLHttpRequest',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.reload();
-                }
-            });
-        });
-    }
+        }
 
-    // Pre-fill coupon chips
-    document.querySelectorAll('.coupon-chip').forEach(chip => {
-        chip.addEventListener('click', function() {
-            document.getElementById('coupon_code').value = this.dataset.code;
+        // Pre-fill coupon chips
+        document.querySelectorAll('.coupon-chip').forEach(chip => {
+            chip.addEventListener('click', function () {
+                document.getElementById('coupon_code').value = this.dataset.code;
+            });
         });
     });
-});
 </script>
 {% endblock %}

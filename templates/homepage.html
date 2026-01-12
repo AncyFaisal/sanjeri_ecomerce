@@ -921,9 +921,11 @@
                 </span>
                 {% endif %}
 
-                <button class="btn-wishlist position-absolute top-0 end-0 m-2">
-                  <i class="far fa-heart"></i>
-                </button>
+               <button class="btn-wishlist position-absolute top-0 end-0 m-2" 
+        data-product-id="{{ product.id }}"
+        onclick="toggleWishlist(this, event)">
+    <i class="{% if product.is_in_wishlist %}fas{% else %}far{% endif %} fa-heart"></i>
+</button>
                 
                 <figure class="text-center">
                   <a href="{% url 'product_detail' product.id %}" title="{{ product.name }}">
@@ -1045,10 +1047,11 @@
                 </span>
                 {% endif %}
 
-                <button class="btn-wishlist position-absolute top-0 end-0 m-2">
-                  <i class="far fa-heart"></i>
-                </button>
-                
+             <button class="btn-wishlist position-absolute top-0 end-0 m-2" 
+        data-product-id="{{ product.id }}"
+        onclick="toggleWishlist(this, event)">
+    <i class="{% if product.is_in_wishlist %}fas{% else %}far{% endif %} fa-heart"></i>
+</button>
                 <figure class="text-center">
                   <a href="{% url 'product_detail' product.id %}" title="{{ product.name }}">
                     {% if product.images.exists %}
@@ -1169,9 +1172,11 @@
                 </span>
                 {% endif %}
 
-                <button class="btn-wishlist position-absolute top-0 end-0 m-2">
-                  <i class="far fa-heart"></i>
-                </button>
+           <button class="btn-wishlist position-absolute top-0 end-0 m-2" 
+        data-product-id="{{ product.id }}"
+        onclick="toggleWishlist(this, event)">
+    <i class="{% if product.is_in_wishlist %}fas{% else %}far{% endif %} fa-heart"></i>
+</button>
                 
                 <figure class="text-center">
                   <a href="{% url 'product_detail' product.id %}" title="{{ product.name }}">
@@ -1457,16 +1462,25 @@
       return cookieValue;
     }
 
-    function showNotification(message, type = 'info') {
-      const notification = document.getElementById('notification');
-      notification.textContent = message;
-      notification.className = `notification ${type}`;
-      notification.classList.add('show');
-      
-      setTimeout(() => {
-        notification.classList.remove('show');
-      }, 3000);
-    }
+ function showNotification(message, type = 'info') {
+  const notification = document.getElementById('notification');
+  if (!notification) {
+    // Create notification if it doesn't exist
+    const notificationDiv = document.createElement('div');
+    notificationDiv.id = 'notification';
+    notificationDiv.className = 'notification';
+    document.body.appendChild(notificationDiv);
+  }
+  
+  const notifElement = document.getElementById('notification');
+  notifElement.textContent = message;
+  notifElement.className = `notification ${type}`;
+  notifElement.classList.add('show');
+  
+  setTimeout(() => {
+    notifElement.classList.remove('show');
+  }, 3000);
+}
 
     function updateCartBadge(count) {
       const badges = document.querySelectorAll('.cart-count');
@@ -1620,6 +1634,194 @@
 
     // Initial cart badge update
     updateCartBadge({{ cart_item_count|default:0 }});
+
+    // ==================== WISHLIST FUNCTIONS FOR HOMEPAGE ====================
+function initializeHomepageWishlist() {
+    // Add click event to all wishlist buttons
+    document.querySelectorAll('.btn-wishlist').forEach(button => {
+        button.addEventListener('click', handleWishlistClick);
+    });
+    
+    // Check initial wishlist status
+    checkInitialWishlistStatus();
+}
+
+async function handleWishlistClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const button = this;
+    const productId = button.getAttribute('data-product-id');
+    
+    if (!productId) {
+        console.error('No product ID found');
+        return;
+    }
+    
+    // Get current state from icon
+    const icon = button.querySelector('i');
+    const isCurrentlyInWishlist = icon.classList.contains('fas');
+    
+    // Show loading
+    const originalIcon = icon.className;
+    icon.className = 'fas fa-spinner fa-spin';
+    button.disabled = true;
+    
+    try {
+        const csrfToken = getCookie('csrftoken');
+        
+        if (isCurrentlyInWishlist) {
+            // Remove from wishlist
+            const response = await fetch(`/wishlist/remove/${productId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                }
+            });
+            
+            if (response.ok) {
+                // Change to outline heart
+                icon.className = 'far fa-heart';
+                // Remove from localStorage
+                localStorage.removeItem(`wishlist_${productId}`);
+                // Update wishlist count
+                updateWishlistCount(-1);
+                showNotification('Removed from wishlist!', 'success');
+            } else {
+                throw new Error('Failed to remove from wishlist');
+            }
+        } else {
+            // Add to wishlist
+            const response = await fetch(`/wishlist/add/${productId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                }
+            });
+            
+            if (response.ok) {
+                // Change to solid heart
+                icon.className = 'fas fa-heart';
+                // Add to localStorage
+                localStorage.setItem(`wishlist_${productId}`, 'true');
+                // Update wishlist count
+                updateWishlistCount(1);
+                showNotification('Added to wishlist!', 'success');
+            } else {
+                throw new Error('Failed to add to wishlist');
+            }
+        }
+    } catch (error) {
+        console.error('Wishlist error:', error);
+        // Revert to original state on error
+        icon.className = originalIcon;
+        showNotification('Error updating wishlist. Please try again.', 'error');
+    } finally {
+        button.disabled = false;
+    }
+}
+
+function updateWishlistCount(change) {
+    // Get current count from the header badge
+    const wishlistBadge = document.querySelector('.nav-link .badge');
+    if (!wishlistBadge) {
+        console.log('No wishlist badge found');
+        return;
+    }
+    
+    let currentCount = parseInt(wishlistBadge.textContent) || 0;
+    currentCount += change;
+    
+    // Ensure count doesn't go below 0
+    if (currentCount < 0) currentCount = 0;
+    
+    // Update badge
+    wishlistBadge.textContent = currentCount;
+    
+    // Show/hide badge
+    if (currentCount > 0) {
+        wishlistBadge.style.display = 'inline-block';
+    } else {
+        wishlistBadge.style.display = 'none';
+    }
+    
+    // Also update localStorage for the count
+    localStorage.setItem('wishlist_count', currentCount);
+}
+
+async function checkInitialWishlistStatus() {
+    try {
+        // First check if we have a user's wishlist data
+        const response = await fetch('/wishlist/api/items/', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.items) {
+                data.items.forEach(item => {
+                    // Update heart icons for products in wishlist
+                    document.querySelectorAll(`[data-product-id="${item.product_id}"] .btn-wishlist i`).forEach(icon => {
+                        icon.className = 'fas fa-heart';
+                    });
+                    // Store in localStorage
+                    localStorage.setItem(`wishlist_${item.product_id}`, 'true');
+                });
+                // Update count
+                updateWishlistCount(data.count - (parseInt(document.querySelector('.nav-link .badge')?.textContent) || 0));
+            }
+        } else {
+            // Fallback: Check localStorage
+            checkWishlistFromLocalStorage();
+        }
+    } catch (error) {
+        console.log('Using localStorage for initial wishlist check');
+        checkWishlistFromLocalStorage();
+    }
+}
+
+function checkWishlistFromLocalStorage() {
+    // Check all product buttons against localStorage
+    document.querySelectorAll('.btn-wishlist').forEach(button => {
+        const productId = button.getAttribute('data-product-id');
+        if (productId && localStorage.getItem(`wishlist_${productId}`) === 'true') {
+            const icon = button.querySelector('i');
+            if (icon) {
+                icon.className = 'fas fa-heart';
+            }
+        }
+    });
+}
+
+// Helper function to get wishlist count from localStorage
+function getWishlistCount() {
+    // Try to get from badge first
+    const badge = document.querySelector('.nav-link .badge');
+    if (badge && badge.textContent) {
+        return parseInt(badge.textContent) || 0;
+    }
+    // Fallback to localStorage
+    return parseInt(localStorage.getItem('wishlist_count')) || 0;
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // ... existing code ...
+    
+    // Initialize wishlist
+    initializeHomepageWishlist();
+    
+    // Restore wishlist count from localStorage if needed
+    const currentCount = getWishlistCount();
+    if (currentCount > 0) {
+        updateWishlistCount(0); // This will just update the display
+    }
+});
   </script>
 </body>
 </html>

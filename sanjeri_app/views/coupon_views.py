@@ -33,6 +33,22 @@ def apply_coupon(request):
                 'message': 'Invalid coupon code'
             })
         
+        # Check if user has already used this coupon (for single-use coupons)
+        if coupon.single_use_per_user:
+            # Check if user has already placed orders with this coupon
+            from ..models import Order
+            used_count = Order.objects.filter(
+                user=request.user,
+                coupon=coupon,
+                status__in=['confirmed', 'shipped', 'delivered', 'out_for_delivery']
+            ).count()
+            
+            if used_count > 0:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'You have already used coupon "{coupon.code}"'
+                })
+            
         # Validate coupon
         is_valid, message = coupon.is_valid(
             user=request.user,

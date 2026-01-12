@@ -9,6 +9,8 @@ from django.contrib import messages
 from django.db import models
 from ..models import CustomUser  # Import your CustomUser model
 from ..forms import UserSearchForm, UserFilterForm
+from django.db.models import Count, Sum
+from ..models import Coupon, Order,Product,ProductVariant
 
 def admin_required(function):
     """
@@ -261,20 +263,25 @@ def delete_user(request, user_id):
     
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
-@login_required
-@admin_required
 def admin_dashboard(request):
-    """
-    Admin Dashboard
-    """
-    total_users = CustomUser.objects.filter(is_staff=False).count()
-    # Add counts for products, categories, orders etc.
+    total_users = CustomUser.objects.count()
+    total_products = Product.objects.filter(is_deleted=False).count()
+    total_orders = Order.objects.count()
+    total_variants = ProductVariant.objects.filter(is_deleted=False).count()
+    
+    # ADD THESE TWO LINES:
+    total_coupons = Coupon.objects.filter(active=True).count()
+    total_revenue = Order.objects.filter(
+        status__in=['confirmed', 'shipped', 'delivered', 'out_for_delivery']
+    ).aggregate(total=Sum('total_amount'))['total'] or 0
     
     context = {
-        'page_title': 'Admin Dashboard',
         'total_users': total_users,
-        'total_products': 0,  # Replace with actual count
-        'total_categories': 0,  # Replace with actual count
+        'total_products': total_products,
+        'total_orders': total_orders,
+        'total_variants': total_variants,
+        # ADD THESE:
+        'total_coupons': total_coupons,
+        'total_revenue': total_revenue,
     }
-    
     return render(request, 'admin_dashboard.html', context)

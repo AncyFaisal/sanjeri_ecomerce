@@ -222,17 +222,6 @@
         </form>
     </div>
     
-    <!-- Debug Info (make visible by removing d-none) -->
-    <div class="container-fluid bg-light py-2 mb-3">
-        <div class="container">
-            <small class="text-muted">
-                Debug: Wishlist items count: {{ wishlist_items|length }} | 
-                Query: "{{ search_query }}" | 
-                Category: {{ selected_category }} | 
-                Gender: {{ selected_gender }}
-            </small>
-        </div>
-    </div>
 
     <!-- WISHLIST ITEMS -->
     {% if wishlist_items %}

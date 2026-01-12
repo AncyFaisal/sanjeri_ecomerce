@@ -1,4 +1,4 @@
-
+﻿
 """
 Django settings for sanjeri_project project.
 
@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'sanjeri_app',
-    'newapp',
+    
    
     
 ]

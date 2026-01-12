@@ -1,0 +1,364 @@
+{% extends 'common_admin.html' %}
+{% load static %}
+{% load coupon_filters %}
+
+{% block page_title %}Coupon Trash / Recycle Bin{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    <div class="top-nav mb-4">
+        <div class="nav-left">
+            <h2 class="page-title">
+                <i class="fas fa-trash"></i> Coupon Trash
+            </h2>
+            <p class="text-muted mb-0">Deleted coupons are kept here for 30 days before permanent deletion</p>
+        </div>
+        <div class="nav-right">
+            <a href="{% url 'admin_coupon_list' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left"></i> Back to Coupons
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats and Actions Card -->
+    <div class="admin-card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-danger text-white rounded-circle p-3 me-3">
+                            <i class="fas fa-trash fa-2x"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0">{{ total_deleted }}</h3>
+                            <p class="text-muted mb-0">Deleted Coupons</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-warning text-white rounded-circle p-3 me-3">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0">{{ can_permanent_delete }}</h3>
+                            <p class="text-muted mb-0">Ready for Permanent Delete</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex gap-2 h-100 align-items-center justify-content-end">
+                        <button onclick="restoreAllCoupons()" class="btn btn-success">
+                            <i class="fas fa-undo"></i> Restore All
+                        </button>
+                        <button onclick="emptyTrash()" class="btn btn-danger">
+                            <i class="fas fa-broom"></i> Empty Trash
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="admin-card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Search Deleted Coupons</label>
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control" 
+                               placeholder="Search coupon code..." value="{{ search_query }}">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Deleted Within (Days)</label>
+                    <select name="days_deleted" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Time</option>
+                        <option value="7" {% if days_deleted == '7' %}selected{% endif %}>Last 7 Days</option>
+                        <option value="30" {% if days_deleted == '30' %}selected{% endif %}>Last 30 Days</option>
+                        <option value="90" {% if days_deleted == '90' %}selected{% endif %}>Last 90 Days</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <a href="{% url 'coupon_trash' %}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-times"></i> Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Deleted Coupons List -->
+    <div class="admin-card">
+        <div class="card-body">
+            {% if coupon_data_list %}
+            <div class="table-responsive">
+                <table class="table styled-table">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Discount</th>
+                            <th>Min Order</th>
+                            <th>Usage</th>
+                            <th>Validity</th>
+                            <th>Deleted Info</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for data in coupon_data_list %}
+                        <tr class="{% if data.can_be_permanently_deleted %}table-danger{% else %}table-warning{% endif %}">
+                            <td>
+                                <strong>{{ data.object.code }}</strong>
+                                <div class="text-muted small">
+                                    {{ data.object.get_discount_type_display }}
+                                    {% if data.object.single_use_per_user %}
+                                    <br><span class="badge bg-info">Single Use</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if data.object.discount_type == 'percentage' %}
+                                    {{ data.object.discount_value }}%
+                                    {% if data.object.max_discount_amount %}
+                                        <br><small>Max: ₹{{ data.object.max_discount_amount }}</small>
+                                    {% endif %}
+                                {% else %}
+                                    ₹{{ data.object.discount_value }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if data.object.min_order_amount > 0 %}
+                                    ₹{{ data.object.min_order_amount }}
+                                {% else %}
+                                    <span class="text-muted">No minimum</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ data.object.times_used }} / {{ data.object.usage_limit }}
+                            </td>
+                            <td>
+                                {{ data.object.valid_from|date:"d M Y" }}<br>
+                                to {{ data.object.valid_to|date:"d M Y" }}
+                                {% if data.object.is_expired %}
+                                <br><span class="badge bg-secondary mt-1">Expired</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="small">
+                                    {% if data.object.deleted_at %}
+                                    <strong>Deleted:</strong> {{ data.object.deleted_at|date:"d M Y, H:i" }}<br>
+                                    <strong>By:</strong> 
+                                    {% if data.object.deleted_by %}
+                                        {{ data.object.deleted_by.get_full_name|default:data.object.deleted_by.username }}
+                                    {% else %}
+                                        System
+                                    {% endif %}<br>
+                                    <strong>Days ago:</strong> {{ data.days_since_deleted }}
+                                    {% if data.can_be_permanently_deleted %}
+                                    <br><span class="badge bg-danger mt-1">Ready for Permanent Delete</span>
+                                    {% else %}
+                                    <br><span class="badge bg-warning mt-1">{{ data.days_left }} days left</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button onclick="restoreCoupon({{ data.object.id }}, '{{ data.object.code }}')" 
+                                            class="action-btn unblock" title="Restore">
+                                        <i class="fas fa-undo"></i>
+                                    </button>
+                                    <button onclick="permanentDeleteCoupon({{ data.object.id }}, '{{ data.object.code }}')" 
+                                            class="action-btn delete" title="Permanently Delete"
+                                            {% if not data.can_be_permanently_deleted %}disabled{% endif %}>
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                                {% if not data.can_be_permanently_deleted %}
+                                <small class="text-muted d-block mt-1">
+                                    Wait {{ data.days_left }} more days
+                                </small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Bulk Actions -->
+            <div class="mt-4 pt-3 border-top">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ total_deleted }}</strong> coupon(s) in trash
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button onclick="restoreAllCoupons()" class="btn btn-success">
+                            <i class="fas fa-undo"></i> Restore All
+                        </button>
+                        <button onclick="emptyTrash()" class="btn btn-danger">
+                            <i class="fas fa-broom"></i> Empty Trash (30+ days only)
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-trash-alt fa-4x text-muted mb-3"></i>
+                <h4>Trash is Empty</h4>
+                <p class="text-muted">No deleted coupons found</p>
+                <a href="{% url 'admin_coupon_list' %}" class="btn btn-primary mt-2">
+                    <i class="fas fa-arrow-left"></i> Back to Coupons
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Restore single coupon
+function restoreCoupon(couponId, code) {
+    if (confirm(`Restore coupon "${code}"?`)) {
+        fetch(`/coupons/${couponId}/restore/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('success', data.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showToast('error', data.message);
+            }
+        });
+    }
+}
+
+// Permanently delete single coupon
+function permanentDeleteCoupon(couponId, code) {
+    if (confirm(`PERMANENTLY delete coupon "${code}"?\n\n⚠️ This action cannot be undone!`)) {
+        fetch(`/coupons/${couponId}/permanent-delete/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('success', data.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showToast('error', data.message);
+            }
+        });
+    }
+}
+
+// Restore all coupons
+function restoreAllCoupons() {
+    if (confirm(`Restore ALL coupons from trash?\n\nThis will restore {{ total_deleted }} coupon(s).`)) {
+        fetch(`/coupons/trash/restore-all/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(() => {
+            showToast('success', 'Restoring all coupons...');
+            setTimeout(() => {
+                window.location.href = "{% url 'admin_coupon_list' %}";
+            }, 1500);
+        });
+    }
+}
+
+// Empty trash (permanently delete all eligible coupons)
+function emptyTrash() {
+    if (confirm(`EMPTY THE TRASH?\n\nThis will permanently delete all coupons that have been in trash for 30+ days.\n\n⚠️ This action cannot be undone!`)) {
+        fetch(`/coupons/trash/empty/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(() => {
+            showToast('success', 'Emptying trash...');
+            setTimeout(() => location.reload(), 1500);
+        });
+    }
+}
+
+// Toast notification function
+function showToast(type, message) {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type} alert-dismissible fade show`;
+    toast.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.remove(), 5000);
+}
+</script>
+
+<style>
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+    font-size: 14px;
+}
+
+.action-btn.unblock {
+    background-color: #27ae60;
+}
+
+.action-btn.delete {
+    background-color: #e74c3c;
+}
+
+.action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.action-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.table-danger {
+    background-color: rgba(231, 76, 60, 0.05);
+}
+
+.table-warning {
+    background-color: rgba(243, 156, 18, 0.05);
+}
+</style>
+{% endblock %}

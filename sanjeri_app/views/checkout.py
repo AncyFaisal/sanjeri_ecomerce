@@ -74,7 +74,7 @@ def checkout_view(request):
         except:
             pass
         
-        # Get applied coupon from session
+         # Get applied coupon from session
         applied_coupon_data = request.session.get('applied_coupon')
         coupon_display = None
         coupon_discount = Decimal('0')
@@ -82,6 +82,25 @@ def checkout_view(request):
         if applied_coupon_data:
             try:
                 coupon = Coupon.objects.get(id=applied_coupon_data['coupon_id'], active=True)
+                
+                
+                # Check if user has already used this coupon
+                if coupon.single_use_per_user:
+                    # Check if user has already placed orders with this coupon
+                    from ..models import Order
+                    used_count = Order.objects.filter(
+                        user=request.user,
+                        coupon=coupon,
+                        status__in=['confirmed', 'shipped', 'delivered', 'out_for_delivery']
+                    ).count()
+                    
+                    if used_count > 0:
+                        # User already used this coupon, remove from session
+                        del request.session['applied_coupon']
+                        messages.warning(request, f'Coupon "{coupon.code}" has already been used.')
+                        return redirect('checkout')
+                
+                
                 is_valid, message = coupon.is_valid(
                     user=request.user,
                     order_amount=cart.subtotal
@@ -106,20 +125,25 @@ def checkout_view(request):
         coupon_discount_amount = coupon_discount
         
         # Apply existing 10% discount on orders above 1000
-        subtotal_after_coupon = subtotal - coupon_discount
         additional_discount = Decimal('0')
-        if subtotal_after_coupon > Decimal('1000'):
-            additional_discount = subtotal_after_coupon * Decimal('0.10')
+        if subtotal > Decimal('1000'):
+            additional_discount = subtotal * Decimal('0.10')
         
         # Total discount
         total_discount = coupon_discount_amount + additional_discount
         
+        # Calculate shipping and tax
         shipping_charge = Decimal('0') if subtotal > Decimal('500') else Decimal('40')
         tax_amount = (subtotal - coupon_discount_amount) * Decimal('0.18')
-        total_amount_before_wallet = subtotal + shipping_charge + tax_amount - total_discount
+        # total_amount_before_wallet = subtotal + shipping_charge + tax_amount - total_discount
+
+        # Calculate FINAL TOTAL (corrected calculation)
+        total_amount = subtotal + shipping_charge + tax_amount - total_discount 
         
         # Calculate max wallet amount that can be used
-        max_wallet_amount = min(wallet_balance, total_amount_before_wallet)
+        max_wallet_amount = min(wallet_balance, total_amount)
+        
+
         
         context = {
             'cart': cart,
@@ -135,7 +159,7 @@ def checkout_view(request):
             'additional_discount': additional_discount,
             'shipping_charge': shipping_charge,
             'tax_amount': tax_amount,
-            'total_amount_before_wallet': total_amount_before_wallet,
+            'total_amount': total_amount,
             'show_online_payment': True,
             'wallet_balance_formatted': f"{wallet_balance:,.2f}",
         }
@@ -192,6 +216,26 @@ def place_order(request):
             if applied_coupon_data:
                 try:
                     coupon = Coupon.objects.get(id=applied_coupon_data['coupon_id'], active=True)
+                    
+                    # ========== ADD VALIDATION HERE TOO ==========
+                    if coupon.single_use_per_user:
+                        # Double-check user hasn't used coupon
+                        used_count = Order.objects.filter(
+                            user=request.user,
+                            coupon=coupon,
+                            status__in=['confirmed', 'shipped', 'delivered', 'out_for_delivery']
+                        ).count()
+                        
+                        if used_count > 0:
+                            # Remove invalid coupon
+                            if 'applied_coupon' in request.session:
+                                del request.session['applied_coupon']
+                            return JsonResponse({
+                                'success': False,
+                                'message': f'Coupon "{coupon.code}" has already been used.'
+                            })
+                    # ========== END VALIDATION ==========
+                    
                     is_valid, message = coupon.is_valid(
                         user=request.user,
                         order_amount=cart.subtotal
@@ -214,12 +258,11 @@ def place_order(request):
             if coupon_discount > subtotal:
                 coupon_discount = subtotal
             
-            subtotal_after_coupon = subtotal - coupon_discount
-            
-            # Apply existing 10% discount
+            # ========== FIXED DISCOUNT CALCULATION ==========
+            # Apply existing 10% discount on ORIGINAL subtotal
             other_discount = Decimal('0')
-            if subtotal_after_coupon > Decimal('1000'):
-                other_discount = subtotal_after_coupon * Decimal('0.10')
+            if subtotal > Decimal('1000'):
+                other_discount = subtotal * Decimal('0.10')  # 10% of ORIGINAL subtotal
             
             # Calculate total discount
             total_discount = coupon_discount + other_discount
@@ -230,6 +273,7 @@ def place_order(request):
             
             # Calculate total amount before wallet
             total_before_wallet = subtotal + shipping_charge + tax_amount - total_discount
+            # ========== END FIXED CALCULATION ==========
             
             # Validate wallet payment
             wallet_amount_to_use = Decimal('0')

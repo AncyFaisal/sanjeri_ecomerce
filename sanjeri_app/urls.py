@@ -21,6 +21,8 @@ from .views.view_userside import (
     brands, product_search, wishlist, cart, all_products, brand_products
 )
 from .views.order_management import *
+from .views.admin_coupon_views import *
+from .views.sales_report_views import sales_report, export_sales_report
 
 # from .views.wallet_views import (
 #     wallet_dashboard,
@@ -183,6 +185,7 @@ path('inventory-management/<int:variant_id>/update-stock/', update_stock, name='
 # Coupon URLs
     path('coupon/apply/', apply_coupon, name='apply_coupon'),
     path('coupon/remove/', remove_coupon, name='remove_coupon'),
+    # path('coupon/remove/', remove_coupon, name='remove_coupon'),
 
     # Wallet URLs
     # path('wallet/', wallet_dashboard, name='wallet_dashboard'),
@@ -193,4 +196,23 @@ path('inventory-management/<int:variant_id>/update-stock/', update_stock, name='
 
 # user order management
 path('order-items/<int:item_id>/cancel/', cancel_order_item, name='cancel_order_item'),
+
+# Admin-coupon management:
+path('coupons/', admin_coupon_list, name='admin_coupon_list'),
+path('coupons/create/', create_coupon, name='create_coupon'),
+path('coupons/<int:coupon_id>/delete/', delete_coupon, name='delete_coupon'),
+path('coupons/<int:coupon_id>/toggle-status/', toggle_coupon_status, name='toggle_coupon_status'),
+path('coupons/<int:coupon_id>/restore/', restore_coupon, name='restore_coupon'),
+path('coupons/<int:coupon_id>/permanent-delete/', permanent_delete_coupon, name='permanent_delete_coupon'),
+path('coupons/trash/', coupon_trash, name='coupon_trash'),
+path('coupons/trash/restore-all/', restore_all_coupons, name='restore_all_coupons'),
+
+
+
+
+
+
+# admin-sales-report
+path('sales-report/', sales_report, name='sales_report'),
+path('sales-report/export/', export_sales_report, name='export_sales_report'),
 ]
