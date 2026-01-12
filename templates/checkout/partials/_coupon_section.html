@@ -1,0 +1,47 @@
+<!-- templates/checkout/partials/_coupon_section.html -->
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">
+            <i class="fas fa-tag me-2 text-primary"></i>
+            Apply Coupon
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if applied_coupon %}
+        <div class="applied-coupon alert alert-success d-flex justify-content-between align-items-center">
+            <div>
+                <strong><i class="fas fa-check-circle me-2"></i>Coupon Applied</strong>
+                <p class="mb-0 small">{{ applied_coupon.display_text }} - {{ applied_coupon.description }}</p>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-danger remove-coupon-btn">
+                Remove
+            </button>
+        </div>
+        <input type="hidden" id="applied_coupon_code" value="{{ applied_coupon.code }}">
+        {% else %}
+        <div class="coupon-input-section">
+            <div class="input-group">
+                <input type="text" class="form-control" id="coupon_code" 
+                       placeholder="Enter coupon code" maxlength="50">
+                <button class="btn btn-primary" type="button" id="apply_coupon_btn">
+                    Apply
+                </button>
+            </div>
+            <div class="coupon-message mt-2" id="coupon_message"></div>
+            
+            <!-- Available Coupons (optional) -->
+            <div class="available-coupons mt-3">
+                <p class="small text-muted mb-2">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Available coupons:
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="badge bg-light text-dark border">WELCOME10 - 10% OFF</span>
+                    <span class="badge bg-light text-dark border">FREESHIP - Free Shipping</span>
+                    <span class="badge bg-light text-dark border">SAVE500 - ₹500 OFF</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>

@@ -9,3 +9,4 @@ from .cart import *
 from .wishlist import *
 from .checkout import *
 from .payment import *
+# from .wallet_views import *

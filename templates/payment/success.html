@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment Successful - Sanjeri Perfumes{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <!-- Success Illustration -->
+            <div class="mb-4">
+                <i class="fas fa-check-circle text-success" style="font-size: 5rem;"></i>
+            </div>
+            
+            <!-- Success Message -->
+            <h1 class="display-5 text-success mb-3">Payment Successful!</h1>
+            <p class="lead mb-4">Thank you for your order. Your payment has been processed successfully.</p>
+            
+            <!-- Order Details -->
+            <div class="card border-success mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Order Confirmation</h5>
+                    <p class="card-text">
+                        <strong>Order Number:</strong> {{ order.order_number }}<br>
+                        <strong>Order Date:</strong> {{ order.created_at|date:"F d, Y" }}<br>
+                        <strong>Total Amount:</strong> ₹{{ order.total_amount }}<br>
+                        <strong>Status:</strong> <span class="badge bg-success">Confirmed</span>
+                    </p>
+                </div>
+            </div>
+            
+            <!-- What Happens Next -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">What happens next?</h5>
+                    <div class="row text-center mt-3">
+                        <div class="col-md-3">
+                            <div class="step-number">1</div>
+                            <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+                            <p class="small">Order Confirmed</p>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="step-number">2</div>
+                            <i class="fas fa-box fa-2x mb-2"></i>
+                            <p class="small">Order Processed</p>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="step-number">3</div>
+                            <i class="fas fa-shipping-fast fa-2x mb-2"></i>
+                            <p class="small">Order Shipped</p>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="step-number">4</div>
+                            <i class="fas fa-home fa-2x mb-2"></i>
+                            <p class="small">Delivered</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="d-grid gap-3 d-md-flex justify-content-center">
+                <a href="{% url 'order_detail' order.id %}" class="btn btn-primary btn-lg me-md-3">
+                    <i class="fas fa-eye me-2"></i>View Order Details
+                </a>
+                <a href="{% url 'homepage' %}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-shopping-bag me-2"></i>Continue Shopping
+                </a>
+            </div>
+            
+            <!-- Contact Support -->
+            <div class="mt-5">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Need help?</strong> Contact our customer support at 
+                    <a href="mailto:support@sanjeri.com">support@sanjeri.com</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.step-number {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    border-radius: 50%;
+    background: #6c757d;
+    color: white;
+    margin-bottom: 10px;
+}
+</style>
+{% endblock %}

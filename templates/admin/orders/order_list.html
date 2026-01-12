@@ -318,44 +318,53 @@
 
 <script>
     // AJAX status updates
-    document.addEventListener('DOMContentLoaded', function () {
-        const statusForms = document.querySelectorAll('.status-form');
+document.addEventListener('DOMContentLoaded', function () {
+    const statusForms = document.querySelectorAll('.status-form');
 
-        statusForms.forEach(form => {
-            form.addEventListener('submit', function (e) {
-                e.preventDefault();
+    statusForms.forEach(form => {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
 
-                const formData = new FormData(this);
-                const url = this.action;
-                const orderRow = this.closest('tr');
+            const formData = new FormData(this);
+            const url = this.action;
+            const orderRow = this.closest('tr');
 
-                fetch(url, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update status badge
+                        const statusBadge = orderRow.querySelector('.status-badge');
+                        statusBadge.textContent = data.new_status_display;
+                        statusBadge.className = `status-badge status-${data.new_status}`;
+                        
+                        // Update payment status badge if it exists in the response
+                        if (data.new_payment_status) {
+                            const paymentBadge = orderRow.querySelector('.badge.bg-success, .badge.bg-warning');
+                            if (paymentBadge) {
+                                paymentBadge.textContent = data.new_payment_status_display;
+                                paymentBadge.className = `badge ${data.new_payment_status === 'completed' ? 'bg-success' : 'bg-warning'}`;
+                            }
+                        }
+
+                        // Show success message
+                        showNotification(data.message, 'success');
+                    } else {
+                        showNotification(data.message, 'error');
                     }
                 })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Update status badge
-                            const statusBadge = orderRow.querySelector('.status-badge');
-                            statusBadge.textContent = data.new_status_display;
-                            statusBadge.className = `status-badge status-${data.new_status}`;
-
-                            // Show success message
-                            showNotification(data.message, 'success');
-                        } else {
-                            showNotification(data.message, 'error');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        showNotification('Error updating status', 'error');
-                    });
-            });
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Error updating status', 'error');
+                });
         });
+    });
 
         function showNotification(message, type) {
             // Create notification element

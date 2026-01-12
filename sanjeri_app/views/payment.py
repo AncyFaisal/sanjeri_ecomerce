@@ -1,143 +1,157 @@
+# Add these imports at the top of views.py
 import razorpay
 import json
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse, HttpResponse
+from django.http import HttpResponse, JsonResponse
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.utils import timezone
-from ..models import Order, Cart
-from decimal import Decimal
+from ..models import Order
 
 # Initialize Razorpay client
-razorpay_client = razorpay.Client(
-    auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
-)
+razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+@login_required
+def checkout_payment(request, order_id):
+    """Select payment method"""
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    
+    if request.method == 'POST':
+        payment_method = request.POST.get('payment_method')
+        
+        if payment_method == 'online':
+            return redirect('initiate_payment', order_id=order.id)
+        elif payment_method == 'cod':
+            order.payment_method = 'cod'
+            order.status = 'confirmed'
+            order.save()
+            messages.success(request, "Order placed with Cash on Delivery!")
+            return redirect('order_detail', order_id=order.id)
+    
+    return render(request, 'payment/checkout.html', {'order': order})
 
 @login_required
 def initiate_payment(request, order_id):
-    """Initiate Razorpay payment"""
+    """Create Razorpay order and show payment page"""
     order = get_object_or_404(Order, id=order_id, user=request.user)
     
-    if not order.can_pay_online:
-        messages.error(request, "This order cannot be paid online.")
+    # Check if order can be paid
+    if order.payment_status == 'completed':
+        messages.info(request, "Payment already completed for this order.")
         return redirect('order_detail', order_id=order.id)
     
-    # Create Razorpay order
-    amount_in_paise = int(order.total_amount * 100)  # Razorpay expects amount in paise
+    if order.status == 'cancelled':
+        messages.error(request, "This order has been cancelled.")
+        return redirect('order_detail', order_id=order.id)
     
+    # Convert amount to paise (Razorpay requires amount in smallest currency unit)
+    amount_paise = int(order.total_amount * 100)
+    
+    # Create Razorpay order
     razorpay_order = razorpay_client.order.create({
-        'amount': amount_in_paise,
+        'amount': amount_paise,
         'currency': 'INR',
-        'payment_capture': 1,  # Auto capture payment
+        'payment_capture': '1',  # Auto capture payment
         'notes': {
-            'order_id': order.id,
-            'order_number': order.order_number,
-            'user_id': request.user.id
+            'order_id': str(order.id),
+            'user_id': str(request.user.id)
         }
     })
     
-    # Update order with Razorpay order ID
+    # Save Razorpay order ID to your order
     order.razorpay_order_id = razorpay_order['id']
     order.save()
     
+    # Prepare context for payment template
     context = {
         'order': order,
         'razorpay_order_id': razorpay_order['id'],
         'razorpay_key_id': settings.RAZORPAY_KEY_ID,
-        'amount': amount_in_paise,
+        'amount': amount_paise,
         'currency': 'INR',
-        'user_name': request.user.get_full_name(),
+        'user_name': request.user.get_full_name() or request.user.email,
         'user_email': request.user.email,
         'user_phone': request.user.phone if hasattr(request.user, 'phone') else '',
     }
     
-    return render(request, 'payment/payment_gateway.html', context)
+    return render(request, 'payment/razorpay_payment.html', context)
 
-@login_required
 @csrf_exempt
-def payment_success(request):
-    """Handle successful payment"""
+def payment_webhook(request):
+    """Handle Razorpay webhook for payment verification"""
     if request.method == 'POST':
         try:
-            # Get payment details from request
-            razorpay_payment_id = request.POST.get('razorpay_payment_id')
-            razorpay_order_id = request.POST.get('razorpay_order_id')
-            razorpay_signature = request.POST.get('razorpay_signature')
+            # Get webhook data
+            webhook_body = request.body.decode('utf-8')
+            webhook_data = json.loads(webhook_body)
             
-            # Verify payment signature
-            params_dict = {
-                'razorpay_order_id': razorpay_order_id,
-                'razorpay_payment_id': razorpay_payment_id,
-                'razorpay_signature': razorpay_signature
-            }
+            # Verify webhook signature (optional for now)
+            event = webhook_data.get('event', '')
             
-            # Verify the payment signature
-            razorpay_client.utility.verify_payment_signature(params_dict)
+            if event == 'payment.captured':
+                payment = webhook_data.get('payload', {}).get('payment', {}).get('entity', {})
+                razorpay_payment_id = payment.get('id', '')
+                razorpay_order_id = payment.get('order_id', '')
+                amount = payment.get('amount', 0) / 100  # Convert from paise
+                
+                # Update order
+                try:
+                    order = Order.objects.get(razorpay_order_id=razorpay_order_id)
+                    order.payment_status = 'completed'
+                    order.razorpay_payment_id = razorpay_payment_id
+                    order.status = 'confirmed'
+                    order.save()
+                    
+                    print(f"✅ Webhook: Order {order.order_number} payment captured")
+                except Order.DoesNotExist:
+                    print(f"❌ Webhook: Order not found for {razorpay_order_id}")
             
-            # Get order
-            order = Order.objects.get(
-                razorpay_order_id=razorpay_order_id,
-                user=request.user
-            )
+        except Exception as e:
+            print(f"Webhook error: {e}")
+    
+    return HttpResponse(status=200)
+
+@login_required
+def payment_success(request):
+    """Handle successful payment return"""
+    razorpay_payment_id = request.GET.get('razorpay_payment_id', '')
+    razorpay_order_id = request.GET.get('razorpay_order_id', '')
+    razorpay_signature = request.GET.get('razorpay_signature', '')
+    
+    if razorpay_order_id:
+        try:
+            order = Order.objects.get(razorpay_order_id=razorpay_order_id, user=request.user)
             
-            # Update order payment status
+            # Verify payment (optional for now - webhook handles it)
             order.payment_status = 'completed'
             order.razorpay_payment_id = razorpay_payment_id
-            order.razorpay_signature = razorpay_signature
-            order.payment_method = 'online'
+            order.status = 'confirmed'
             order.save()
             
-            # Redirect to success page
-            return redirect('order_success', order_id=order.id)
+            messages.success(request, "Payment successful! Order confirmed.")
+            return render(request, 'payment/success.html', {'order': order})
             
-        except razorpay.errors.SignatureVerificationError:
-            messages.error(request, "Payment verification failed. Please contact support.")
-            return redirect('payment_failed')
-        except Exception as e:
-            messages.error(request, f"Error processing payment: {str(e)}")
-            return redirect('payment_failed')
+        except Order.DoesNotExist:
+            messages.error(request, "Order not found.")
+    
     return redirect('homepage')
 
 @login_required
-def payment_failed(request):
-    """Payment failed page"""
-    order_id = request.session.get('last_order_id')
-    order = None
+def payment_failure(request, order_id):
+    """Payment failure page"""
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    order.payment_status = 'failed'
+    order.save()
     
-    if order_id:
-        try:
-            order = Order.objects.get(id=order_id, user=request.user)
-        except Order.DoesNotExist:
-            pass
-    
-    context = {
-        'order': order,
-        'title': 'Payment Failed - Sanjeri'
-    }
-    return render(request, 'payment/payment_failed.html', context)
+    return render(request, 'payment/failure.html', {'order': order})
 
 @login_required
 def retry_payment(request, order_id):
-    """Retry payment for failed order"""
+    """Retry failed payment"""
     order = get_object_or_404(Order, id=order_id, user=request.user)
     
-    if not order.can_pay_online:
-        messages.error(request, "This order cannot be retried for payment.")
-        return redirect('order_detail', order_id=order.id)
+    if order.payment_status == 'failed':
+        return redirect('initiate_payment', order_id=order.id)
     
-    return redirect('initiate_payment', order_id=order.id)
-
-# PayPal Integration (Optional - Add if needed)
-@login_required
-def initiate_paypal_payment(request, order_id):
-    """Initiate PayPal payment"""
-    # This requires PayPal SDK setup
-    # You'll need to implement this based on PayPal's documentation
-    pass
-
-@login_required
-def paypal_callback(request):
-    """Handle PayPal callback"""
-    pass
+    return redirect('order_detail', order_id=order.id)

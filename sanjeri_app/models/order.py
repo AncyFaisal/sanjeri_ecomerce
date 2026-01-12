@@ -8,6 +8,21 @@ from decimal import Decimal
 from datetime import timedelta 
 
 class Order(models.Model):
+    # ORDER_STATUS_CHOICES = [
+    #     ('pending', 'Pending'),
+    #     ('confirmed', 'Confirmed'),
+    #     ('shipped', 'Shipped'),
+    #     ('delivered', 'Delivered'),
+    #     ('cancelled', 'Cancelled'),
+    #     ('refunded', 'Refunded'),
+    #     ('out_for_delivery', 'Out for Delivery'), 
+    # ]
+    
+    # PAYMENT_METHOD_CHOICES = [
+    #     ('cod', 'Cash on Delivery'),
+    #     ('online', 'Online Payment'),
+    # ]
+    
     ORDER_STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('confirmed', 'Confirmed'),
@@ -15,14 +30,16 @@ class Order(models.Model):
         ('delivered', 'Delivered'),
         ('cancelled', 'Cancelled'),
         ('refunded', 'Refunded'),
-        ('out_for_delivery', 'Out for Delivery'), 
+        ('out_for_delivery', 'Out for Delivery'),
+        ('return_requested', 'Return Requested'),  # Add this
     ]
     
+    # Add wallet to PAYMENT_METHOD_CHOICES:
     PAYMENT_METHOD_CHOICES = [
         ('cod', 'Cash on Delivery'),
         ('online', 'Online Payment'),
+        ('wallet', 'Wallet Payment'),  # Add this
     ]
-    
     PAYMENT_STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('completed', 'Completed'),
@@ -37,6 +54,10 @@ class Order(models.Model):
     # Shipping address (snapshot at time of order)
     shipping_address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True)
     
+     # ==== ADD THESE TWO LINES ====
+    coupon = models.ForeignKey('Coupon', on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
+    coupon_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
     # Order status and dates
     status = models.CharField(max_length=20, choices=ORDER_STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -68,6 +89,39 @@ class Order(models.Model):
     # Additional info
     notes = models.TextField(blank=True, null=True)
     tracking_number = models.CharField(max_length=100, blank=True, null=True)
+
+    WALLET_STATUS_CHOICES = [
+        ('not_used', 'Not Used'),
+        ('partial', 'Partial Wallet Payment'),
+        ('full', 'Full Wallet Payment'),
+        ('refunded', 'Refunded to Wallet'),
+    ]
+    
+     # ===== ADD THESE WALLET FIELDS =====
+    wallet_used = models.BooleanField(default=False)
+    wallet_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    refund_to_wallet = models.BooleanField(default=False)
+    refund_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    refund_processed_at = models.DateTimeField(null=True, blank=True)
+    
+    # Add 'return_requested' to your ORDER_STATUS_CHOICES if not already there:
+    ORDER_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('confirmed', 'Confirmed'),
+        ('shipped', 'Shipped'),
+        ('delivered', 'Delivered'),
+        ('cancelled', 'Cancelled'),
+        ('refunded', 'Refunded'),
+        ('out_for_delivery', 'Out for Delivery'),
+        ('return_requested', 'Return Requested'),  # Add this
+    ]
+    
+    # Add wallet to PAYMENT_METHOD_CHOICES:
+    PAYMENT_METHOD_CHOICES = [
+        ('cod', 'Cash on Delivery'),
+        ('online', 'Online Payment'),
+        ('wallet', 'Wallet Payment'),  # Add this
+    ]
     
     class Meta:
         ordering = ['-created_at']
@@ -78,6 +132,16 @@ class Order(models.Model):
     def save(self, *args, **kwargs):
         if not self.order_number:
             self.order_number = self.generate_order_number()
+        
+
+        # Update wallet status based on wallet amount
+        if self.wallet_amount > 0:
+            if self.wallet_amount >= self.total_amount:
+                self.wallet_status = 'full'
+            else:
+                self.wallet_status = 'partial'
+            self.wallet_used = True
+        
         super().save(*args, **kwargs)
     
     def generate_order_number(self):
@@ -111,45 +175,156 @@ class Order(models.Model):
         return self.created_at >= return_period
     
     def calculate_totals(self):
-        """Calculate order totals from order items"""
+        """Calculate order totals including coupon discount"""
+        from decimal import Decimal
+    
         # FIXED: Use Decimal consistently
         self.subtotal = sum(item.total_price for item in self.items.all())
-        subtotal_after_discount = self.subtotal - self.discount_amount
-        # Use Decimal for all values
+    
+     # Apply coupon discount if exists
+        if self.coupon:
+         self.coupon_discount = self.coupon.calculate_discount(self.subtotal)
+        # Don't discount more than subtotal
+        if self.coupon_discount > self.subtotal:
+            self.coupon_discount = self.subtotal
+        else:
+            self.coupon_discount = Decimal('0')
+    
+        subtotal_after_discount = self.subtotal - self.coupon_discount
+    
+    # Apply other discounts (existing 10% discount)
+        other_discount = Decimal('0')
+        if subtotal_after_discount > Decimal('1000'):
+            other_discount = subtotal_after_discount * Decimal('0.10')
+    
+    # Combine all discounts
+        self.discount_amount = self.coupon_discount + other_discount
+
+    # Calculate amounts before wallet
+        subtotal_after_all_discounts = self.subtotal - self.discount_amount
+        self.shipping_charge = Decimal('0') if subtotal_after_all_discounts > Decimal('500') else Decimal('40')
+        self.tax_amount = subtotal_after_all_discounts * Decimal('0.18')
+        
+        # Calculate final amount (before wallet)
+        amount_before_wallet = subtotal_after_all_discounts + self.shipping_charge + self.tax_amount
+        
+        # Apply wallet payment if any
+        if self.wallet_amount > 0:
+            # Ensure wallet amount doesn't exceed order total
+            if self.wallet_amount > amount_before_wallet:
+                self.wallet_amount = amount_before_wallet
+            self.total_amount = amount_before_wallet - self.wallet_amount
+        else:
+            self.total_amount = amount_before_wallet
+        
+        self.save()
+    
+    # Use Decimal for all values
         self.shipping_charge = Decimal('0') if self.subtotal > Decimal('500') else Decimal('40')
-        self.tax_amount = self.subtotal * Decimal('0.18')
-        self.total_amount = self.subtotal + self.shipping_charge + self.tax_amount - self.discount_amount
+        self.tax_amount = subtotal_after_discount * Decimal('0.18')
+        self.total_amount = subtotal_after_discount + self.shipping_charge + self.tax_amount - other_discount
         self.save()
     
     def cancel_order(self, reason=""):
-        """Cancel order and restore stock"""
+        """Cancel order and handle wallet refund"""
         if self.can_be_cancelled:
             # Restore stock for all items
             for item in self.items.all():
                 item.variant.stock += item.quantity
                 item.variant.save()
             
+            # Handle payment refund
+            if self.payment_status == 'completed' and self.wallet_amount > 0:
+                # Refund wallet amount
+                self.refund_to_wallet = True
+                self.refund_amount = self.wallet_amount
+                self.refund_processed_at = timezone.now()
+                
+                # Add refund to user's wallet
+                from .wallet import WalletTransaction
+                WalletTransaction.objects.create(
+                    wallet=self.user.wallet,
+                    amount=self.wallet_amount,
+                    transaction_type='REFUND',
+                    status='COMPLETED',
+                    reason=f"Refund for cancelled order #{self.order_number}",
+                    order=self,
+                    admin_approved=True
+                )
+                
+                # Update wallet balance
+                self.user.wallet.deposit(
+                    self.wallet_amount,
+                    reason=f"Refund for cancelled order #{self.order_number}",
+                    order=self
+                )
+            
             self.status = 'cancelled'
             self.cancellation_reason = reason
             self.cancelled_at = timezone.now()
             self.save()
+            
             return True
         return False
     
-    def return_order(self, reason):
-        """Return delivered order"""
+    def request_return(self, reason):
+        """Request return for delivered order"""
         if self.can_be_returned and reason.strip():
+            self.status = 'return_requested'
+            self.return_reason = reason
+            self.save()
+            
+            # Create pending refund transaction
+            from .wallet import WalletTransaction
+            WalletTransaction.objects.create(
+                wallet=self.user.wallet,
+                amount=self.total_amount,
+                transaction_type='REFUND',
+                status='PENDING',
+                reason=f"Return request: {reason}",
+                order=self,
+                admin_approved=False
+            )
+            
+            return True
+        return False
+    
+    def approve_return(self, approved_by):
+        """Admin approves return and processes wallet refund"""
+        from django.db import transaction as db_transaction
+        
+        with db_transaction.atomic():
+            if self.status != 'return_requested':
+                return False
+            
             # Restore stock for all items
             for item in self.items.all():
                 item.variant.stock += item.quantity
                 item.variant.save()
             
+            # Find and approve the pending refund transaction
+            from ..models import WalletTransaction
+            transaction = self.wallettransaction_set.filter(
+                transaction_type='REFUND',
+                status='PENDING'
+            ).first()
+            
+            if transaction:
+                transaction.mark_as_completed(approved_by=approved_by)
+            
             self.status = 'refunded'
-            self.return_reason = reason
             self.returned_at = timezone.now()
+            self.refund_to_wallet = True
+            self.refund_amount = self.total_amount
+            self.refund_processed_at = timezone.now()
             self.save()
+            
             return True
-        return False
+        
+    @property
+    def amount_to_pay(self):
+        """Calculate remaining amount to pay after wallet deduction"""
+        return max(self.total_amount - self.wallet_amount, Decimal('0'))
     
     @property
     def can_pay_online(self):
@@ -207,3 +382,4 @@ class OrderItem(models.Model):
             self.save()
             return True
         return False
+    

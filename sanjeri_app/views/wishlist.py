@@ -4,27 +4,102 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_http_methods
 from django.db import transaction
-from ..models import Wishlist, WishlistItem, Product
+from ..models import Wishlist, WishlistItem, Product,Category,ProductVariant
+from django.db.models import Q
+from django.template.loader import render_to_string 
+from ..models import Cart,CartItem
 
 @login_required
 def wishlist_view(request):
-    """Display the user's wishlist"""
+    """Display the user's wishlist with search and filter"""
     try:
         wishlist = Wishlist.objects.get(user=request.user)
-        wishlist_items = WishlistItem.objects.filter(wishlist=wishlist).select_related('product')
+        wishlist_items = WishlistItem.objects.filter(wishlist=wishlist).select_related('product__category')
+        
+        # Get all categories for dropdown
+        all_categories = Category.objects.filter(is_active=True)
+        
+        # Get search query
+        search_query = request.GET.get('search', '')
+        if search_query:
+            wishlist_items = wishlist_items.filter(
+                Q(product__name__icontains=search_query) |
+                Q(product__description__icontains=search_query) |
+                Q(product__brand__icontains=search_query) |
+                Q(product__fragrance_type__icontains=search_query)
+            )
+        
+        # Get category filter
+        category_id = request.GET.get('category', '')
+        if category_id:
+            wishlist_items = wishlist_items.filter(product__category_id=category_id)
+        
+        # Get gender filter
+        gender = request.GET.get('gender', '')
+        if gender:
+            # Find products that have variants with this gender
+            product_ids = ProductVariant.objects.filter(
+                gender=gender
+            ).values_list('product_id', flat=True)
+            wishlist_items = wishlist_items.filter(
+                product_id__in=product_ids
+            )
+        
+        # Get ALL possible genders from ALL products (not just wishlist items)
+        # This ensures all gender options appear in the dropdown
+        all_genders = ProductVariant.objects.filter(
+            is_active=True
+        ).values_list('gender', flat=True).distinct()
+        
+        # Get available genders from wishlist items (for context)
+        available_genders_in_wishlist = []
+        for item in wishlist_items:
+            for variant in item.product.variants.all():
+                if variant.gender not in available_genders_in_wishlist:
+                    available_genders_in_wishlist.append(variant.gender)
+        
+        # AJAX response
+        if request.GET.get('ajax') == '1':
+            html = render_to_string('wishlist_items_partial.html', {
+                'wishlist_items': wishlist_items,
+                'wishlist': wishlist,
+            }, request=request)
+            
+            return JsonResponse({
+                'html': html,
+                'count': wishlist_items.count()
+            })
         
         context = {
             'wishlist': wishlist,
             'wishlist_items': wishlist_items,
+            'all_categories': all_categories,
+            'search_query': search_query,
+            'selected_category': int(category_id) if category_id else '',
+            'selected_gender': gender,
+            'available_genders': sorted(set(all_genders)),  # Use ALL genders
+            'available_genders_in_wishlist': sorted(set(available_genders_in_wishlist)),  # Optional: for debugging
         }
         return render(request, 'wishlist.html', context)
         
     except Wishlist.DoesNotExist:
         # Create empty wishlist if it doesn't exist
         wishlist = Wishlist.objects.create(user=request.user)
+        
+        # Get all possible genders
+        all_genders = ProductVariant.objects.filter(
+            is_active=True
+        ).values_list('gender', flat=True).distinct()
+        
         context = {
             'wishlist': wishlist,
             'wishlist_items': [],
+            'all_categories': Category.objects.filter(is_active=True),
+            'search_query': '',
+            'selected_category': '',
+            'selected_gender': '',
+            'available_genders': sorted(set(all_genders)),  # Use ALL genders
+            'available_genders_in_wishlist': [],
         }
         return render(request, 'wishlist.html', context)
 
@@ -158,3 +233,74 @@ def get_wishlist_item_id(request, product_id):
         return JsonResponse({'item_id': wishlist_item.id})
     except (Wishlist.DoesNotExist, WishlistItem.DoesNotExist):
         return JsonResponse({'item_id': None})
+    
+
+    # In views/wishlist.py
+@login_required
+@require_POST
+@transaction.atomic
+def add_to_cart_from_wishlist(request, product_id):
+    """Add product to cart and remove from wishlist in one operation"""
+    try:
+        product = get_object_or_404(Product, id=product_id, is_active=True, is_deleted=False)
+        
+        # Get the first available variant
+        variant = product.variants.filter(is_active=True, stock__gt=0).first()
+        if not variant:
+            return JsonResponse({
+                'success': False,
+                'message': 'No available variants in stock'
+            })
+        
+        # Add to cart
+        cart, created = Cart.objects.get_or_create(user=request.user)
+        cart_item, item_created = CartItem.objects.get_or_create(
+            cart=cart,
+            variant=variant,
+            defaults={'quantity': 1}
+        )
+        
+        if not item_created:
+            # Update quantity if it exists
+            if cart_item.can_increment:
+                cart_item.quantity += 1
+                cart_item.save()
+                message = "Product quantity updated in cart!"
+            else:
+                message = "Maximum quantity reached!"
+        else:
+            message = "Product added to cart!"
+        
+        # Remove from wishlist
+        removed = False
+        try:
+            wishlist_item = WishlistItem.objects.filter(
+                wishlist__user=request.user,
+                product=product
+            ).first()
+            if wishlist_item:
+                wishlist_item.delete()
+                removed = True
+        except Exception:
+            pass
+        
+        # Get updated counts
+        cart_count = cart.total_items
+        wishlist = Wishlist.objects.get(user=request.user)
+        wishlist_count = WishlistItem.objects.filter(wishlist=wishlist).count()
+        
+        return JsonResponse({
+            'success': True,
+            'message': message,
+            'cart_count': cart_count,
+            'wishlist_count': wishlist_count,
+            'removed_from_wishlist': removed,
+            'variant_id': variant.id,
+            'product_name': product.name
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f"Error: {str(e)}"
+        })

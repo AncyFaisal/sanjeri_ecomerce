@@ -103,7 +103,6 @@ def admin_order_detail(request, order_id):
         messages.error(request, "Order not found.")
         return redirect('admin_order_list')
     
-
 @login_required
 @admin_required
 @user_passes_test(lambda u: u.is_staff)
@@ -120,10 +119,25 @@ def update_order_status(request, order_id):
             
             # Update timestamps for specific status changes
             if new_status == 'delivered' and old_status != 'delivered':
+                # Automatically update payment status to 'completed' when delivered
+                if order.payment_method == 'cod':
+                    # For COD, payment is completed upon delivery
+                    order.payment_status = 'completed'
+                elif order.payment_method == 'online' and order.payment_status == 'pending':
+                    # For online payments that are still pending, complete them
+                    order.payment_status = 'completed'
                 # You could set delivered_at here if you have the field
-                pass
+                # order.delivered_at = timezone.now()
             elif new_status == 'cancelled' and old_status != 'cancelled':
                 order.cancelled_at = timezone.now()
+                # If cancelled before delivery and payment was completed, refund
+                if order.payment_status == 'completed':
+                    order.payment_status = 'refunded'
+            elif new_status == 'refunded' and old_status != 'refunded':
+                order.returned_at = timezone.now()
+                # If returning after delivery, refund payment
+                if order.payment_status == 'completed':
+                    order.payment_status = 'refunded'
             
             order.save()
             
@@ -133,7 +147,9 @@ def update_order_status(request, order_id):
                     'success': True,
                     'message': f'Order status updated to {order.get_status_display()}',
                     'new_status': order.status,
-                    'new_status_display': order.get_status_display()
+                    'new_status_display': order.get_status_display(),
+                    'new_payment_status': order.payment_status,
+                    'new_payment_status_display': order.get_payment_status_display()
                 })
             else:
                 messages.success(request, f'Order status updated to {order.get_status_display()}')
@@ -232,3 +248,46 @@ def update_stock(request, variant_id):
         'success': False,
         'message': 'Invalid request'
     }, status=400)
+
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
+from ..models import Order
+
+@staff_member_required
+def approve_return(request, order_id):
+    """Admin approves return and processes wallet refund"""
+    order = get_object_or_404(Order, id=order_id)
+    
+    if order.approve_return(request.user):
+        messages.success(request, f"Return approved for order #{order.order_number}. Amount refunded to customer's wallet.")
+    else:
+        messages.error(request, "Cannot approve return. Order may not be in requested state.")
+    
+    return redirect('admin_order_detail', order_id=order_id)
+
+@staff_member_required
+def reject_return(request, order_id):
+    """Admin rejects return request"""
+    order = get_object_or_404(Order, id=order_id)
+    
+    if order.status == 'return_requested':
+        order.status = 'delivered'  # Revert to delivered
+        order.save()
+        
+        # Update or delete pending refund transaction
+        from ..models import WalletTransaction
+        transaction = order.wallettransaction_set.filter(
+            transaction_type='REFUND',
+            status='PENDING'
+        ).first()
+        
+        if transaction:
+            transaction.status = 'CANCELLED'
+            transaction.save()
+        
+        messages.success(request, f"Return rejected for order #{order.order_number}.")
+    else:
+        messages.error(request, "Cannot reject return.")
+    
+    return redirect('admin_order_detail', order_id=order_id)

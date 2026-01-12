@@ -278,4 +278,44 @@
     </div>
 </div>
 {% endif %}
+
+<!-- Add action buttons for order -->
+<div class="card-footer">
+    {% if order.order_status == 'DELIVERED' %}
+        <a href="{% url 'request_return' order.id %}" class="btn btn-warning">
+            Request Return
+        </a>
+    {% elif order.order_status in 'PENDING,PROCESSING' %}
+        <form method="post" action="{% url 'cancel_order' order.id %}" 
+              style="display: inline;" 
+              onsubmit="return confirm('Are you sure you want to cancel this order?')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Cancel Order</button>
+        </form>
+    {% endif %}
+    
+    {% if order.payment_status == 'REFUNDED' %}
+        <span class="badge bg-info">Amount refunded to wallet</span>
+    {% endif %}
+</div>
+
+{% if order.payment_status == 'pending' and order.payment_method == 'online' %}
+<div class="mt-4">
+    <a href="{% url 'initiate_payment' order.id %}" class="btn btn-primary btn-lg">
+        <i class="fas fa-credit-card me-2"></i>
+        Pay Now ₹{{ order.total_amount }}
+    </a>
+    <p class="text-muted small mt-2">
+        <i class="fas fa-lock me-1"></i>Secure payment powered by Razorpay
+    </p>
+</div>
+{% endif %}
+
+{% if order.payment_status == 'failed' %}
+<div class="alert alert-danger mt-4">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    Payment failed. 
+    <a href="{% url 'retry_payment' order.id %}" class="alert-link">Click here to retry payment</a>
+</div>
+{% endif %}
 {% endblock %}

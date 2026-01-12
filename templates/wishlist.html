@@ -6,6 +6,34 @@
 
 {% block extra_css %}
 <style>
+    .wishlist-filters {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .filter-group {
+        margin-bottom: 15px;
+    }
+    
+    .filter-label {
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #495057;
+    }
+    
+    .filter-results {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-top: 10px;
+    }
+    
+    .clear-filters {
+        margin-top: 20px;
+    }
+    
     .wishlist-card {
         border: 1px solid #eaeaea;
         border-radius: 10px;
@@ -94,6 +122,10 @@
     }
     
     @media (max-width: 768px) {
+        .filter-row {
+            flex-direction: column;
+        }
+        
         .product-image-container {
             height: 200px;
         }
@@ -113,16 +145,104 @@
 <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">My Wishlist</h1>
-        <span class="badge bg-primary" style="font-size: 1rem;">
+        <span class="badge bg-primary" style="font-size: 1rem;" id="wishlist-count">
             {{ wishlist_items|length }} item{{ wishlist_items|length|pluralize }}
         </span>
     </div>
     
+    <!-- FILTER SECTION -->
+    <div class="wishlist-filters">
+        <form method="GET" action="{% url 'wishlist' %}" id="filter-form">
+            <div class="row filter-row">
+                <!-- Search -->
+                <div class="col-md-4 mb-3">
+                    <div class="filter-group">
+                        <label class="filter-label">Search Products</label>
+                        <input type="text" 
+                               name="search" 
+                               class="form-control" 
+                               placeholder="Search by name, brand, fragrance..."
+                               value="{{ search_query }}"
+                               id="search-input">
+                    </div>
+                </div>
+                
+                <!-- Category Filter -->
+                <div class="col-md-4 mb-3">
+                    <div class="filter-group">
+                        <label class="filter-label">Filter by Category</label>
+                        <select name="category" class="form-select" id="category-select">
+                            <option value="">All Categories</option>
+                            {% for category in all_categories %}
+                            <option value="{{ category.id }}" 
+                                    {% if selected_category|stringformat:"s" == category.id|stringformat:"s" %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Gender Filter -->
+                <div class="col-md-4 mb-3">
+                    <div class="filter-group">
+                        <label class="filter-label">Filter by Gender</label>
+                        <select name="gender" class="form-select" id="gender-select">
+                            <option value="">All Genders</option>
+                            {% for gender in available_genders %}
+                            <option value="{{ gender }}" 
+                                    {% if selected_gender == gender %}selected{% endif %}>
+                                {{ gender }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="filter-results">
+                    {% if search_query or selected_category or selected_gender %}
+                        Showing {{ wishlist_items|length }} filtered item{{ wishlist_items|length|pluralize }}
+                    {% endif %}
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-1"></i> Apply Filters
+                    </button>
+                    
+                    {% if search_query or selected_category or selected_gender %}
+                    <a href="{% url 'wishlist' %}" class="btn btn-outline-secondary clear-filters">
+                        <i class="fas fa-times me-1"></i> Clear Filters
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Debug Info (make visible by removing d-none) -->
+    <div class="container-fluid bg-light py-2 mb-3">
+        <div class="container">
+            <small class="text-muted">
+                Debug: Wishlist items count: {{ wishlist_items|length }} | 
+                Query: "{{ search_query }}" | 
+                Category: {{ selected_category }} | 
+                Gender: {{ selected_gender }}
+            </small>
+        </div>
+    </div>
+
+    <!-- WISHLIST ITEMS -->
     {% if wishlist_items %}
-    <div class="row">
+    <div class="row" id="wishlist-items-container">
         {% for item in wishlist_items %}
         {% with product=item.product %}
-        <div class="col-xl-3 col-lg-4 col-md-6 mb-4 wishlist-item" data-item-id="{{ item.id }}">
+        <div class="col-xl-3 col-lg-4 col-md-6 mb-4 wishlist-item" 
+             data-item-id="{{ item.id }}"
+             data-category="{{ product.category.id }}"
+             data-genders="{{ product.available_genders|join:',' }}">
             <div class="wishlist-card">
                 <div class="product-image-container position-relative">
                     <!-- Remove button -->
@@ -170,14 +290,14 @@
                     <div class="mb-2">
                         <small class="text-muted">
                             <i class="fas fa-tag me-1"></i>
-                            {{ product.brand.name|default:"No Brand" }}
+                            {{ product.brand|default:"No Brand" }}
                         </small>
                     </div>
                     
                     <div class="mb-2">
                         <small class="text-muted">
-                            <i class="fas fa-venus-mars me-1"></i>
-                            {{ product.get_gender_display }}
+                            <i class="fas fa-layer-group me-1"></i>
+                            {{ product.category.name }}
                         </small>
                     </div>
                     
@@ -196,7 +316,7 @@
                                     <span class="product-price">₹{{ variant.price }}</span>
                                 {% endif %}
                                 <small class="text-muted d-block">
-                                    {{ variant.volume_ml }}ml • SKU: {{ variant.sku|default:"N/A" }}
+                                    {{ variant.volume_ml }}ml • {{ variant.gender }}
                                 </small>
                             {% else %}
                                 <span class="text-muted">No variants available</span>
@@ -210,6 +330,7 @@
                             {% if variant and variant.stock > 0 %}
                             <button class="btn btn-primary btn-sm add-to-cart-from-wishlist" 
                                     data-variant-id="{{ variant.id }}"
+                                    data-product-id="{{ product.id }}"
                                     style="flex: 1;">
                                 <i class="fas fa-shopping-cart me-1"></i> Add to Cart
                             </button>
@@ -241,16 +362,38 @@
     </div>
     
     {% else %}
-    <div class="empty-wishlist">
-        <div class="empty-wishlist-icon">
-            <i class="far fa-heart"></i>
+    <div class="text-center py-5">
+        <div class="empty-wishlist-icon mb-4">
+            {% if search_query or selected_category or selected_gender %}
+                <i class="fas fa-search fa-3x text-muted"></i>
+            {% else %}
+                <i class="far fa-heart fa-3x text-muted"></i>
+            {% endif %}
         </div>
-        <h3 class="mb-3">Your wishlist is empty</h3>
-        <p class="text-muted mb-4">Looks like you haven't added any products to your wishlist yet.</p>
+        <h3 class="mb-3">
+            {% if search_query or selected_category or selected_gender %}
+                No matching items found
+            {% else %}
+                Your wishlist is empty
+            {% endif %}
+        </h3>
+        <p class="text-muted mb-4">
+            {% if search_query or selected_category or selected_gender %}
+                Try adjusting your filters or search terms
+            {% else %}
+                Looks like you haven't added any products to your wishlist yet.
+            {% endif %}
+        </p>
         <div class="d-flex justify-content-center gap-3">
+            {% if search_query or selected_category or selected_gender %}
+            <a href="{% url 'wishlist' %}" class="btn btn-primary">
+                <i class="fas fa-times me-1"></i> Clear All Filters
+            </a>
+            {% else %}
             <a href="{% url 'men' %}" class="btn btn-outline-primary">Browse Men's</a>
             <a href="{% url 'women' %}" class="btn btn-outline-primary">Browse Women's</a>
             <a href="{% url 'unisex' %}" class="btn btn-outline-primary">Browse Unisex</a>
+            {% endif %}
         </div>
     </div>
     {% endif %}
@@ -276,8 +419,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add to cart from wishlist
     document.querySelectorAll('.add-to-cart-from-wishlist').forEach(button => {
         button.addEventListener('click', function() {
+            const productId = this.getAttribute('data-product-id');
             const variantId = this.getAttribute('data-variant-id');
-            addToCartFromWishlist(variantId, this);
+            addToCartFromWishlist(productId, variantId, this);
         });
     });
     
@@ -315,9 +459,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => {
                     card.remove();
                     
-                    // Update wishlist count
-                    if (window.wishlistManager) {
-                        window.wishlistManager.updateWishlistBadge(data.wishlist_total_items);
+                    // Update wishlist count badge
+                    const countElement = document.getElementById('wishlist-count');
+                    if (countElement) {
+                        const currentCount = parseInt(countElement.textContent.match(/\d+/)[0]) || 0;
+                        countElement.textContent = `${currentCount - 1} item${currentCount - 1 !== 1 ? 's' : ''}`;
                     }
                     
                     // Show notification
@@ -337,55 +483,37 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    async function addToCartFromWishlist(variantId, buttonElement) {
-        const originalHtml = buttonElement.innerHTML;
-        buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        buttonElement.disabled = true;
-        
+    async function addToCartFromWishlist(productId, variantId, buttonElement) {
         try {
-            const csrfToken = getCookie('csrftoken');
-            
-            const response = await fetch(`/cart/add/${variantId}/`, {
+            const response = await fetch(`/wishlist/move-to-cart/${productId}/`, {
                 method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': csrfToken,
-                },
-                body: `quantity=1`
+                    'X-CSRFToken': getCookie('csrftoken'),
+                }
             });
             
             const data = await response.json();
             
             if (data.success) {
-                // Update button
-                buttonElement.innerHTML = '<i class="fas fa-check me-1"></i> Added';
-                buttonElement.classList.remove('btn-primary');
-                buttonElement.classList.add('btn-success');
+                // Remove the wishlist item from DOM
+                const wishlistItem = buttonElement.closest('.wishlist-item');
+                wishlistItem.remove();
                 
-                // Update cart count
-                if (window.wishlistManager && window.wishlistManager.updateCartBadge) {
-                    window.wishlistManager.updateCartBadge(data.cart_total_items);
+                // Update wishlist count badge
+                const countElement = document.getElementById('wishlist-count');
+                if (countElement) {
+                    const currentCount = parseInt(countElement.textContent.match(/\d+/)[0]) || 0;
+                    countElement.textContent = `${currentCount - 1} item${currentCount - 1 !== 1 ? 's' : ''}`;
                 }
                 
-                showNotification('Added to cart!', 'success');
-                
-                // Reset button after 2 seconds
-                setTimeout(() => {
-                    buttonElement.innerHTML = '<i class="fas fa-shopping-cart me-1"></i> Add to Cart';
-                    buttonElement.classList.remove('btn-success');
-                    buttonElement.classList.add('btn-primary');
-                    buttonElement.disabled = false;
-                }, 2000);
+                showNotification('Added to cart and removed from wishlist!', 'success');
             } else {
-                buttonElement.innerHTML = originalHtml;
-                buttonElement.disabled = false;
                 showNotification(data.message || 'Error adding to cart', 'error');
             }
         } catch (error) {
             console.error('Error adding to cart:', error);
-            buttonElement.innerHTML = originalHtml;
-            buttonElement.disabled = false;
-            showNotification('Network error. Please try again.', 'error');
+            showNotification('Error adding to cart', 'error');
         }
     }
     
@@ -401,18 +529,15 @@ document.addEventListener('DOMContentLoaded', function() {
         let errorCount = 0;
         
         for (const button of buttons) {
-            const variantId = button.getAttribute('data-variant-id');
-            if (variantId) {
+            const productId = button.getAttribute('data-product-id');
+            if (productId) {
                 try {
-                    const csrfToken = getCookie('csrftoken');
-                    
-                    const response = await fetch(`/cart/add/${variantId}/`, {
+                    const response = await fetch(`/wishlist/move-to-cart/${productId}/`, {
                         method: 'POST',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRFToken': csrfToken,
-                        },
-                        body: `quantity=1`
+                            'X-CSRFToken': getCookie('csrftoken'),
+                        }
                     });
                     
                     const data = await response.json();
@@ -423,6 +548,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         button.classList.remove('btn-primary');
                         button.classList.add('btn-success');
                         button.disabled = true;
+                        
+                        // Remove from DOM after a delay
+                        setTimeout(() => {
+                            const wishlistItem = button.closest('.wishlist-item');
+                            if (wishlistItem) {
+                                wishlistItem.remove();
+                            }
+                        }, 500);
                     } else {
                         errorCount++;
                     }
@@ -432,32 +565,35 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Update cart count
-        try {
-            const cartResponse = await fetch('/cart/count/');
-            const cartData = await cartResponse.json();
-            if (cartData.count !== undefined && window.wishlistManager) {
-                window.wishlistManager.updateCartBadge(cartData.count);
+        // Update wishlist count
+        setTimeout(() => {
+            const remainingItems = document.querySelectorAll('.wishlist-item').length;
+            const countElement = document.getElementById('wishlist-count');
+            if (countElement) {
+                countElement.textContent = `${remainingItems} item${remainingItems !== 1 ? 's' : ''}`;
             }
-        } catch (error) {
-            console.log('Could not update cart count');
-        }
-        
-        // Show result
-        let message = '';
-        if (addedCount > 0 && errorCount === 0) {
-            message = `Successfully added ${addedCount} item${addedCount > 1 ? 's' : ''} to cart!`;
-            showNotification(message, 'success');
-        } else if (addedCount > 0 && errorCount > 0) {
-            message = `Added ${addedCount} item${addedCount > 1 ? 's' : ''}, ${errorCount} failed`;
-            showNotification(message, 'info');
-        } else {
-            message = 'No items could be added to cart';
-            showNotification(message, 'error');
-        }
-        
-        addAllBtn.innerHTML = originalText;
-        addAllBtn.disabled = false;
+            
+            // Show result
+            let message = '';
+            if (addedCount > 0 && errorCount === 0) {
+                message = `Successfully added ${addedCount} item${addedCount > 1 ? 's' : ''} to cart!`;
+                showNotification(message, 'success');
+            } else if (addedCount > 0 && errorCount > 0) {
+                message = `Added ${addedCount} item${addedCount > 1 ? 's' : ''}, ${errorCount} failed`;
+                showNotification(message, 'info');
+            } else {
+                message = 'No items could be added to cart';
+                showNotification(message, 'error');
+            }
+            
+            addAllBtn.innerHTML = originalText;
+            addAllBtn.disabled = false;
+            
+            // If no items left, reload page
+            if (remainingItems === 0) {
+                setTimeout(() => location.reload(), 1000);
+            }
+        }, 1000);
     }
     
     // Utility functions
@@ -482,17 +618,140 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!notification) {
             notification = document.createElement('div');
             notification.id = 'global-notification';
-            notification.className = 'notification';
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 5px;
+                color: white;
+                z-index: 9999;
+                display: none;
+                max-width: 300px;
+            `;
             document.body.appendChild(notification);
         }
         
+        // Set type-specific styles
+        if (type === 'success') {
+            notification.style.backgroundColor = '#28a745';
+        } else if (type === 'error') {
+            notification.style.backgroundColor = '#dc3545';
+        } else if (type === 'info') {
+            notification.style.backgroundColor = '#17a2b8';
+        }
+        
         notification.textContent = message;
-        notification.className = `notification ${type} show`;
+        notification.style.display = 'block';
         
         setTimeout(() => {
-            notification.classList.remove('show');
+            notification.style.display = 'none';
         }, 3000);
     }
+    
+    // AJAX Filtering (optional enhancement)
+    function initAjaxFiltering() {
+        const searchInput = document.getElementById('search-input');
+        const categorySelect = document.getElementById('category-select');
+        const genderSelect = document.getElementById('gender-select');
+        const filterForm = document.getElementById('filter-form');
+        
+        if (!filterForm) return;
+        
+        // Debounce function to prevent too many requests
+        let debounceTimer;
+        function debounce(func, delay) {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(func, delay);
+        }
+        
+        // Function to update filters via AJAX
+        function updateFilters() {
+            const formData = new FormData(filterForm);
+            const params = new URLSearchParams(formData);
+            
+            // Show loading indicator
+            const container = document.getElementById('wishlist-items-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading filtered items...</p>
+                    </div>
+                `;
+            }
+            
+            // Update URL without reloading page
+            const newUrl = `${window.location.pathname}?${params.toString()}`;
+            window.history.pushState({}, '', newUrl);
+            
+            // Fetch filtered results
+            fetch(`${window.location.pathname}?${params.toString()}&ajax=1`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.html) {
+                    document.getElementById('wishlist-items-container').innerHTML = data.html;
+                    document.getElementById('wishlist-count').textContent = 
+                        `${data.count} item${data.count !== 1 ? 's' : ''}`;
+                    
+                    // Reattach event listeners to new elements
+                    attachWishlistEventListeners();
+                }
+            })
+            .catch(error => {
+                console.error('Error filtering wishlist:', error);
+                // Fallback to regular form submission
+                filterForm.submit();
+            });
+        }
+        
+        // Event listeners for real-time filtering
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                debounce(updateFilters, 500);
+            });
+        }
+        
+        if (categorySelect) {
+            categorySelect.addEventListener('change', updateFilters);
+        }
+        
+        if (genderSelect) {
+            genderSelect.addEventListener('change', updateFilters);
+        }
+        
+        // Function to reattach event listeners
+        function attachWishlistEventListeners() {
+            document.querySelectorAll('.remove-from-wishlist').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const itemId = this.getAttribute('data-item-id');
+                    const csrfToken = this.getAttribute('data-csrf');
+                    
+                    if (confirm('Remove this item from your wishlist?')) {
+                        removeFromWishlist(itemId, csrfToken, this);
+                    }
+                });
+            });
+            
+            document.querySelectorAll('.add-to-cart-from-wishlist').forEach(button => {
+                button.addEventListener('click', function() {
+                    const productId = this.getAttribute('data-product-id');
+                    const variantId = this.getAttribute('data-variant-id');
+                    addToCartFromWishlist(productId, variantId, this);
+                });
+            });
+        }
+    }
+    
+    // Initialize AJAX filtering
+    initAjaxFiltering();
 });
 </script>
 {% endblock %}

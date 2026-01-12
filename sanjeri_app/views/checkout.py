@@ -1,4 +1,5 @@
 # views/checkout.py
+# views/checkout.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -6,9 +7,46 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.db import transaction
 from decimal import Decimal
-from ..models import Cart, CartItem, Address, Order, OrderItem
+from ..models import Cart, CartItem, Address, Order, OrderItem, Coupon
 
-# Update the checkout_view to include payment options
+# Add these helper functions at the top of the file
+def get_coupon_display_data(cart, coupon_data):
+    """Helper function to get coupon display data"""
+    if not coupon_data:
+        return None
+    
+    try:
+        coupon = Coupon.objects.get(id=coupon_data['coupon_id'])
+        discount_amount = coupon.calculate_discount(cart.subtotal)
+        
+        return {
+            'code': coupon.code,
+            'discount_type': coupon.discount_type,
+            'discount_value': coupon.discount_value,
+            'discount_amount': discount_amount,
+            'display_text': f'{coupon.discount_value}{"%" if coupon.discount_type == "percentage" else "₹"} OFF',
+            'description': get_coupon_description(coupon)
+        }
+    except Coupon.DoesNotExist:
+        return None
+
+def get_coupon_description(coupon):
+    """Generate coupon description"""
+    description = []
+    
+    if coupon.discount_type == 'percentage':
+        description.append(f'{coupon.discount_value}% discount')
+    else:
+        description.append(f'₹{coupon.discount_value} off')
+    
+    if coupon.min_order_amount > 0:
+        description.append(f'on orders above ₹{coupon.min_order_amount}')
+    
+    if coupon.max_discount_amount:
+        description.append(f'(max ₹{coupon.max_discount_amount})')
+    
+    return ' '.join(description)
+
 @login_required
 def checkout_view(request):
     """Checkout page with address selection and order summary"""
@@ -29,38 +67,88 @@ def checkout_view(request):
         addresses = Address.objects.filter(user=request.user)
         default_address = addresses.filter(is_default=True).first()
         
-        # Calculate order totals - Use Decimal consistently
+        # Get user wallet balance
+        wallet_balance = Decimal('0')
+        try:
+            wallet_balance = request.user.wallet.balance
+        except:
+            pass
+        
+        # Get applied coupon from session
+        applied_coupon_data = request.session.get('applied_coupon')
+        coupon_display = None
+        coupon_discount = Decimal('0')
+        
+        if applied_coupon_data:
+            try:
+                coupon = Coupon.objects.get(id=applied_coupon_data['coupon_id'], active=True)
+                is_valid, message = coupon.is_valid(
+                    user=request.user,
+                    order_amount=cart.subtotal
+                )
+                
+                if is_valid:
+                    coupon_discount = coupon.calculate_discount(cart.subtotal)
+                    coupon_display = get_coupon_display_data(cart, applied_coupon_data)
+                else:
+                    # Remove invalid coupon from session
+                    del request.session['applied_coupon']
+                    messages.warning(request, f'Coupon "{coupon.code}" is no longer valid: {message}')
+            except Coupon.DoesNotExist:
+                # Remove invalid coupon from session
+                if 'applied_coupon' in request.session:
+                    del request.session['applied_coupon']
+        
+        # Calculate order totals
         subtotal = cart.subtotal
-        discount_amount = Decimal('0') 
-        if subtotal > Decimal('1000'):
-            discount_amount = subtotal * Decimal('0.10')
+        
+        # Apply coupon discount
+        coupon_discount_amount = coupon_discount
+        
+        # Apply existing 10% discount on orders above 1000
+        subtotal_after_coupon = subtotal - coupon_discount
+        additional_discount = Decimal('0')
+        if subtotal_after_coupon > Decimal('1000'):
+            additional_discount = subtotal_after_coupon * Decimal('0.10')
+        
+        # Total discount
+        total_discount = coupon_discount_amount + additional_discount
+        
         shipping_charge = Decimal('0') if subtotal > Decimal('500') else Decimal('40')
-        tax_amount = subtotal * Decimal('0.18')
-        total_amount = subtotal + shipping_charge + tax_amount - discount_amount
+        tax_amount = (subtotal - coupon_discount_amount) * Decimal('0.18')
+        total_amount_before_wallet = subtotal + shipping_charge + tax_amount - total_discount
+        
+        # Calculate max wallet amount that can be used
+        max_wallet_amount = min(wallet_balance, total_amount_before_wallet)
         
         context = {
             'cart': cart,
             'cart_items': cart_items,
             'addresses': addresses,
             'default_address': default_address,
+            'applied_coupon': coupon_display,
+            'wallet_balance': wallet_balance,
+            'max_wallet_amount': max_wallet_amount,
             'subtotal': subtotal,
-            'discount_amount': discount_amount,
+            'discount_amount': total_discount,
+            'coupon_discount': coupon_discount_amount,
+            'additional_discount': additional_discount,
             'shipping_charge': shipping_charge,
             'tax_amount': tax_amount,
-            'total_amount': total_amount,
-            'show_online_payment': True,  # Enable online payment option
+            'total_amount_before_wallet': total_amount_before_wallet,
+            'show_online_payment': True,
+            'wallet_balance_formatted': f"{wallet_balance:,.2f}",
         }
         return render(request, 'checkout/checkout.html', context)
         
     except Cart.DoesNotExist:
         messages.warning(request, "Your cart is empty. Add some products to checkout.")
         return redirect('cart')
-    
 
 @login_required
 @require_POST
 def place_order(request):
-    """Place order with payment method selection"""
+    """Place order with wallet payment option"""
     try:
         with transaction.atomic():
             cart = Cart.objects.get(user=request.user)
@@ -90,22 +178,105 @@ def place_order(request):
             # Get payment method
             payment_method = request.POST.get('payment_method', 'cod')
             
+            # Get wallet payment details
+            use_wallet = request.POST.get('use_wallet') == 'true'
+            wallet_amount = Decimal(request.POST.get('wallet_amount', '0'))
+            
             address = get_object_or_404(Address, id=address_id, user=request.user)
             
-            # Calculate discount (same logic as checkout view)
+            # Get applied coupon
+            coupon = None
+            coupon_discount = Decimal('0')
+            applied_coupon_data = request.session.get('applied_coupon')
+            
+            if applied_coupon_data:
+                try:
+                    coupon = Coupon.objects.get(id=applied_coupon_data['coupon_id'], active=True)
+                    is_valid, message = coupon.is_valid(
+                        user=request.user,
+                        order_amount=cart.subtotal
+                    )
+                    
+                    if is_valid:
+                        coupon_discount = coupon.calculate_discount(cart.subtotal)
+                    else:
+                        coupon = None
+                        coupon_discount = Decimal('0')
+                        
+                except Coupon.DoesNotExist:
+                    coupon = None
+                    coupon_discount = Decimal('0')
+            
+            # Calculate subtotal
             subtotal = cart.subtotal
-            discount_amount = Decimal('0')
-            if subtotal > Decimal('1000'):
-                discount_amount = subtotal * Decimal('0.10')
-                
+            
+            # Apply coupon discount
+            if coupon_discount > subtotal:
+                coupon_discount = subtotal
+            
+            subtotal_after_coupon = subtotal - coupon_discount
+            
+            # Apply existing 10% discount
+            other_discount = Decimal('0')
+            if subtotal_after_coupon > Decimal('1000'):
+                other_discount = subtotal_after_coupon * Decimal('0.10')
+            
+            # Calculate total discount
+            total_discount = coupon_discount + other_discount
+            
+            # Calculate shipping and tax
+            shipping_charge = Decimal('0') if subtotal > Decimal('500') else Decimal('40')
+            tax_amount = (subtotal - coupon_discount) * Decimal('0.18')
+            
+            # Calculate total amount before wallet
+            total_before_wallet = subtotal + shipping_charge + tax_amount - total_discount
+            
+            # Validate wallet payment
+            wallet_amount_to_use = Decimal('0')
+            if use_wallet and wallet_amount > 0:
+                # Check wallet balance
+                try:
+                    if request.user.wallet.balance >= wallet_amount:
+                        wallet_amount_to_use = min(wallet_amount, total_before_wallet)
+                    else:
+                        return JsonResponse({
+                            'success': False,
+                            'message': 'Insufficient wallet balance.'
+                        })
+                except:
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'Wallet not found.'
+                    })
+            
+            # Calculate final amount to pay
+            final_amount = total_before_wallet - wallet_amount_to_use
+            
+            # Determine payment method based on wallet usage
+            if wallet_amount_to_use >= total_before_wallet:
+                payment_method = 'wallet'  # Full wallet payment
+                payment_status = 'completed'
+            elif wallet_amount_to_use > 0:
+                payment_method = 'mixed'  # Mixed payment
+                payment_status = 'pending' if final_amount > 0 else 'completed'
+            else:
+                payment_status = 'pending' if payment_method == 'online' else 'pending'
+            
             # Create order
             order = Order.objects.create(
                 user=request.user,
                 shipping_address=address,
                 payment_method=payment_method,
-                payment_status='pending' if payment_method == 'online' else 'pending',
+                payment_status=payment_status,
+                coupon=coupon,
+                coupon_discount=coupon_discount,
+                wallet_amount=wallet_amount_to_use,
+                wallet_used=(wallet_amount_to_use > 0),
                 subtotal=subtotal,
-                discount_amount=discount_amount,
+                discount_amount=total_discount,
+                shipping_charge=shipping_charge,
+                tax_amount=tax_amount,
+                total_amount=final_amount,
             )
             
             # Create order items
@@ -125,25 +296,47 @@ def place_order(request):
                 cart_item.variant.stock -= cart_item.quantity
                 cart_item.variant.save()
             
-            # Calculate order totals
-            order.calculate_totals()
+            # Process wallet payment if any
+            if wallet_amount_to_use > 0:
+                # Deduct from wallet
+                request.user.wallet.withdraw(
+                    wallet_amount_to_use,
+                    reason=f"Payment for order #{order.order_number}",
+                    order=order
+                )
+            
+            # Increment coupon usage if coupon was applied
+            if coupon:
+                coupon.increment_usage()
             
             # Clear cart after successful order
             cart.clear_cart()
             
-            # Handle different payment methods
-            if payment_method == 'online':
-                # Store order ID in session for failed payments
-                request.session['last_order_id'] = order.id
-                
-                return JsonResponse({
-                    'success': True,
-                    'payment_required': True,
-                    'redirect_url': f'/payment/initiate/{order.id}/'
-                })
+            # Clear coupon from session
+            if 'applied_coupon' in request.session:
+                del request.session['applied_coupon']
+            
+            # Handle different payment scenarios
+            if final_amount > 0:
+                if payment_method in ['online', 'mixed'] and final_amount > 0:
+                    # Need online payment for remaining amount
+                    request.session['last_order_id'] = order.id
+                    
+                    return JsonResponse({
+                        'success': True,
+                        'payment_required': True,
+                        'redirect_url': f'/payment/initiate/{order.id}/'
+                    })
+                else:
+                    # COD for remaining amount
+                    return JsonResponse({
+                        'success': True,
+                        'payment_required': False,
+                        'redirect_url': f'/order-success/{order.id}/'
+                    })
             else:
-                # COD - redirect directly to success
-                order.payment_status = 'pending'  # COD is pending until delivered
+                # Fully paid with wallet
+                order.payment_status = 'completed'
                 order.save()
                 
                 return JsonResponse({
@@ -153,12 +346,12 @@ def place_order(request):
                 })
             
     except Exception as e:
+        import traceback
         return JsonResponse({
             'success': False,
             'message': f'Error placing order: {str(e)}'
         })
-    
-    
+
 @login_required
 def order_success(request, order_id):
     """Order success page"""
@@ -180,3 +373,4 @@ def order_detail(request, order_id):
         'order_items': order.items.all(),
     }
     return render(request, 'checkout/order_detail.html', context)
+

@@ -1,0 +1,119 @@
+{% for item in wishlist_items %}
+{% with product=item.product %}
+<div class="col-xl-3 col-lg-4 col-md-6 mb-4 wishlist-item" 
+     data-item-id="{{ item.id }}"
+     data-category="{{ product.category.id }}"
+     data-genders="{{ product.available_genders|join:',' }}">
+    <div class="wishlist-card">
+        <div class="product-image-container position-relative">
+            <button class="remove-wishlist-btn remove-from-wishlist" 
+                    data-item-id="{{ item.id }}"
+                    data-csrf="{{ csrf_token }}"
+                    title="Remove from wishlist">
+                <i class="fas fa-times"></i>
+            </button>
+            
+            {% if product.images.exists %}
+                <img src="{{ product.images.first.image.url }}" 
+                     class="product-image" 
+                     alt="{{ product.name }}"
+                     loading="lazy">
+            {% elif product.main_image %}
+                <img src="{{ product.main_image.url }}" 
+                     class="product-image" 
+                     alt="{{ product.name }}"
+                     loading="lazy">
+            {% else %}
+                <div class="no-image-placeholder">
+                    <i class="fas fa-perfume-bottle"></i>
+                </div>
+            {% endif %}
+            
+            {% with variant=product.variants.first %}
+                {% if variant.discount_price and variant.discount_price < variant.price %}
+                <span class="badge bg-success position-absolute top-0 start-0 m-2">
+                    {{ variant.get_discount_percentage }}% OFF
+                </span>
+                {% endif %}
+            {% endwith %}
+        </div>
+        
+        <div class="p-3">
+            <h5 class="product-title mb-2">
+                <a href="{% url 'product_detail' product.id %}" class="text-decoration-none text-dark">
+                    {{ product.name|truncatechars:40 }}
+                </a>
+            </h5>
+            
+            <div class="mb-2">
+                <small class="text-muted">
+                    <i class="fas fa-tag me-1"></i>
+                    {{ product.brand.name|default:"No Brand" }}
+                </small>
+            </div>
+            
+            <div class="mb-2">
+                <small class="text-muted">
+                    <i class="fas fa-venus-mars me-1"></i>
+                    {{ product.get_gender_display }}
+                </small>
+            </div>
+            
+            <!-- Price -->
+            <div class="mb-3">
+                {% with variant=product.variants.first %}
+                    {% if variant %}
+                        {% if variant.discount_price and variant.discount_price < variant.price %}
+                            <div class="d-flex align-items-center">
+                                <span class="product-price">₹{{ variant.discount_price }}</span>
+                                <small class="text-muted text-decoration-line-through ms-2">
+                                    ₹{{ variant.price }}
+                                </small>
+                            </div>
+                        {% else %}
+                            <span class="product-price">₹{{ variant.price }}</span>
+                        {% endif %}
+                        <small class="text-muted d-block">
+                            {{ variant.volume_ml }}ml • SKU: {{ variant.sku|default:"N/A" }}
+                        </small>
+                    {% else %}
+                        <span class="text-muted">No variants available</span>
+                    {% endif %}
+                {% endwith %}
+            </div>
+            
+            <!-- Actions -->
+            <div class="product-actions">
+                {% with variant=product.variants.first %}
+                    {% if variant and variant.stock > 0 %}
+                    <button class="btn btn-primary btn-sm add-to-cart-from-wishlist" 
+                            data-variant-id="{{ variant.id }}"
+                            style="flex: 1;">
+                        <i class="fas fa-shopping-cart me-1"></i> Add to Cart
+                    </button>
+                    {% else %}
+                    <button class="btn btn-secondary btn-sm" disabled style="flex: 1;">
+                        <i class="fas fa-times me-1"></i> Out of Stock
+                    </button>
+                    {% endif %}
+                {% endwith %}
+                
+                <a href="{% url 'product_detail' product.id %}" 
+                   class="btn btn-outline-dark btn-sm" 
+                   style="flex: 1;">
+                    <i class="fas fa-eye me-1"></i> View
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endwith %}
+{% empty %}
+<div class="col-12 text-center py-5">
+    <div class="empty-wishlist-icon mb-4">
+        <i class="fas fa-search fa-3x text-muted"></i>
+    </div>
+    <h3 class="mb-3">No matching items found</h3>
+    <p class="text-muted">Try adjusting your filters</p>
+</div>
+{% endfor %}

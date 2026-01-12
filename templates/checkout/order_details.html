@@ -413,6 +413,23 @@
 </div>
 {% endif %}
 
+<!-- Add this section to show wallet refund info -->
+{% if order.refund_to_wallet %}
+<div class="alert alert-success">
+    <h6>Wallet Refund Processed</h6>
+    <p>Amount: ₹{{ order.refund_amount }}</p>
+    <p>Processed at: {{ order.refund_processed_at|date:"F d, Y H:i" }}</p>
+    <p>Check your <a href="{% url 'wallet_dashboard' %}">wallet balance</a> for the refund.</p>
+</div>
+{% endif %}
+
+<!-- Add return button if eligible -->
+{% if order.can_be_returned %}
+<a href="{% url 'request_return' order.id %}" class="btn btn-warning">
+    Request Return
+</a>
+{% endif %}
+
 <style>
 /* Timeline Styles */
 .timeline {

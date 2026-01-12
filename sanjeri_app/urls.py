@@ -14,10 +14,21 @@ from .views.checkout import *
 from .views.admin_order_management import *
 from .views.payment import *
 from .views.wishlist import *
+from .views.payment import *
+from .views.coupon_views import apply_coupon, remove_coupon
 from .views.view_userside import (
     home, men_products, women_products, unisex_products, 
     brands, product_search, wishlist, cart, all_products, brand_products
 )
+from .views.order_management import *
+
+# from .views.wallet_views import (
+#     wallet_dashboard,
+#     WalletTransactionListView,
+#     request_return,
+#     cancel_order as wallet_cancel_order,
+#     wallet_payment,
+# )
 from .views.order_management import order_list, order_detail, cancel_order, cancel_order_item, return_order, download_invoice
 
 urlpatterns = [
@@ -92,6 +103,7 @@ path('products/<int:product_pk>/variants/<int:variant_pk>/restore/', variant_res
     path('wishlist/', wishlist_view, name='wishlist'),
     path('wishlist/add/<int:product_id>/', add_to_wishlist, name='add_to_wishlist'),
     path('wishlist/remove/<int:item_id>/', remove_from_wishlist, name='remove_from_wishlist'),
+    path('wishlist/move-to-cart/<int:product_id>/', add_to_cart_from_wishlist, name='move_to_cart_from_wishlist'),
 
     # Cart URLs
     path('cart/check-variant/<int:variant_id>/', check_variant_in_cart, name='check_variant_in_cart'),
@@ -132,7 +144,7 @@ path('products/<int:product_pk>/variants/<int:variant_pk>/restore/', variant_res
     path('orders/', order_list, name='order_list'),
     path('orders/<int:order_id>/', order_detail, name='order_detail'),
     path('orders/<int:order_id>/cancel/', cancel_order, name='cancel_order'),
-    path('order-items/<int:item_id>/cancel/', cancel_order_item, name='cancel_order_item'),
+    path('order-items/<int:item_id>/cancel/', cancel_order_item, name='cancel_order'),
     path('orders/<int:order_id>/return/', return_order, name='return_order'),
     path('orders/<int:order_id>/invoice/', download_invoice, name='download_invoice'),
 
@@ -156,13 +168,29 @@ path('order-management/', admin_order_list, name='admin_order_list'),
 path('order-management/<int:order_id>/', admin_order_detail, name='admin_order_detail'),
 path('order-management/<int:order_id>/update-status/', update_order_status, name='update_order_status'),
 
+
 # Inventory Management URLs
 path('inventory-management/', admin_inventory_management, name='admin_inventory_management'),
 path('inventory-management/<int:variant_id>/update-stock/', update_stock, name='update_stock'),
 
- # Payment URLs
-    path('payment/initiate/<int:order_id>/', initiate_payment, name='initiate_payment'),
-    path('payment/success/', payment_success, name='payment_success'),
-    path('payment/failed/', payment_failed, name='payment_failed'),
-    path('payment/retry/<int:order_id>/', retry_payment, name='retry_payment'),
+# Payment URLs
+    path('order/<int:order_id>/checkout/',checkout_payment, name='checkout_payment'),
+    path('order/<int:order_id>/pay/',initiate_payment, name='initiate_payment'),
+    path('payment/success/',payment_success, name='payment_success'),
+    path('razorpay/webhook/',payment_webhook, name='payment_webhook'),
+    path('order/<int:order_id>/payment-failed/',payment_failure, name='payment_failure'),
+    path('order/<int:order_id>/retry-payment/',retry_payment, name='retry_payment'),
+# Coupon URLs
+    path('coupon/apply/', apply_coupon, name='apply_coupon'),
+    path('coupon/remove/', remove_coupon, name='remove_coupon'),
+
+    # Wallet URLs
+    # path('wallet/', wallet_dashboard, name='wallet_dashboard'),
+    # path('wallet/transactions/', WalletTransactionListView.as_view(), name='wallet_transactions'),
+    # path('order/<int:order_id>/return/', request_return, name='request_return'),
+    # path('order/<int:order_id>/cancel-wallet/', wallet_cancel_order, name='cancel_order_wallet'),
+    # path('wallet/payment/', wallet_payment, name='wallet_payment'),
+
+# user order management
+path('order-items/<int:item_id>/cancel/', cancel_order_item, name='cancel_order_item'),
 ]

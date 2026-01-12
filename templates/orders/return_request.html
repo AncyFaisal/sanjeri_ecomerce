@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Request Return for Order #{{ order.order_number }}</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5>Return Policy:</h5>
+                        <ul>
+                            <li>Returns are accepted within 7 days of delivery</li>
+                            <li>Products must be in original condition</li>
+                            <li>Refund will be processed to your wallet after admin approval</li>
+                            <li>Shipping charges are non-refundable</li>
+                        </ul>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Reason for Return *</label>
+                            <textarea class="form-control" id="reason" name="reason" rows="4" required></textarea>
+                            <div class="form-text">Please provide detailed reason for return</div>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <h6>Refund Information:</h6>
+                            <p>Total Amount: ₹{{ order.total_amount }}</p>
+                            <p>Refund will be processed to your wallet after admin approval</p>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'order_detail' order.id %}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Submit Return Request</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

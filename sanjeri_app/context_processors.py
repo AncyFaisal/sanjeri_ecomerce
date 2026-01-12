@@ -1,6 +1,22 @@
 # # your_project/your_app/context_processors.py
 from django.db.models import Sum
 from .models import Cart, Wishlist
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+def wallet_balance(request):
+    if request.user.is_authenticated:
+        try:
+            # Import inside the function to avoid circular imports
+            from sanjeri_app.models.wallet import Wallet
+            wallet = Wallet.objects.get(user=request.user)
+            return {'wallet_balance': wallet.balance}
+        except Exception as e:
+            # Log the error for debugging
+            print(f"Wallet context processor error: {e}")
+            return {'wallet_balance': 0}
+    return {'wallet_balance': 0}
 
 def cart_and_wishlist_context(request):
     """
@@ -9,6 +25,10 @@ def cart_and_wishlist_context(request):
     context = {}
     
     if request.user.is_authenticated:
+        # Import inside function
+        from sanjeri_app.models.cart import Cart
+        from sanjeri_app.models.wishlist import Wishlist
+        
         # Cart count
         try:
             cart = Cart.objects.get(user=request.user)
@@ -18,10 +38,9 @@ def cart_and_wishlist_context(request):
             context['cart_item_count'] = 0
             context['cart_items_count'] = 0
         
-        # Wishlist count - SIMPLIFIED FIXED VERSION
+        # Wishlist count
         try:
             wishlist = Wishlist.objects.get(user=request.user)
-            # Use the total_items property we just added
             context['wishlist_count'] = wishlist.total_items
             context['wishlist_items_count'] = wishlist.total_items
         except Wishlist.DoesNotExist:

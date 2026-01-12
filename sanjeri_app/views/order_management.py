@@ -42,30 +42,7 @@ def order_list(request):
     }
     return render(request, 'orders/order_list.html', context)
 
-@login_required
-@require_POST
-def cancel_order(request, order_id):
-    """Cancel entire order with optional reason"""
-    order = get_object_or_404(Order, id=order_id, user=request.user)
-    
-    if not order.can_be_cancelled:
-        messages.error(request, "This order cannot be cancelled.")
-        return redirect('order_list')
-    
-    reason = request.POST.get('reason', '').strip()
-    
-    if order.cancel_order(reason):
-        messages.success(request, f"Order #{order.order_number} has been cancelled successfully.")
-        
-        # If all items are cancelled, refund payment (for online payments)
-        if order.payment_method == 'online' and order.payment_status == 'completed':
-            # Add refund logic here
-            order.payment_status = 'refunded'
-            order.save()
-    else:
-        messages.error(request, "Failed to cancel order.")
-    
-    return redirect('order_list')
+
 
 @login_required
 @require_POST
@@ -93,33 +70,48 @@ def cancel_order_item(request, item_id):
     
     return redirect('order_detail', order_id=order_item.order.id)
 
+
+
 @login_required
-@require_POST
 def return_order(request, order_id):
-    """Return delivered order with mandatory reason"""
+    """Request return for an order"""
     order = get_object_or_404(Order, id=order_id, user=request.user)
     
-    if not order.can_be_returned:
-        messages.error(request, "This order cannot be returned.")
-        return redirect('order_list')
-    
-    reason = request.POST.get('reason', '').strip()
-    
-    if not reason:
-        messages.error(request, "Please provide a reason for return.")
+    if request.method == 'POST':
+        reason = request.POST.get('reason', '').strip()
+        
+        if not reason:
+            messages.error(request, "Please provide a reason for return.")
+            return redirect('order_detail', order_id=order_id)
+        
+        if order.request_return(reason):
+            messages.success(request, "Return request submitted successfully. Please wait for admin approval.")
+        else:
+            messages.error(request, "Cannot return this order. It may be outside the return period.")
+        
         return redirect('order_detail', order_id=order_id)
     
-    if order.return_order(reason):
-        messages.success(request, f"Order #{order.order_number} return request submitted successfully.")
-        
-        # Refund logic for paid orders
-        if order.payment_status == 'completed':
-            order.payment_status = 'refunded'
-            order.save()
-    else:
-        messages.error(request, "Failed to process return request.")
+    context = {
+        'order': order,
+    }
+    return render(request, 'orders/return_request.html', context)
+
+@login_required
+@require_POST
+def cancel_order(request, order_id):
+    """Cancel order and handle wallet refund"""
+    order = get_object_or_404(Order, id=order_id, user=request.user)
     
-    return redirect('order_list')
+    if order.cancel_order():
+        # Check if any refund was made to wallet
+        if order.refund_to_wallet:
+            messages.success(request, f"Order cancelled successfully. ₹{order.refund_amount} refunded to your wallet.")
+        else:
+            messages.success(request, "Order cancelled successfully.")
+    else:
+        messages.error(request, "Cannot cancel this order. It may have already been shipped.")
+    
+    return redirect('order_detail', order_id=order_id)
 
 @login_required
 def download_invoice(request, order_id):
