@@ -12,6 +12,19 @@
     max-width: 100%;
     object-fit: cover;
     border-radius: 50%;
+    border: 3px solid #007bff;
+    display: block;
+    margin: 0 auto;
+}
+
+/* Add a background so we can see if image is transparent */
+.avatar-container {
+    width: 156px; /* 150px + 3px border each side */
+    height: 156px;
+    margin: 0 auto;
+    border-radius: 50%;
+    background-color: #f0f0f0; /* Light gray background */
+    padding: 3px;
 }
 </style>
 
@@ -20,31 +33,27 @@
         <div class="col-md-3">
             <div class="card">
                 <div class="card-body text-center">
-                    <!-- FIXED: Proper if/elif/else structure -->
-                    {% if user.profile_image and user.profile_image.url == '/media/profile_images/default_profile.png' %}
-                        <img src="{% static 'images/default_profile.png' %}" 
-                             alt="Default Profile" 
-                             class="avatar-img">
-                    {% elif user.profile_image %}
-                        <img src="{{ user.profile_image.url }}" 
-                             alt="Profile" 
-                             class="avatar-img">
-                    {% else %}
-                        <img src="{% static 'images/default_profile.png' %}" 
-                             alt="Default Profile" 
-                             class="avatar-img">
-                    {% endif %}
+                   
                     
-                    <!-- Debug info (optional - remove after testing) -->
-                    <!-- <div class="mt-2 small text-muted">
-                        <small>
-                            {% if user.profile_image %}
-                                Has profile image
-                            {% else %}
-                                Using default
-                            {% endif %}
-                        </small>
-                    </div> -->
+                    <!-- Main avatar -->
+                    <div class="avatar-container">
+                        {% if user.profile_image and user.profile_image.name %}
+                            <!-- User has uploaded image -->
+                            <img src="{{ user.profile_image.url }}" 
+                                 alt="{{ user.get_full_name }}" 
+                                 class="avatar-img"
+                                 onerror="this.onerror=null; this.src='{% static 'css/images/default_avatar.png' %}';">
+                        {% else %}
+                            <!-- Default avatar for new users -->
+                            <img src="{% static 'css/images/default_avatar.png' %}" 
+                                 alt="Default Profile" 
+                                 class="avatar-img"
+                                 id="mainAvatar">
+                        {% endif %}
+                    </div>
+                    
+                    <h5 class="mt-3">{{ user.get_full_name }}</h5>
+                    <p class="text-muted">{{ user.email }}</p>
                 </div>
                 
                 <div class="list-group list-group-flush">
@@ -55,6 +64,7 @@
                 </div>
             </div>
         </div>
+ 
         
         <div class="col-md-9">
             <!-- ... rest of your profile content remains exactly the same ... -->
@@ -148,6 +158,41 @@
             });
         }, 5000);
     });
+
+    document.addEventListener('DOMContentLoaded', function() {
+    const mainAvatar = document.getElementById('mainAvatar');
+    if (mainAvatar) {
+        console.log('Main avatar src:', mainAvatar.src);
+        
+        // Test if image loads
+        const testImg = new Image();
+        testImg.src = mainAvatar.src;
+        
+        testImg.onload = function() {
+            console.log('✅ Avatar loaded successfully');
+            mainAvatar.style.border = '3px solid #28a745'; // Green border on success
+        };
+        
+        testImg.onerror = function() {
+            console.error('❌ Avatar failed to load');
+            mainAvatar.style.border = '3px solid #dc3545'; // Red border on error
+            mainAvatar.style.backgroundColor = '#ffcccc'; // Light red background
+            
+            // Try to load a fallback
+            setTimeout(function() {
+                mainAvatar.src = 'https://via.placeholder.com/150/007bff/ffffff?text=AVATAR';
+            }, 1000);
+        };
+    }
+    
+    // Also log all image sources for debugging
+    const allImages = document.querySelectorAll('img');
+    allImages.forEach((img, index) => {
+        console.log(`Image ${index}:`, img.src);
+    });
+});
+  
+
 </script>
 {% endif %}
 {% endblock %}

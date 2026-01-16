@@ -60,7 +60,7 @@ def homeproduct(request):
         products = products.order_by('-created_at')
 
     # --- Pagination ---
-    paginator = Paginator(products, 5)  # 8 products per page
+    paginator = Paginator(products, 3)  # 8 products per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     selected_categories = request.GET.getlist('category')

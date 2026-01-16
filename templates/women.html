@@ -321,6 +321,26 @@
   .notification.info {
     background-color: #17a2b8;
   }
+
+  /* Add to Cart button states */
+.btn-add-cart-sm.btn-loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.btn-add-cart-sm.btn-loading i {
+    display: none;
+}
+
+.btn-success i {
+    display: inline-block !important;
+}
+
+/* Ensure success button doesn't have loading spinner */
+.btn-success.btn-loading::after {
+    display: none;
+}
+
 </style>
 {% endblock %}
 
@@ -348,6 +368,7 @@
 <div class="container mt-4">
   <div class="search-section bg-light p-4 rounded">
     <form method="GET" action="" class="row g-3 align-items-center">
+      <input type="hidden" name="gender" value="Female">
       <input type="hidden" name="sort" value="{{ request.GET.sort }}">
       <input type="hidden" name="price_range" value="{{ request.GET.price_range }}">
       <input type="hidden" name="fragrance_type" value="{{ request.GET.fragrance_type }}">
@@ -429,34 +450,34 @@
       <div class="modal-body">
         <form id="filter-form" method="GET">
           <div class="row">
-            <!-- Price Range Filter -->
-            <div class="col-md-6 mb-4">
-              <h6 class="fw-bold mb-3">Price Range</h6>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="price_range" id="price-all" value="" {% if not request.GET.price_range %}checked{% endif %}>
-                <label class="form-check-label" for="price-all">All Prices</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="price_range" id="price-under-1000" value="under-1000" {% if request.GET.price_range == 'under-1000' %}checked{% endif %}>
-                <label class="form-check-label" for="price-under-1000">Under ₹1000</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="price_range" id="price-1000-3000" value="1000-3000" {% if request.GET.price_range == '1000-3000' %}checked{% endif %}>
-                <label class="form-check-label" for="price-1000-3000">₹1000 - ₹3000</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="price_range" id="price-3000-5000" value="3000-5000" {% if request.GET.price_range == '3000-5000' %}checked{% endif %}>
-                <label class="form-check-label" for="price-3000-5000">₹3000 - ₹5000</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="price_range" id="price-5000-10000" value="5000-10000" {% if request.GET.price_range == '5000-10000' %}checked{% endif %}>
-                <label class="form-check-label" for="price-5000-10000">₹5000 - ₹10000</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="price_range" id="price-above-10000" value="above-10000" {% if request.GET.price_range == 'above-10000' %}checked{% endif %}>
-                <label class="form-check-label" for="price-above-10000">Above ₹10000</label>
-              </div>
-            </div>
+            <!-- Price Range Filter in Modal -->
+<div class="col-md-6 mb-4">
+  <h6 class="fw-bold mb-3">Price Range</h6>
+  <div class="form-check">
+    <input class="form-check-input" type="radio" name="price_range" id="price-all" value="" {% if not request.GET.price_range %}checked{% endif %}>
+    <label class="form-check-label" for="price-all">All Prices</label>
+  </div>
+  <div class="form-check">
+    <input class="form-check-input" type="radio" name="price_range" id="price-under-1000" value="under-1000" {% if request.GET.price_range == 'under-1000' %}checked{% endif %}>
+    <label class="form-check-label" for="price-under-1000">Under ₹1000</label>
+  </div>
+  <div class="form-check">
+    <input class="form-check-input" type="radio" name="price_range" id="price-1000-2000" value="1000-2000" {% if request.GET.price_range == '1000-2000' %}checked{% endif %}>
+    <label class="form-check-label" for="price-1000-2000">₹1000 - ₹2000</label>
+  </div>
+  <div class="form-check">
+    <input class="form-check-input" type="radio" name="price_range" id="price-2000-3000" value="2000-3000" {% if request.GET.price_range == '2000-3000' %}checked{% endif %}>
+    <label class="form-check-label" for="price-2000-3000">₹2000 - ₹3000</label>
+  </div>
+  <div class="form-check">
+    <input class="form-check-input" type="radio" name="price_range" id="price-3000-5000" value="3000-5000" {% if request.GET.price_range == '3000-5000' %}checked{% endif %}>
+    <label class="form-check-label" for="price-3000-5000">₹3000 - ₹5000</label>
+  </div>
+  <div class="form-check">
+    <input class="form-check-input" type="radio" name="price_range" id="price-above-5000" value="above-5000" {% if request.GET.price_range == 'above-5000' %}checked{% endif %}>
+    <label class="form-check-label" for="price-above-5000">Above ₹5000</label>
+  </div>
+</div>
 
             <!-- Volume Filter -->
             <div class="col-md-6 mb-4">
@@ -818,57 +839,65 @@
     });
   }
 
-  // ==================== FILTER AND SORT FUNCTIONS ====================
-  function updateSort(sortValue) {
-    const url = new URL(window.location.href);
-    url.searchParams.delete('page');
-    
-    if (sortValue) {
-      url.searchParams.set('sort', sortValue);
+  // Filter and Sort Functions
+function updateSort(sortValue) {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('page');
+  
+  if (sortValue) {
+    url.searchParams.set('sort', sortValue);
+  } else {
+    url.searchParams.delete('sort');
+  }
+  
+  window.location.href = url.toString();
+}
+
+function applyFilters() {
+  const form = document.getElementById('filter-form');
+  const formData = new FormData(form);
+  const params = new URLSearchParams();
+  
+  const currentUrl = new URL(window.location.href);
+  // Include gender in preserved parameters
+  const currentParams = ['q', 'sort', 'gender'];
+  
+  currentParams.forEach(param => {
+    const value = currentUrl.searchParams.get(param);
+    if (value) {
+      params.set(param, value);
+    }
+  });
+  
+  for (let [key, value] of formData.entries()) {
+    if (value) {
+      params.set(key, value);
     } else {
-      url.searchParams.delete('sort');
+      params.delete(key);
     }
-    
-    window.location.href = url.toString();
   }
+  
+  params.delete('page');
+  window.location.href = '?' + params.toString();
+}
 
-  function applyFilters() {
-    const form = document.getElementById('filter-form');
-    const formData = new FormData(form);
-    const params = new URLSearchParams();
-    
-    const currentUrl = new URL(window.location.href);
-    const currentParams = ['q', 'sort'];
-    
-    currentParams.forEach(param => {
-      const value = currentUrl.searchParams.get(param);
-      if (value) {
-        params.set(param, value);
-      }
-    });
-    
-    for (let [key, value] of formData.entries()) {
-      if (value) {
-        params.set(key, value);
-      } else {
-        params.delete(key);
-      }
-    }
-    
-    params.delete('page');
-    window.location.href = '?' + params.toString();
+function removeFilter(filterName) {
+  const url = new URL(window.location.href);
+  url.searchParams.delete(filterName);
+  url.searchParams.delete('page');
+  
+  // Preserve gender when removing other filters
+  if (!url.searchParams.has('gender')) {
+    url.searchParams.set('gender', 'Female');  // Changed to 'Female'
   }
+  
+  window.location.href = url.toString();
+}
 
-  function clearAllFilters() {
-    window.location.href = '?';
-  }
-
-  function removeFilter(filterName) {
-    const url = new URL(window.location.href);
-    url.searchParams.delete(filterName);
-    url.searchParams.delete('page');
-    window.location.href = url.toString();
-  }
+function clearAllFilters() {
+  // Clear all filters but keep gender
+  window.location.href = '?gender=Female';  // Changed to 'Female'
+}
 
   function clearFiltersAndClose() {
     clearAllFilters();
@@ -900,69 +929,81 @@
     }
   }
 
-  function updateButtonToGoToCart(button) {
+ function updateButtonToGoToCart(button) {
     button.innerHTML = '<i class="fas fa-shopping-cart me-1"></i> Go to Cart';
     button.classList.add('btn-success');
-    button.classList.remove('btn-add-cart-sm');
-  }
+    button.classList.remove('btn-add-cart-sm', 'btn-loading');
+    button.disabled = false;
+}
 
-  function updateButtonToAddCart(button) {
+function updateButtonToAddCart(button) {
     button.innerHTML = '<i class="fas fa-shopping-cart me-1"></i> Add to Cart';
-    button.classList.remove('btn-success');
+    button.classList.remove('btn-success', 'btn-loading');
     button.classList.add('btn-add-cart-sm');
-  }
+    button.disabled = false;
+}
 
-  async function addToCart(variantId, productId, button) {
+async function addToCart(variantId, productId, button) {
     const originalText = button.innerHTML;
     const originalClasses = button.className;
     
     // Show loading state
-    button.innerHTML = '';
-    button.classList.add('btn-loading');
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Adding...';
     button.disabled = true;
     
     try {
-      const csrfToken = getCookie('csrftoken');
-      
-      const response = await fetch(`/cart/add/${variantId}/`, {
-        method: 'POST',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRFToken': csrfToken,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `quantity=1&csrfmiddlewaretoken=${csrfToken}`
-      });
+        const csrfToken = getCookie('csrftoken');
+        
+        const response = await fetch(`/cart/add/${variantId}/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `quantity=1&csrfmiddlewaretoken=${csrfToken}`
+        });
 
-      const data = await response.json();
-      
-      if (data.success) {
-        // Update cart badge
-        updateCartBadge(data.cart_total_items || data.cart_count);
+        const data = await response.json();
         
-        // Change button to "Go to Cart"
-        updateButtonToGoToCart(button);
-        button.disabled = false;
-        
-        // Store in localStorage
-        localStorage.setItem(`added_${variantId}`, 'true');
-        
-        showNotification('Product added to cart!', 'success');
-        
-      } else {
-        showNotification(data.message || 'Please select a variant first', 'info');
-        setTimeout(() => {
-          window.location.href = `/product/${productId}/`;
-        }, 1500);
-      }
+        if (data.success) {
+            // Update cart badge
+            updateCartBadge(data.cart_total_items || data.cart_count);
+            
+            // IMPORTANT: Remove loading state completely before updating
+            button.disabled = false;
+            
+            // Change button to "Go to Cart"
+            button.innerHTML = '<i class="fas fa-shopping-cart me-1"></i> Go to Cart';
+            button.classList.add('btn-success');
+            button.classList.remove('btn-add-cart-sm', 'btn-loading');
+            
+            // Store in localStorage
+            localStorage.setItem(`added_${variantId}`, 'true');
+            
+            showNotification('Product added to cart!', 'success');
+            
+        } else {
+            // Restore original state
+            button.innerHTML = originalText;
+            button.className = originalClasses;
+            button.disabled = false;
+            
+            showNotification(data.message || 'Please select a variant first', 'info');
+            setTimeout(() => {
+                window.location.href = `/product/${productId}/`;
+            }, 1500);
+        }
     } catch (error) {
-      console.error('Add to cart error:', error);
-      showNotification('Error adding to cart. Please try again.', 'error');
-      button.innerHTML = originalText;
-      button.className = originalClasses;
-      button.disabled = false;
+        console.error('Add to cart error:', error);
+        showNotification('Error adding to cart. Please try again.', 'error');
+        
+        // Restore original state on error
+        button.innerHTML = originalText;
+        button.className = originalClasses;
+        button.disabled = false;
     }
-  }
+}
 
   // ==================== WISHLIST FUNCTIONS ====================
   async function checkWishlistForProduct(productId, button) {

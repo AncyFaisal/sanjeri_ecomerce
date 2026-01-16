@@ -24,31 +24,3 @@ class Category(models.Model):
     class Meta:
         verbose_name_plural = "Categories"
 
-    # def soft_delete(self):
-    #     """Soft delete the category"""
-    #     self.is_active = False
-    #     self.is_deleted = True
-    #     self.deleted_at = timezone.now()
-    #     self.save()
-
-    # def restore(self):
-    #     """Restore soft deleted category"""
-    #     self.is_active = True
-    #     self.is_deleted = False
-    #     self.deleted_at = None
-    #     self.save()
-
-    # def permanent_delete(self):
-    #     """Permanently delete the category"""
-    #     super().delete()
-
-    # # ✅ ADD CUSTOM MANAGERS
-    # # Default manager - shows only non-deleted categories
-    # objects = models.Manager()
-    
-    # # Manager that includes all categories (including deleted)
-    # class AllCategoriesManager(models.Manager):
-    #     def get_queryset(self):
-    #         return super().get_queryset()
-    
-    # all_objects = AllCategoriesManager()

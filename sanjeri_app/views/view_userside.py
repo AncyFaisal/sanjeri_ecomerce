@@ -68,6 +68,7 @@ def men_products(request):
     fragrance_type = request.GET.get('fragrance_type', '')
     occasion = request.GET.get('occasion', '')
     volume = request.GET.get('volume', '')
+    gender_filter = request.GET.get('gender', 'Male')  # Add this line
     
     cart_item_count = 0
     wishlist_product_ids = []
@@ -89,7 +90,7 @@ def men_products(request):
         is_active=True,
         product__is_active=True,
         product__is_deleted=False,
-        gender='Male'
+        gender=gender_filter  # Use the variable here
     ).select_related('product')
     
     # Apply search filter if query exists
@@ -102,18 +103,18 @@ def men_products(request):
             Q(sku__icontains=search_query)
         )
     
-    # Apply filters
+    # Apply filters - FIXED LOGIC
     if price_range:
         if price_range == 'under-1000':
             variants = variants.filter(discount_price__lt=1000)
-        elif price_range == '1000-3000':
-            variants = variants.filter(discount_price__range=(1000, 3000))
-        elif price_range == '3000-5000':
+        elif price_range == '1000-2000':
+            variants = variants.filter(discount_price__range=(1000, 2000))
+        elif price_range == '2000-3000':
+            variants = variants.filter(discount_price__range=(2000, 3000))
+        elif price_range == '3000-5000':  
             variants = variants.filter(discount_price__range=(3000, 5000))
-        elif price_range == '5000-10000':
-            variants = variants.filter(discount_price__range=(5000, 10000))
-        elif price_range == 'above-10000':
-            variants = variants.filter(discount_price__gt=10000)
+        elif price_range == 'above-5000':
+            variants = variants.filter(discount_price__gt=5000)
     
     if fragrance_type:
         variants = variants.filter(product__fragrance_type=fragrance_type)
@@ -122,7 +123,11 @@ def men_products(request):
         variants = variants.filter(product__occasion=occasion)
     
     if volume:
-        variants = variants.filter(volume_ml=volume)
+        try:
+            volume_int = int(volume)
+            variants = variants.filter(volume_ml=volume_int)
+        except ValueError:
+            pass  # Handle invalid volume gracefully
     
     # Apply sorting
     if sort_by == 'best-selling':
@@ -142,20 +147,15 @@ def men_products(request):
     else:  # featured (default)
         variants = variants.filter(product__is_featured=True).order_by('-product__created_at')
     
-    # Pagination
-    paginator = Paginator(variants, 12)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
     # Get available filter options
     available_volumes = ProductVariant.objects.filter(
         product__is_active=True,
-        gender='Male',
+        gender=gender_filter,  # Use the variable
         is_active=True
     ).values_list('volume_ml', flat=True).distinct().order_by('volume_ml')
     
     available_fragrance_types = Product.objects.filter(
-        variants__gender='Male',
+        variants__gender=gender_filter,  # Use the variable
         is_active=True,
         is_deleted=False
     ).exclude(fragrance_type__isnull=True).exclude(fragrance_type='').values_list(
@@ -163,19 +163,25 @@ def men_products(request):
     ).distinct()
     
     available_occasions = Product.objects.filter(
-        variants__gender='Male',
+        variants__gender=gender_filter,  # Use the variable
         is_active=True,
         is_deleted=False
     ).exclude(occasion__isnull=True).exclude(occasion='').values_list(
         'occasion', flat=True
     ).distinct()
     
+    # Add wishlist status to each variant's product
     for variant in variants:
         variant.product.is_in_wishlist = variant.product.id in wishlist_product_ids
-
+    
+    # Pagination
+    paginator = Paginator(variants, 5)  # Changed from 5 to 12 for 4 per row × 3 rows
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
     context = {
-        'variants': variants,
-        'page_obj': page_obj,  # Now contains variants, not products
+        'variants': page_obj,  # Use paginated variants
+        'page_obj': page_obj,
         'products_count': variants.count(),
         'search_query': search_query,
         'sort_by': sort_by,
@@ -184,8 +190,15 @@ def men_products(request):
         'available_occasions': available_occasions,
         'title': 'Men\'s Fragrances - Sanjeri',
         'cart_item_count': cart_item_count,
+        'active_filters': {
+            'price_range': price_range,
+            'fragrance_type': fragrance_type,
+            'occasion': occasion,
+            'volume': volume,
+        }
     }
     return render(request, 'men.html', context)
+
 
 def women_products(request):
     """Women's products view showing each variant as separate card"""
@@ -208,16 +221,28 @@ def women_products(request):
 
         try:
             wishlist = Wishlist.objects.get(user=request.user)
-            wishlist_product_ids = wishlist.products.values_list('id', flat=True)
+            wishlist_product_ids = list(wishlist.products.values_list('id', flat=True))
         except Wishlist.DoesNotExist:
             pass
-    # Start with VARIANTS, not products
+    
+    # DEBUG: Print filter parameters
+    print(f"=== DEBUG WOMEN FILTERS ===")
+    print(f"Price Range: {price_range}")
+    print(f"Fragrance Type: {fragrance_type}")
+    print(f"Occasion: {occasion}")
+    print(f"Volume: {volume}")
+    print(f"Sort By: {sort_by}")
+    print(f"Search Query: {search_query}")
+    
+    # Query VARIANTS for Women
     variants = ProductVariant.objects.filter(
+        gender='Female',  # Note: Your model has 'Female', not 'Women'
         is_active=True,
         product__is_active=True,
-        product__is_deleted=False,
-        gender='Female'
-    ).select_related('product').prefetch_related('product__images')
+        product__is_deleted=False
+    ).select_related('product')
+    
+    print(f"Initial variants count: {variants.count()}")
     
     # Apply search filter if query exists
     if search_query:
@@ -228,36 +253,64 @@ def women_products(request):
             Q(product__fragrance_type__icontains=search_query) |
             Q(sku__icontains=search_query)
         )
+        print(f"After search filter: {variants.count()}")
     
-    # Apply filters
+    # Apply price filter - USING DISCOUNT_PRICE ONLY (same as unisex)
     if price_range:
         if price_range == 'under-1000':
-            variants = variants.filter(discount_price__lt=1000)
-        elif price_range == '1000-3000':
-            variants = variants.filter(discount_price__range=(1000, 3000))
+            variants = variants.annotate(
+                effective_price=Coalesce('discount_price', 'price')
+            ).filter(effective_price__lt=1000)
+        elif price_range == '1000-2000':
+            variants = variants.annotate(
+                effective_price=Coalesce('discount_price', 'price')
+            ).filter(effective_price__range=(1000, 2000))
+        elif price_range == '2000-3000':
+            variants = variants.annotate(
+                effective_price=Coalesce('discount_price', 'price')
+            ).filter(effective_price__range=(2000, 3000))
         elif price_range == '3000-5000':
-            variants = variants.filter(discount_price__range=(3000, 5000))
-        elif price_range == '5000-10000':
-            variants = variants.filter(discount_price__range=(5000, 10000))
-        elif price_range == 'above-10000':
-            variants = variants.filter(discount_price__gt=10000)
+            variants = variants.annotate(
+                effective_price=Coalesce('discount_price', 'price')
+            ).filter(effective_price__range=(3000, 5000))
+        elif price_range == 'above-5000':
+            variants = variants.annotate(
+                effective_price=Coalesce('discount_price', 'price')
+            ).filter(effective_price__gt=5000)
+        print(f"After price filter '{price_range}': {variants.count()}")
     
+    # Apply fragrance type filter
     if fragrance_type:
         variants = variants.filter(product__fragrance_type=fragrance_type)
+        print(f"After fragrance filter '{fragrance_type}': {variants.count()}")
     
+    # Apply occasion filter
     if occasion:
         variants = variants.filter(product__occasion=occasion)
+        print(f"After occasion filter '{occasion}': {variants.count()}")
     
+    # Apply volume filter - convert string to integer
     if volume:
-        variants = variants.filter(volume_ml=volume)
+        try:
+            volume_int = int(volume)
+            variants = variants.filter(volume_ml=volume_int)
+            print(f"After volume filter '{volume_int}ml': {variants.count()}")
+        except ValueError:
+            pass
     
-    # Apply sorting
+    # Apply sorting - USING DISCOUNT_PRICE FOR SORTING TOO
     if sort_by == 'best-selling':
         variants = variants.filter(product__is_best_selling=True).order_by('-product__created_at')
     elif sort_by == 'price-low-high':
-        variants = variants.order_by('discount_price', 'price')
+        # Sort by effective price (discount_price first, then price)
+        variants = variants.annotate(
+            effective_price=Coalesce('discount_price', 'price')
+        ).order_by('effective_price')
     elif sort_by == 'price-high-low':
-        variants = variants.order_by('-discount_price', '-price')
+        # Sort by effective price (discount_price first, then price)
+        variants = variants.annotate(
+            effective_price=Coalesce('discount_price', 'price')
+        ).order_by('-effective_price')
     elif sort_by == 'newest':
         variants = variants.order_by('-product__created_at')
     elif sort_by == 'customer-rating':
@@ -269,16 +322,20 @@ def women_products(request):
     else:  # featured (default)
         variants = variants.filter(product__is_featured=True).order_by('-product__created_at')
     
-    # Pagination
-    paginator = Paginator(variants, 12)  # Show 12 variants per page
+    print(f"Final variants count before pagination: {variants.count()}")
+    print("=== END DEBUG ===")
+    
+    # Pagination - 12 per page (4 per row × 3 rows)
+    paginator = Paginator(variants, 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
     # Get available filter options
     available_volumes = ProductVariant.objects.filter(
-        product__is_active=True,
         gender='Female',
-        is_active=True
+        is_active=True,
+        product__is_active=True,
+        product__is_deleted=False
     ).values_list('volume_ml', flat=True).distinct().order_by('volume_ml')
     
     available_fragrance_types = Product.objects.filter(
@@ -297,13 +354,13 @@ def women_products(request):
         'occasion', flat=True
     ).distinct()
     
-        # For each variant, check if its product is in wishlist
-    for variant in variants:
+    # For each variant, check if its product is in wishlist
+    for variant in page_obj.object_list:
         variant.product.is_in_wishlist = variant.product.id in wishlist_product_ids
     
     context = {
-        'variants': variants,
-        'page_obj': page_obj,  # Now contains variants, not products
+        'variants': page_obj,  # Use paginated variants
+        'page_obj': page_obj,
         'products_count': variants.count(),
         'search_query': search_query,
         'sort_by': sort_by,
@@ -312,6 +369,12 @@ def women_products(request):
         'available_occasions': available_occasions,
         'title': 'Women\'s Fragrances - Sanjeri',
         'cart_item_count': cart_item_count,
+        'active_filters': {
+            'price_range': price_range,
+            'fragrance_type': fragrance_type,
+            'occasion': occasion,
+            'volume': volume,
+        }
     }
     return render(request, 'women.html', context)
 
@@ -336,17 +399,28 @@ def unisex_products(request):
 
         try:
             wishlist = Wishlist.objects.get(user=request.user)
-            wishlist_product_ids = wishlist.products.values_list('id', flat=True)
+            wishlist_product_ids = list(wishlist.products.values_list('id', flat=True))
         except Wishlist.DoesNotExist:
             pass
     
-    # CRITICAL FIX: Query VARIANTS, not PRODUCTS
+    # DEBUG: Print filter parameters
+    print(f"=== DEBUG UNISEX FILTERS ===")
+    print(f"Price Range: {price_range}")
+    print(f"Fragrance Type: {fragrance_type}")
+    print(f"Occasion: {occasion}")
+    print(f"Volume: {volume}")
+    print(f"Sort By: {sort_by}")
+    print(f"Search Query: {search_query}")
+    
+    # Query VARIANTS for Unisex
     variants = ProductVariant.objects.filter(
-        gender='Unisex',
+        gender='Unisex',  # Capital 'U' matches your model
         is_active=True,
         product__is_active=True,
         product__is_deleted=False
     ).select_related('product')
+    
+    print(f"Initial variants count: {variants.count()}")
     
     # Apply search filter if query exists
     if search_query:
@@ -357,36 +431,65 @@ def unisex_products(request):
             Q(product__fragrance_type__icontains=search_query) |
             Q(sku__icontains=search_query)
         )
+        print(f"After search filter: {variants.count()}")
     
-    # Apply filters - FIXED: Use variant prices directly
+    # Apply price filter - USING DISCOUNT_PRICE ONLY
     if price_range:
         if price_range == 'under-1000':
-            variants = variants.filter(price__lt=1000)
-        elif price_range == '1000-3000':
-            variants = variants.filter(price__range=(1000, 3000))
+            # Use COALESCE to use discount_price if exists, otherwise price
+            variants = variants.annotate(
+                effective_price=Coalesce('discount_price', 'price')
+            ).filter(effective_price__lt=1000)
+        elif price_range == '1000-2000':
+            variants = variants.annotate(
+                effective_price=Coalesce('discount_price', 'price')
+            ).filter(effective_price__range=(1000, 2000))
+        elif price_range == '2000-3000':
+            variants = variants.annotate(
+                effective_price=Coalesce('discount_price', 'price')
+            ).filter(effective_price__range=(2000, 3000))
         elif price_range == '3000-5000':
-            variants = variants.filter(price__range=(3000, 5000))
-        elif price_range == '5000-10000':
-            variants = variants.filter(price__range=(5000, 10000))
-        elif price_range == 'above-10000':
-            variants = variants.filter(price__gt=10000)
+            variants = variants.annotate(
+                effective_price=Coalesce('discount_price', 'price')
+            ).filter(effective_price__range=(3000, 5000))
+        elif price_range == 'above-5000':
+            variants = variants.annotate(
+                effective_price=Coalesce('discount_price', 'price')
+            ).filter(effective_price__gt=5000)
+        print(f"After price filter '{price_range}': {variants.count()}")
     
+    # Apply fragrance type filter
     if fragrance_type:
         variants = variants.filter(product__fragrance_type=fragrance_type)
+        print(f"After fragrance filter '{fragrance_type}': {variants.count()}")
     
+    # Apply occasion filter
     if occasion:
         variants = variants.filter(product__occasion=occasion)
+        print(f"After occasion filter '{occasion}': {variants.count()}")
     
+    # Apply volume filter - convert string to integer
     if volume:
-        variants = variants.filter(volume_ml=volume)
+        try:
+            volume_int = int(volume)
+            variants = variants.filter(volume_ml=volume_int)
+            print(f"After volume filter '{volume_int}ml': {variants.count()}")
+        except ValueError:
+            pass
     
-    # Apply sorting - FIXED: Use variant prices directly
+    # Apply sorting - ALSO USING DISCOUNT_PRICE FOR SORTING
     if sort_by == 'best-selling':
         variants = variants.filter(product__is_best_selling=True).order_by('-product__created_at')
     elif sort_by == 'price-low-high':
-        variants = variants.order_by('price')
+        # Sort by effective price (discount_price first, then price)
+        variants = variants.annotate(
+            effective_price=Coalesce('discount_price', 'price')
+        ).order_by('effective_price')
     elif sort_by == 'price-high-low':
-        variants = variants.order_by('-price')
+        # Sort by effective price (discount_price first, then price)
+        variants = variants.annotate(
+            effective_price=Coalesce('discount_price', 'price')
+        ).order_by('-effective_price')
     elif sort_by == 'newest':
         variants = variants.order_by('-product__created_at')
     elif sort_by == 'customer-rating':
@@ -398,12 +501,15 @@ def unisex_products(request):
     else:  # featured (default)
         variants = variants.filter(product__is_featured=True).order_by('-product__created_at')
     
-    # Pagination - FIXED: Paginate variants
-    paginator = Paginator(variants, 12)
+    print(f"Final variants count before pagination: {variants.count()}")
+    print("=== END DEBUG ===")
+    
+    # Pagination - 12 per page (4 per row × 3 rows)
+    paginator = Paginator(variants, 4)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    # Get available filter options - FIXED: Get from variants
+    # Get available filter options
     available_volumes = ProductVariant.objects.filter(
         gender='Unisex',
         is_active=True,
@@ -427,13 +533,13 @@ def unisex_products(request):
         'occasion', flat=True
     ).distinct()
     
-          # For each variant, check if its product is in wishlist
-    for variant in variants:
+    # For each variant, check if its product is in wishlist
+    for variant in page_obj.object_list:
         variant.product.is_in_wishlist = variant.product.id in wishlist_product_ids
-
+    
     context = {
-        'variants': variants,
-        'page_obj': page_obj,  # This contains VARIANTS, not products
+        'variants': page_obj,  # Use paginated variants, not all variants
+        'page_obj': page_obj,
         'products_count': variants.count(),
         'search_query': search_query,
         'sort_by': sort_by,
@@ -442,9 +548,14 @@ def unisex_products(request):
         'available_occasions': available_occasions,
         'title': 'Unisex Fragrances - Sanjeri',
         'cart_item_count': cart_item_count,
+        'active_filters': {
+            'price_range': price_range,
+            'fragrance_type': fragrance_type,
+            'occasion': occasion,
+            'volume': volume,
+        }
     }
     return render(request, 'unisex.html', context)
-
 def brands(request):
     """Brands page view"""
     # Get all unique brands from products
@@ -668,7 +779,7 @@ def all_products(request):
         products = products.filter(is_featured=True).order_by('-created_at')
     
     # Pagination
-    paginator = Paginator(products, 12)
+    paginator = Paginator(products, 3)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     

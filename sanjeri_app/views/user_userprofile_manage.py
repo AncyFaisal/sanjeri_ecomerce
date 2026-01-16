@@ -23,6 +23,14 @@ from django.contrib.auth.models import User
 def user_profile(request):
     """Display user profile details"""
     user = request.user
+
+       # Debug: Check user's profile image status
+    print(f"User: {user.username}")
+    print(f"Profile image exists: {bool(user.profile_image)}")
+    print(f"Profile image name: {user.profile_image.name if user.profile_image else 'None'}")
+    
+
+    
     context = {
         'user': user,
         'title': 'My Profile - Sanjeri'

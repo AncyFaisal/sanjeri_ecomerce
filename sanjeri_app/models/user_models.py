@@ -5,6 +5,8 @@ from django.utils import timezone
 from django.db.models import Q, UniqueConstraint
 from django.conf import settings 
 import os 
+from django.core.files.storage import default_storage
+
 
 class CustomUser(AbstractUser):
     # email = models.EmailField(unique=True)   
@@ -59,14 +61,23 @@ class CustomUser(AbstractUser):
                 name="unique_email_not_deleted"
             ),
         ]
+
     def get_profile_image_url(self):
         """
-        Always return static default if no custom image uploaded
+        Return user's profile image or default avatar if not set
         """
-        if self.profile_image and self.profile_image.name:
-            return self.profile_image.url
-        return '/static/images/default_profile.png'
-    
+        try:
+            # Check if we have a valid profile image
+            if self.profile_image and self.profile_image.name:
+                # Try to get the URL
+                return self.profile_image.url
+        except (ValueError, AttributeError):
+            # If any error occurs, return default
+            pass
+        
+        # Always return default avatar for new users or errors
+        return '/static/css/images/default_avatar.png'
+        
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}".strip()
     

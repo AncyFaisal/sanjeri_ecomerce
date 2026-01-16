@@ -1514,69 +1514,92 @@
       }
     }
 
-    function updateButtonToGoToCart(button) {
-      button.innerHTML = '<i class="fas fa-shopping-cart me-1"></i> Go to Cart';
-      button.classList.add('btn-success');
-      button.classList.remove('btn-add-cart');
-    }
+   function updateButtonToGoToCart(button) {
+    // First ensure loading state is removed
+    button.classList.remove('btn-loading');
+    button.disabled = false;
+    
+    // Update content and classes
+    button.innerHTML = '<i class="fas fa-shopping-cart me-1"></i> Go to Cart';
+    button.classList.add('btn-success');
+    button.classList.remove('btn-add-cart');
+}
 
-    function updateButtonToAddCart(button) {
-      button.innerHTML = '<i class="fas fa-shopping-cart me-1"></i> Add to Cart';
-      button.classList.remove('btn-success');
-      button.classList.add('btn-add-cart');
-    }
-
-    async function addToCart(variantId, productId, button) {
-      const originalText = button.innerHTML;
-      const originalClasses = button.className;
-      
-      // Show loading state
-      button.innerHTML = '';
-      button.classList.add('btn-loading');
-      button.disabled = true;
-      
-      try {
+function updateButtonToAddCart(button) {
+    // First ensure loading state is removed
+    button.classList.remove('btn-loading');
+    button.disabled = false;
+    
+    // Update content and classes
+    button.innerHTML = '<i class="fas fa-shopping-cart me-1"></i> Add to Cart';
+    button.classList.remove('btn-success');
+    button.classList.add('btn-add-cart');
+}
+async function addToCart(variantId, productId, button) {
+    const originalText = button.innerHTML;
+    const originalClasses = button.className;
+    
+    // Show loading state
+    button.innerHTML = '';
+    button.classList.add('btn-loading');
+    button.disabled = true;
+    
+    try {
         const csrfToken = getCookie('csrftoken');
         
         const response = await fetch(`/cart/add/${variantId}/`, {
-          method: 'POST',
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': csrfToken,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: `quantity=1&csrfmiddlewaretoken=${csrfToken}`
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `quantity=1&csrfmiddlewaretoken=${csrfToken}`
         });
 
         const data = await response.json();
         
         if (data.success) {
-          // Update cart badge
-          updateCartBadge(data.cart_total_items);
-          
-          // Change button to "Go to Cart"
-          updateButtonToGoToCart(button);
-          button.disabled = false;
-          
-          // Store in localStorage
-          localStorage.setItem(`added_${variantId}`, 'true');
-          
-          showNotification('Product added to cart!', 'success');
-          
+            // Update cart badge
+            updateCartBadge(data.cart_total_items);
+            
+            // IMPORTANT: First remove the loading class and reset HTML
+            button.classList.remove('btn-loading');
+            button.disabled = false;
+            
+            // Now update to "Go to Cart" state
+            button.innerHTML = '<i class="fas fa-shopping-cart me-1"></i> Go to Cart';
+            button.classList.add('btn-success');
+            button.classList.remove('btn-add-cart');
+            
+            // Store in localStorage
+            localStorage.setItem(`added_${variantId}`, 'true');
+            
+            showNotification('Product added to cart!', 'success');
+            
         } else {
-          showNotification(data.message || 'Please select a variant first', 'info');
-          setTimeout(() => {
-            window.location.href = `/product/${productId}/`;
-          }, 1500);
+            // If not successful, restore original state
+            button.classList.remove('btn-loading');
+            button.innerHTML = originalText;
+            button.className = originalClasses;
+            button.disabled = false;
+            
+            showNotification(data.message || 'Please select a variant first', 'info');
+            setTimeout(() => {
+                window.location.href = `/product/${productId}/`;
+            }, 1500);
         }
-      } catch (error) {
+    } catch (error) {
         console.error('Add to cart error:', error);
         showNotification('Error adding to cart. Please try again.', 'error');
+        
+        // Restore original state on error
+        button.classList.remove('btn-loading');
         button.innerHTML = originalText;
         button.className = originalClasses;
         button.disabled = false;
-      }
     }
+}
 
     function initializeCartButtons() {
       // Handle add to cart button clicks

@@ -234,6 +234,40 @@
                 width: 100%;
             }
         }
+
+        /* Add to Cart button loading state */
+.btn-add-cart .fa-spinner {
+    margin-right: 8px;
+}
+
+/* Ensure proper button transitions */
+.btn-add-cart, .btn-go-to-cart {
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+/* Remove any conflicting pseudo-elements */
+.btn-add-cart::after,
+.btn-go-to-cart::after {
+    display: none !important;
+}
+
+/* Success button styling */
+.btn-go-to-cart {
+    background-color: #28a745 !important;
+    color: white !important;
+    border: none !important;
+}
+
+.btn-go-to-cart:hover {
+    background-color: #218838 !important;
+    transform: translateY(-2px);
+}
+
+/* Make sure spinner is properly positioned */
+.fa-spinner {
+    display: inline-block;
+}
     </style>
 </head>
 <body>
@@ -702,39 +736,43 @@ document.addEventListener('DOMContentLoaded', function() {
             addToCartBtn.addEventListener('click', handleAddToCartClick);
         }
         
-        function changeButtonToGoToCart() {
-            const addToCartBtn = document.getElementById('add-to-cart-btn');
-            if (!addToCartBtn) return;
-            
-            addToCartBtn.innerHTML = '<i class="fas fa-shopping-cart me-2"></i>Go to Cart';
-            addToCartBtn.classList.remove('btn-add-cart');
-            addToCartBtn.classList.add('btn-go-to-cart');
-            addToCartBtn.disabled = false;
-            
-            // Change the click handler to redirect to cart
-            addToCartBtn.onclick = function() {
-                window.location.href = '{% url "cart" %}';
-            };
-            
-            isButtonGoToCart = true;
-            console.log('✅ Button changed to "Go to Cart"');
-        }
-        
-        function changeButtonToAddToCart() {
-            const addToCartBtn = document.getElementById('add-to-cart-btn');
-            if (!addToCartBtn) return;
-            
-            addToCartBtn.innerHTML = '<i class="fas fa-shopping-cart me-2"></i>Add to Cart';
-            addToCartBtn.classList.remove('btn-go-to-cart');
-            addToCartBtn.classList.add('btn-add-cart');
-            addToCartBtn.disabled = false;
-            
-            // Reset click handler
-            addToCartBtn.onclick = handleAddToCartClick;
-            
-            isButtonGoToCart = false;
-            console.log('✅ Button changed to "Add to Cart"');
-        }
+       function changeButtonToGoToCart() {
+    const addToCartBtn = document.getElementById('add-to-cart-btn');
+    if (!addToCartBtn) return;
+    
+    // Reset button state first
+    addToCartBtn.disabled = false;
+    
+    // Update button content and classes
+    addToCartBtn.innerHTML = '<i class="fas fa-shopping-cart me-2"></i>Go to Cart';
+    addToCartBtn.className = 'btn btn-go-to-cart flex-fill';
+    
+    // Change the click handler to redirect to cart
+    addToCartBtn.onclick = function() {
+        window.location.href = '{% url "cart" %}';
+    };
+    
+    isButtonGoToCart = true;
+    console.log('✅ Button changed to "Go to Cart"');
+}
+
+function changeButtonToAddToCart() {
+    const addToCartBtn = document.getElementById('add-to-cart-btn');
+    if (!addToCartBtn) return;
+    
+    // Reset button state
+    addToCartBtn.disabled = false;
+    
+    // Update button content and classes
+    addToCartBtn.innerHTML = '<i class="fas fa-shopping-cart me-2"></i>Add to Cart';
+    addToCartBtn.className = 'btn btn-add-cart flex-fill';
+    
+    // Reset click handler
+    addToCartBtn.onclick = handleAddToCartClick;
+    
+    isButtonGoToCart = false;
+    console.log('✅ Button changed to "Add to Cart"');
+}
 
  // ==================== WISHLIST FUNCTIONS ====================
 function initializeWishlistButtons() {
@@ -1122,97 +1160,122 @@ function showNotification(message, type = 'success') {
 }
 
         // ==================== ADD TO CART FUNCTION ====================
-        async function handleAddToCartClick() {
-            const addToCartBtn = this;
-            
-            if (!selectedVariantId) {
-                showNotification('Please select a variant first', 'error');
-                return;
+     async function handleAddToCartClick() {
+    const addToCartBtn = this;
+    
+    if (!selectedVariantId) {
+        showNotification('Please select a variant first', 'error');
+        return;
+    }
+    
+    // Check if button already says "Go to Cart"
+    if (isButtonGoToCart) {
+        window.location.href = '{% url "cart" %}';
+        return;
+    }
+    
+    const quantity = 1;
+    
+    // Get CSRF token
+    let csrfToken = getCookie('csrftoken') || document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    
+    if (!csrfToken) {
+        showNotification('Security error: Please refresh the page and try again.', 'error');
+        return;
+    }
+    
+    // Save original button state
+    const originalHTML = addToCartBtn.innerHTML;
+    const originalClasses = addToCartBtn.className;
+    
+    // Show loading state with spinner icon (not btn-loading class)
+    addToCartBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Adding...';
+    addToCartBtn.disabled = true;
+    
+    try {
+        // Create form data
+        const formData = new FormData();
+        formData.append('quantity', quantity);
+        formData.append('csrfmiddlewaretoken', csrfToken);
+        
+        console.log('🛒 Adding variant to cart:', selectedVariantId);
+        
+        // Make AJAX request
+        const response = await fetch(`/cart/add/${selectedVariantId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken
             }
+        });
+        
+        // Check response type
+        const contentType = response.headers.get('content-type');
+        let result;
+        
+        if (contentType && contentType.includes('application/json')) {
+            result = await response.json();
+            console.log('🛒 JSON Response:', result);
             
-            // Check if button already says "Go to Cart"
-            if (isButtonGoToCart) {
-                window.location.href = '{% url "cart" %}';
-                return;
-            }
-            
-            const quantity = 1;
-            
-            // Get CSRF token
-            let csrfToken = getCookie('csrftoken') || document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-            
-            if (!csrfToken) {
-                showNotification('Security error: Please refresh the page and try again.', 'error');
-                return;
-            }
-            
-            // Show loading state
-            const originalText = addToCartBtn.innerHTML;
-            addToCartBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Adding...';
-            addToCartBtn.disabled = true;
-            
-            try {
-                // Create form data
-                const formData = new FormData();
-                formData.append('quantity', quantity);
-                formData.append('csrfmiddlewaretoken', csrfToken);
+            if (result.success) {
+                // Show success message
+                showNotification(result.message || 'Product added to cart!', 'success');
                 
-                console.log('🛒 Adding variant to cart:', selectedVariantId);
-                
-                // Make AJAX request
-                const response = await fetch(`/cart/add/${selectedVariantId}/`, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRFToken': csrfToken
-                    }
-                });
-                
-                // Check response type
-                const contentType = response.headers.get('content-type');
-                let result;
-                
-                if (contentType && contentType.includes('application/json')) {
-                    result = await response.json();
-                    console.log('🛒 JSON Response:', result);
-                    
-                    if (result.success) {
-                        // Show success message
-                        showNotification(result.message || 'Product added to cart!', 'success');
-                        
-                        // Update cart count in header
-                        if (result.cart_total_items !== undefined) {
-                            updateCartCount(result.cart_total_items);
-                        }
-                        
-                        // Change button to "Go to Cart"
-                        changeButtonToGoToCart();
-                        
-                        // Store in localStorage
-                        localStorage.setItem(`cart_variant_${selectedVariantId}`, 'true');
-                        
-                    } else {
-                        showNotification(result.message || 'Error adding to cart', 'error');
-                        addToCartBtn.innerHTML = originalText;
-                        addToCartBtn.disabled = false;
-                    }
-                } else {
-                    // Handle HTML response (redirect)
-                    console.log('🛒 HTML response received');
-                    showNotification('Product added! Redirecting...', 'success');
-                    setTimeout(() => {
-                        window.location.href = '{% url "cart" %}';
-                    }, 1000);
+                // Update cart count in header
+                if (result.cart_total_items !== undefined) {
+                    updateCartCount(result.cart_total_items);
                 }
                 
-            } catch (error) {
-                console.error('❌ Add to cart error:', error);
-                showNotification('Network error. Please try again.', 'error');
-                addToCartBtn.innerHTML = originalText;
+                // IMPORTANT: Reset button state completely before updating
+                addToCartBtn.disabled = false;
+                
+                // Change button to "Go to Cart"
+                addToCartBtn.innerHTML = '<i class="fas fa-shopping-cart me-2"></i>Go to Cart';
+                addToCartBtn.className = 'btn btn-go-to-cart flex-fill';
+                
+                // Update global state
+                isButtonGoToCart = true;
+                
+                // Change click handler to redirect to cart
+                addToCartBtn.onclick = function() {
+                    window.location.href = '{% url "cart" %}';
+                };
+                
+                // Store in localStorage
+                localStorage.setItem(`cart_variant_${selectedVariantId}`, 'true');
+                
+            } else {
+                // Restore original state on error
+                showNotification(result.message || 'Error adding to cart', 'error');
+                addToCartBtn.innerHTML = originalHTML;
+                addToCartBtn.className = originalClasses;
                 addToCartBtn.disabled = false;
             }
+        } else {
+            // Handle HTML response (redirect)
+            console.log('🛒 HTML response received');
+            showNotification('Product added! Redirecting to cart...', 'success');
+            
+            // Restore button briefly before redirect
+            addToCartBtn.innerHTML = '<i class="fas fa-check me-2"></i>Added!';
+            addToCartBtn.disabled = false;
+            
+            setTimeout(() => {
+                window.location.href = '{% url "cart" %}';
+            }, 1000);
         }
+        
+    } catch (error) {
+        console.error('❌ Add to cart error:', error);
+        showNotification('Network error. Please try again.', 'error');
+        
+        // Restore original state on error
+        addToCartBtn.innerHTML = originalHTML;
+        addToCartBtn.className = originalClasses;
+        addToCartBtn.disabled = false;
+    }
+}
 
         // ==================== HELPER FUNCTIONS ====================
         function getCookie(name) {

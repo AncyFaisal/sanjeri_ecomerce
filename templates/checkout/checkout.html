@@ -6,7 +6,7 @@
 
 {% block extra_css %}
 <style>
-    /* Modern Checkout Styles */
+    /* Modern Checkout Styles - KEEP ALL YOUR CSS HERE */
     .checkout-container {
         max-width: 1200px;
         margin: 0 auto;
@@ -524,78 +524,77 @@
                             <h3 class="checkout-step-title">1. Delivery Address</h3>
                         </div>
                     </div>
-
                     <div class="checkout-step-body">
                         {% if addresses %}
-                        <div class="address-selection">
-                            {% for address in addresses %}
-                            <div class="address-card {% if address.is_default %}selected{% endif %}"
-                                data-address-id="{{ address.id }}">
-                                <div class="form-check mb-0">
-                                    <input class="form-check-input" type="radio" name="address_id"
-                                        id="address{{ address.id }}" value="{{ address.id }}" 
-                                        {% if address.is_default %}checked{% endif %} required>
-                                    <label class="form-check-label w-100" for="address{{ address.id }}">
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <div class="flex-grow-1">
-                                                <div class="d-flex align-items-center mb-2">
-                                                    <strong class="me-2">{{ address.full_name }}</strong>
-                                                    <span class="address-badge address-type-badge me-1">
-                                                        {{ address.get_address_type_display }}
-                                                    </span>
-                                                    {% if address.is_default %}
-                                                    <span class="address-badge address-default-badge">
-                                                        Default
-                                                    </span>
-                                                    {% endif %}
+                            <div class="address-selection">
+                                {% for address in addresses %}
+                                <div class="address-card {% if address.is_default %}selected{% endif %}"
+                                    data-address-id="{{ address.id }}">
+                                    <div class="form-check mb-0">
+                                        <input class="form-check-input" type="radio" name="address_id"
+                                            id="address{{ address.id }}" value="{{ address.id }}" 
+                                            {% if address.is_default %}checked{% endif %} required>
+                                        <label class="form-check-label w-100" for="address{{ address.id }}">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div class="flex-grow-1">
+                                                    <div class="d-flex align-items-center mb-2">
+                                                        <strong class="me-2">{{ address.full_name }}</strong>
+                                                        <span class="address-badge address-type-badge me-1">
+                                                            {{ address.get_address_type_display }}
+                                                        </span>
+                                                        {% if address.is_default %}
+                                                        <span class="address-badge address-default-badge">
+                                                            Default
+                                                        </span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="address-details">
+                                                        <p class="mb-1">
+                                                            <i class="fas fa-phone me-2"></i>{{ address.phone }}
+                                                        </p>
+                                                        <p class="mb-1">
+                                                            {{ address.address_line1 }}
+                                                            {% if address.address_line2 %}, {{ address.address_line2 }}{% endif %}
+                                                        </p>
+                                                        {% if address.landmark %}
+                                                        <p class="mb-1">
+                                                            <strong>Landmark:</strong> {{ address.landmark }}
+                                                        </p>
+                                                        {% endif %}
+                                                        <p class="mb-0">
+                                                            {{ address.city }}, {{ address.state }} - {{ address.postal_code }}
+                                                        </p>
+                                                        <p class="mb-0">{{ address.country }}</p>
+                                                    </div>
                                                 </div>
-                                                <div class="address-details">
-                                                    <p class="mb-1">
-                                                        <i class="fas fa-phone me-2"></i>{{ address.phone }}
-                                                    </p>
-                                                    <p class="mb-1">
-                                                        {{ address.address_line1 }}
-                                                        {% if address.address_line2 %}, {{ address.address_line2 }}{% endif %}
-                                                    </p>
-                                                    {% if address.landmark %}
-                                                    <p class="mb-1">
-                                                        <strong>Landmark:</strong> {{ address.landmark }}
-                                                    </p>
-                                                    {% endif %}
-                                                    <p class="mb-0">
-                                                        {{ address.city }}, {{ address.state }} - {{ address.postal_code }}
-                                                    </p>
-                                                    <p class="mb-0">{{ address.country }}</p>
-                                                </div>
+                                                <a href="{% url 'user_edit_address' address.id %}"
+                                                    class="btn btn-sm btn-outline-amber-900 ms-3">
+                                                    Edit
+                                                </a>
                                             </div>
-                                            <a href="{% url 'user_edit_address' address.id %}"
-                                                class="btn btn-sm btn-outline-amber-900 ms-3">
-                                                Edit
-                                            </a>
-                                        </div>
-                                    </label>
+                                        </label>
+                                    </div>
                                 </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
-                        </div>
 
-                        <!-- Add New Address Button -->
-                        <div class="text-center mt-4">
-                            <button type="button" class="btn btn-outline-amber-900" data-bs-toggle="modal"
-                                data-bs-target="#addAddressModal">
-                                <i class="fas fa-plus me-2"></i>Add New Address
-                            </button>
-                        </div>
+                            <!-- Add New Address Button -->
+                            <div class="text-center mt-4">
+                                <button type="button" class="btn btn-outline-amber-900" data-bs-toggle="modal"
+                                    data-bs-target="#addAddressModal">
+                                    <i class="fas fa-plus me-2"></i>Add New Address
+                                </button>
+                            </div>
                         {% else %}
-                        <div class="text-center py-5">
-                            <i class="fas fa-map-marker-alt fa-4x text-gray-300 mb-4"></i>
-                            <h5 class="text-gray-600 mb-3">No Addresses Found</h5>
-                            <p class="text-gray-500 mb-4">Please add a delivery address to continue with your order.</p>
-                            <button type="button" class="btn btn-amber-900" data-bs-toggle="modal"
-                                data-bs-target="#addAddressModal">
-                                <i class="fas fa-plus me-2"></i>Add Your First Address
-                            </button>
-                        </div>
+                            <div class="text-center py-5">
+                                <i class="fas fa-map-marker-alt fa-4x text-gray-300 mb-4"></i>
+                                <h5 class="text-gray-600 mb-3">No Addresses Found</h5>
+                                <p class="text-gray-500 mb-4">Please add a delivery address to continue with your order.</p>
+                                <button type="button" class="btn btn-amber-900" data-bs-toggle="modal"
+                                    data-bs-target="#addAddressModal">
+                                    <i class="fas fa-plus me-2"></i>Add Your First Address
+                                </button>
+                            </div>
                         {% endif %}
                     </div>
                 </div>
@@ -891,8 +890,18 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="addAddressForm">
+                {% csrf_token %}
                 <div class="modal-body">
                     <div class="mb-3">
+     <label for="address_type" class="form-label">Address Type *</label>
+        <select class="form-control" id="address_type" name="address_type" required>
+            <option value="">Select Address Type</option>
+            <option value="home">Home</option>
+            <option value="work">Work</option>
+            <option value="other">Other</option>
+        </select>
+    </div>
+      <div class="mb-3">
                         <label for="full_name" class="form-label">Full Name *</label>
                         <input type="text" class="form-control" id="full_name" name="full_name" required>
                     </div>
@@ -908,6 +917,11 @@
                         <label for="address_line2" class="form-label">Address Line 2</label>
                         <input type="text" class="form-control" id="address_line2" name="address_line2">
                     </div>
+                    <div class="mb-3">
+    <label for="landmark" class="form-label">Landmark (Optional)</label>
+    <input type="text" class="form-control" id="landmark" name="landmark" 
+           placeholder="Nearby landmark for easy location">
+</div>
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="city" class="form-label">City *</label>
@@ -930,7 +944,7 @@
                     </div>
                     <div class="mb-3">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="is_default" name="is_default">
+                            <input class="form-check-input" type="checkbox" id="is_default" name="is_default" value="true">
                             <label class="form-check-label" for="is_default">
                                 Set as default address
                             </label>
@@ -964,7 +978,43 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Address selection styling
+        console.log('Checkout page JavaScript initializing...');
+
+        // ==================== DOM ELEMENTS ====================
+        const checkoutForm = document.getElementById('checkoutForm');
+        const addAddressForm = document.getElementById('addAddressForm');
+        const saveAddressBtn = document.getElementById('saveAddressBtn');
+        const applyCouponBtn = document.getElementById('apply_coupon_btn');
+        const removeCouponBtn = document.querySelector('.remove-coupon-btn');
+        const useWalletCheckbox = document.getElementById('use_wallet');
+        const walletAmountSection = document.getElementById('wallet_amount_section');
+
+        // Initialize Bootstrap modals
+        const addAddressModalEl = document.getElementById('addAddressModal');
+        const loadingModalEl = document.getElementById('loadingModal');
+        const addAddressModal = addAddressModalEl ? new bootstrap.Modal(addAddressModalEl) : null;
+        const loadingModal = loadingModalEl ? new bootstrap.Modal(loadingModalEl) : null;
+
+        // ==================== HELPER FUNCTIONS ====================
+        function showNotification(message, type = 'info') {
+            console.log(`${type.toUpperCase()}: ${message}`);
+
+            // Use Bootstrap toast or simple alert for now
+            if (type === 'success') {
+                alert('✓ ' + message);
+            } else if (type === 'error') {
+                alert('✗ ' + message);
+            } else {
+                alert('ℹ ' + message);
+            }
+        }
+
+        function getCsrfToken() {
+            const token = document.querySelector('[name=csrfmiddlewaretoken]');
+            return token ? token.value : null;
+        }
+
+        // ==================== ADDRESS SELECTION ====================
         document.querySelectorAll('.address-card').forEach(card => {
             card.addEventListener('click', function () {
                 const radio = this.querySelector('input[type="radio"]');
@@ -976,7 +1026,7 @@
             });
         });
 
-        // Payment method selection styling
+        // ==================== PAYMENT METHOD SELECTION ====================
         document.querySelectorAll('.payment-option-card').forEach(card => {
             card.addEventListener('click', function () {
                 const radio = this.querySelector('input[type="radio"]');
@@ -988,10 +1038,7 @@
             });
         });
 
-        // Wallet toggle
-        const useWalletCheckbox = document.getElementById('use_wallet');
-        const walletAmountSection = document.getElementById('wallet_amount_section');
-
+        // ==================== WALLET TOGGLE ====================
         if (useWalletCheckbox && walletAmountSection) {
             useWalletCheckbox.addEventListener('change', function () {
                 walletAmountSection.style.display = this.checked ? 'block' : 'none';
@@ -1003,50 +1050,275 @@
             }
         }
 
-        // Form submission handling
-        const checkoutForm = document.getElementById('checkoutForm');
-        const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+// ==================== ADD ADDRESS FUNCTIONALITY ====================
+if (saveAddressBtn && addAddressForm) {
+    saveAddressBtn.addEventListener('click', async function (e) {
+        e.preventDefault();
 
+        console.log('=== STARTING ADDRESS FORM SUBMISSION ===');
+
+        // Show loading state
+        const originalBtnText = saveAddressBtn.innerHTML;
+        saveAddressBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        saveAddressBtn.disabled = true;
+
+        try {
+            // Get CSRF token
+            const csrfToken = getCsrfToken();
+            if (!csrfToken) {
+                throw new Error('CSRF token not found. Please refresh the page.');
+            }
+
+            // Create FormData and log all fields
+            const formData = new FormData(addAddressForm);
+            
+            console.log('=== FormData being sent ===');
+            for (let [key, value] of formData.entries()) {
+                console.log(`${key}: "${value}"`);
+            }
+
+            // Add CSRF token to form data
+            if (!formData.has('csrfmiddlewaretoken')) {
+                formData.append('csrfmiddlewaretoken', csrfToken);
+            }
+
+            // Handle checkbox for is_default
+            const isDefaultCheckbox = addAddressForm.querySelector('[name="is_default"]');
+            if (isDefaultCheckbox) {
+                if (isDefaultCheckbox.checked) {
+                    // Remove any existing entry and add with correct value
+                    formData.delete('is_default');
+                    formData.append('is_default', 'on'); // Django expects 'on' for checked checkboxes
+                } else {
+                    // Checkbox is not checked, ensure it's not in formData or set to empty
+                    formData.delete('is_default');
+                    formData.append('is_default', '');
+                }
+            }
+
+            console.log('=== FINAL FormData after processing ===');
+            for (let [key, value] of formData.entries()) {
+                console.log(`${key}: "${value}"`);
+            }
+
+            // Send request
+            console.log('Sending request to: user_add_address_ajax');
+            const response = await fetch('{% url "user_add_address_ajax" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            console.log('Response status:', response.status);
+            
+            // Get response text
+            const responseText = await response.text();
+            console.log('Response text:', responseText);
+
+            // Try to parse as JSON
+            try {
+                const data = JSON.parse(responseText);
+                console.log('Parsed response data:', data);
+                handleAddressResponse(data);
+            } catch (parseError) {
+                console.error('Failed to parse JSON:', parseError);
+                console.log('Raw response was:', responseText);
+                showNotification('Server returned unexpected response. Please check console.', 'error');
+            }
+
+        } catch (error) {
+            console.error('Error:', error);
+            showNotification('Error: ' + error.message, 'error');
+        } finally {
+            // Restore button state
+            saveAddressBtn.innerHTML = originalBtnText;
+            saveAddressBtn.disabled = false;
+        }
+    });
+}
+
+        // Helper function to handle address response
+        function handleAddressResponse(data) {
+            if (data.success) {
+                showNotification(data.message || 'Address added successfully!', 'success');
+
+                // Clear form
+                if (addAddressForm) {
+                    addAddressForm.reset();
+                }
+
+                // Close modal
+                if (addAddressModal) {
+                    addAddressModal.hide();
+                }
+
+                // Reload page after delay
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+
+            } else {
+                // Handle form errors
+                let errorMessage = 'Error adding address';
+
+                if (data.message) {
+                    errorMessage = data.message;
+                } else if (data.errors) {
+                    // Handle field-specific errors
+                    const errorMessages = [];
+                    Object.keys(data.errors).forEach(field => {
+                        const fieldErrors = Array.isArray(data.errors[field]) ?
+                            data.errors[field].join(', ') : data.errors[field];
+                        errorMessages.push(fieldErrors);
+                    });
+                    errorMessage = `Please correct: ${errorMessages.join(', ')}`;
+                }
+
+                showNotification(errorMessage, 'error');
+
+                // Highlight errored fields
+                if (data.errors && addAddressForm) {
+                    Object.keys(data.errors).forEach(field => {
+                        const input = addAddressForm.querySelector(`[name="${field}"]`);
+                        if (input) {
+                            input.style.borderColor = '#dc3545';
+                            // Add error message tooltip
+                            input.title = Array.isArray(data.errors[field]) ?
+                                data.errors[field].join(', ') : data.errors[field];
+                        }
+                    });
+                }
+            }
+        }
+
+        // ==================== COUPON FUNCTIONALITY ====================
+        if (applyCouponBtn) {
+            applyCouponBtn.addEventListener('click', async function () {
+                const couponInput = document.getElementById('coupon_code');
+                if (!couponInput) return;
+
+                const code = couponInput.value.trim();
+                if (!code) {
+                    showNotification('Please enter a coupon code', 'warning');
+                    return;
+                }
+
+                const originalBtnText = applyCouponBtn.innerHTML;
+                applyCouponBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
+                applyCouponBtn.disabled = true;
+
+                try {
+                    const csrfToken = getCsrfToken();
+                    if (!csrfToken) {
+                        throw new Error('CSRF token not found');
+                    }
+
+                    const formData = new FormData();
+                    formData.append('coupon_code', code);
+                    formData.append('csrfmiddlewaretoken', csrfToken);
+
+                    const response = await fetch('{% url "apply_coupon" %}', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        showNotification('Coupon applied successfully!', 'success');
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        showNotification(data.message || 'Invalid coupon code', 'error');
+                    }
+
+                } catch (error) {
+                    console.error('Coupon error:', error);
+                    showNotification('Error applying coupon', 'error');
+                } finally {
+                    applyCouponBtn.innerHTML = originalBtnText;
+                    applyCouponBtn.disabled = false;
+                }
+            });
+        }
+
+        if (removeCouponBtn) {
+            removeCouponBtn.addEventListener('click', async function () {
+                try {
+                    const csrfToken = getCsrfToken();
+                    if (!csrfToken) {
+                        throw new Error('CSRF token not found');
+                    }
+
+                    const response = await fetch('{% url "remove_coupon" %}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        showNotification('Coupon removed', 'success');
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    }
+                } catch (error) {
+                    console.error('Remove coupon error:', error);
+                    showNotification('Error removing coupon', 'error');
+                }
+            });
+        }
+
+        // ==================== PRE-FILL COUPON CHIPS ====================
+        document.querySelectorAll('.coupon-chip').forEach(chip => {
+            chip.addEventListener('click', function () {
+                const couponInput = document.getElementById('coupon_code');
+                if (couponInput) {
+                    couponInput.value = this.dataset.code;
+                    couponInput.focus();
+                }
+            });
+        });
+
+        // ==================== CHECKOUT FORM SUBMISSION ====================
         if (checkoutForm) {
             checkoutForm.addEventListener('submit', async function (e) {
                 e.preventDefault();
 
-                // Validate required fields
+                // Validate address selection
                 const selectedAddress = document.querySelector('input[name="address_id"]:checked');
                 if (!selectedAddress) {
-                    alert('Please select a delivery address');
+                    showNotification('Please select a delivery address', 'warning');
                     return;
                 }
 
-                // Validate wallet amount if using wallet
-                if (useWalletCheckbox && useWalletCheckbox.checked) {
-                    const walletAmount = parseFloat(document.getElementById('wallet_amount').value) || 0;
-                    const maxAmount = parseFloat("{{ wallet_balance }}");
-
-                    if (walletAmount > maxAmount) {
-                        alert(`Wallet amount cannot exceed ₹${maxAmount.toFixed(2)}`);
-                        return;
-                    }
-
-                    if (walletAmount < 0) {
-                        alert('Wallet amount must be positive');
-                        return;
-                    }
+                // Show loading modal
+                if (loadingModal) {
+                    loadingModal.show();
                 }
 
-                // Show loading modal
-                loadingModal.show();
-
                 try {
-                    // Prepare form data
                     const formData = new FormData(this);
+                    const csrfToken = getCsrfToken();
 
-                    // Send AJAX request
+                    if (!csrfToken) {
+                        throw new Error('CSRF token not found');
+                    }
+
                     const response = await fetch('{% url "place_order" %}', {
                         method: 'POST',
                         body: formData,
                         headers: {
-                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
                             'X-Requested-With': 'XMLHttpRequest'
                         }
                     });
@@ -1062,111 +1334,29 @@
                             window.location.href = data.redirect_url;
                         }
                     } else {
-                        loadingModal.hide();
-                        alert('Error: ' + data.message);
+                        if (loadingModal) loadingModal.hide();
+                        showNotification(data.message || 'Error placing order', 'error');
                     }
                 } catch (error) {
-                    loadingModal.hide();
-                    console.error('Error:', error);
-                    alert('Network error. Please try again.');
+                    console.error('Order placement error:', error);
+                    if (loadingModal) loadingModal.hide();
+                    showNotification('Error placing order. Please try again.', 'error');
                 }
             });
         }
 
-        // Add new address via AJAX
-        const saveAddressBtn = document.getElementById('saveAddressBtn');
-        const addAddressModal = new bootstrap.Modal(document.getElementById('addAddressModal'));
-
-        if (saveAddressBtn) {
-            saveAddressBtn.addEventListener('click', function () {
-                const formData = new FormData(document.getElementById('addAddressForm'));
-
-                fetch('{% url "user_add_address" %}', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                    }
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            addAddressModal.hide();
-                            window.location.reload();
-                        } else {
-                            // Handle errors
-                            alert('Error adding address: ' + (data.message || 'Please check all fields'));
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Network error. Please try again.');
-                    });
-            });
-        }
-
-        // Apply coupon functionality
-        const applyCouponBtn = document.getElementById('apply_coupon_btn');
-        const removeCouponBtn = document.querySelector('.remove-coupon-btn');
-
-        if (applyCouponBtn) {
-            applyCouponBtn.addEventListener('click', function () {
-                const couponCode = document.getElementById('coupon_code').value.trim();
-                if (!couponCode) {
-                    alert('Please enter a coupon code');
-                    return;
+        // ==================== ENTER KEY FOR COUPON ====================
+        const couponInput = document.getElementById('coupon_code');
+        if (couponInput && applyCouponBtn) {
+            couponInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    applyCouponBtn.click();
                 }
-
-                const formData = new FormData();
-                formData.append('coupon_code', couponCode);
-                formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-
-                fetch('{% url "apply_coupon" %}', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                    }
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            window.location.reload();
-                        } else {
-                            alert(data.message || 'Invalid coupon code');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Network error. Please try again.');
-                    });
             });
         }
 
-        if (removeCouponBtn) {
-            removeCouponBtn.addEventListener('click', function () {
-                fetch('{% url "remove_coupon" %}', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                        'X-Requested-With': 'XMLHttpRequest',
-                    }
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            window.location.reload();
-                        }
-                    });
-            });
-        }
-
-        // Pre-fill coupon chips
-        document.querySelectorAll('.coupon-chip').forEach(chip => {
-            chip.addEventListener('click', function () {
-                document.getElementById('coupon_code').value = this.dataset.code;
-            });
-        });
+        console.log('Checkout page JavaScript initialized successfully');
     });
 </script>
 {% endblock %}
