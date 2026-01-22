@@ -4,6 +4,10 @@
 
 {% block title %}Checkout - Sanjeri{% endblock %}
 
+{% block extra_head %}
+<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+{% endblock %}
+
 {% block extra_css %}
 <style>
     /* Modern Checkout Styles - KEEP ALL YOUR CSS HERE */
@@ -511,7 +515,7 @@
         </ol>
     </nav>
 
-    <form method="post" id="checkoutForm">
+    <form method="post" id="checkoutForm" action="{% url 'place_order' %}">
         {% csrf_token %}
         <div class="row g-4">
             <!-- Left Column - Checkout Steps -->
@@ -524,79 +528,89 @@
                             <h3 class="checkout-step-title">1. Delivery Address</h3>
                         </div>
                     </div>
-                    <div class="checkout-step-body">
-                        {% if addresses %}
-                            <div class="address-selection">
-                                {% for address in addresses %}
-                                <div class="address-card {% if address.is_default %}selected{% endif %}"
-                                    data-address-id="{{ address.id }}">
-                                    <div class="form-check mb-0">
-                                        <input class="form-check-input" type="radio" name="address_id"
-                                            id="address{{ address.id }}" value="{{ address.id }}" 
-                                            {% if address.is_default %}checked{% endif %} required>
-                                        <label class="form-check-label w-100" for="address{{ address.id }}">
-                                            <div class="d-flex justify-content-between align-items-start">
-                                                <div class="flex-grow-1">
-                                                    <div class="d-flex align-items-center mb-2">
-                                                        <strong class="me-2">{{ address.full_name }}</strong>
-                                                        <span class="address-badge address-type-badge me-1">
-                                                            {{ address.get_address_type_display }}
-                                                        </span>
-                                                        {% if address.is_default %}
-                                                        <span class="address-badge address-default-badge">
-                                                            Default
-                                                        </span>
-                                                        {% endif %}
-                                                    </div>
-                                                    <div class="address-details">
-                                                        <p class="mb-1">
-                                                            <i class="fas fa-phone me-2"></i>{{ address.phone }}
-                                                        </p>
-                                                        <p class="mb-1">
-                                                            {{ address.address_line1 }}
-                                                            {% if address.address_line2 %}, {{ address.address_line2 }}{% endif %}
-                                                        </p>
-                                                        {% if address.landmark %}
-                                                        <p class="mb-1">
-                                                            <strong>Landmark:</strong> {{ address.landmark }}
-                                                        </p>
-                                                        {% endif %}
-                                                        <p class="mb-0">
-                                                            {{ address.city }}, {{ address.state }} - {{ address.postal_code }}
-                                                        </p>
-                                                        <p class="mb-0">{{ address.country }}</p>
-                                                    </div>
-                                                </div>
-                                                <a href="{% url 'user_edit_address' address.id %}"
-                                                    class="btn btn-sm btn-outline-amber-900 ms-3">
-                                                    Edit
-                                                </a>
-                                            </div>
-                                        </label>
-                                    </div>
+                  <!-- In your checkout page template (the first code block) -->
+<div class="checkout-step-body">
+    {% if addresses %}
+        <div class="address-selection">
+            {% for address in addresses %}
+            <div class="address-card {% if address.is_default %}selected{% endif %}"
+                data-address-id="{{ address.id }}">
+                <div class="form-check mb-0">
+                    <input class="form-check-input" type="radio" name="address_id"
+                        id="address{{ address.id }}" value="{{ address.id }}" 
+                        {% if address.is_default %}checked{% endif %} required>
+                    <label class="form-check-label w-100" for="address{{ address.id }}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center mb-2">
+                                    <strong class="me-2">{{ address.full_name }}</strong>
+                                    <span class="address-badge address-type-badge me-1">
+                                        {{ address.get_address_type_display }}
+                                    </span>
+                                    {% if address.is_default %}
+                                    <span class="address-badge address-default-badge">
+                                        Default
+                                    </span>
+                                    {% endif %}
                                 </div>
-                                {% endfor %}
+                                <div class="address-details">
+                                    <p class="mb-1">
+                                        <i class="fas fa-phone me-2"></i>{{ address.phone }}
+                                    </p>
+                                    <p class="mb-1">
+                                        {{ address.address_line1 }}
+                                        {% if address.address_line2 %}, {{ address.address_line2 }}{% endif %}
+                                    </p>
+                                    <!-- FIXED: Proper landmark display -->
+                                    {% if address.landmark %}
+                                    <p class="mb-1">
+                                        <i class="fas fa-map-marker-alt me-2"></i>Landmark: {{ address.landmark }}
+                                    </p>
+                                    {% endif %}
+                                    <p class="mb-0">
+                                        <i class="fas fa-city me-2"></i>{{ address.city }}, {{ address.state }} - {{ address.postal_code }}
+                                    </p>
+                                    <p class="mb-0">
+                                        <i class="fas fa-globe me-2"></i>{{ address.country }}
+                                    </p>
+                                </div>
                             </div>
+                            <a href="{% url 'user_edit_address' address.id %}"
+                                class="btn btn-sm btn-outline-amber-900 ms-3">
+                                Edit
+                            </a>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
 
-                            <!-- Add New Address Button -->
-                            <div class="text-center mt-4">
-                                <button type="button" class="btn btn-outline-amber-900" data-bs-toggle="modal"
-                                    data-bs-target="#addAddressModal">
-                                    <i class="fas fa-plus me-2"></i>Add New Address
-                                </button>
-                            </div>
-                        {% else %}
-                            <div class="text-center py-5">
-                                <i class="fas fa-map-marker-alt fa-4x text-gray-300 mb-4"></i>
-                                <h5 class="text-gray-600 mb-3">No Addresses Found</h5>
-                                <p class="text-gray-500 mb-4">Please add a delivery address to continue with your order.</p>
-                                <button type="button" class="btn btn-amber-900" data-bs-toggle="modal"
-                                    data-bs-target="#addAddressModal">
-                                    <i class="fas fa-plus me-2"></i>Add Your First Address
-                                </button>
-                            </div>
-                        {% endif %}
-                    </div>
+        <!-- Add New Address Button -->
+        <div class="text-center mt-4">
+            <button type="button" class="btn btn-outline-amber-900" data-bs-toggle="modal"
+                data-bs-target="#addAddressModal">
+                <i class="fas fa-plus me-2"></i>Add New Address
+            </button>
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-map-marker-alt fa-4x text-gray-300 mb-4"></i>
+            <h5 class="text-gray-600 mb-3">No Addresses Found</h5>
+            <p class="text-gray-500 mb-4">Please add a delivery address to continue with your order.</p>
+            <button type="button" class="btn btn-amber-900" data-bs-toggle="modal"
+                data-bs-target="#addAddressModal">
+                <i class="fas fa-plus me-2"></i>Add Your First Address
+            </button>
+        </div>
+    {% endif %}
+</div>
+
+
+
+
+
+
                 </div>
 
                 <!-- Step 2: Payment Method -->
@@ -613,7 +627,7 @@
                             <div class="payment-option-card selected">
                                 <div class="form-check mb-0">
                                     <input class="form-check-input" type="radio" name="payment_method" id="payment_cod"
-                                        value="COD" checked>
+                                        value="cod" checked>
                                     <label class="form-check-label w-100" for="payment_cod">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div>
@@ -629,7 +643,7 @@
                             <div class="payment-option-card">
                                 <div class="form-check mb-0">
                                     <input class="form-check-input" type="radio" name="payment_method"
-                                        id="payment_online" value="ONLINE">
+                                        id="payment_online" value="online">
                                     <label class="form-check-label w-100" for="payment_online">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div>
@@ -893,15 +907,15 @@
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="mb-3">
-     <label for="address_type" class="form-label">Address Type *</label>
-        <select class="form-control" id="address_type" name="address_type" required>
-            <option value="">Select Address Type</option>
-            <option value="home">Home</option>
-            <option value="work">Work</option>
-            <option value="other">Other</option>
-        </select>
-    </div>
-      <div class="mb-3">
+                        <label for="address_type" class="form-label">Address Type *</label>
+                        <select class="form-control" id="address_type" name="address_type" required>
+                            <option value="">Select Address Type</option>
+                            <option value="home">Home</option>
+                            <option value="work">Work</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label for="full_name" class="form-label">Full Name *</label>
                         <input type="text" class="form-control" id="full_name" name="full_name" required>
                     </div>
@@ -918,10 +932,10 @@
                         <input type="text" class="form-control" id="address_line2" name="address_line2">
                     </div>
                     <div class="mb-3">
-    <label for="landmark" class="form-label">Landmark (Optional)</label>
-    <input type="text" class="form-control" id="landmark" name="landmark" 
-           placeholder="Nearby landmark for easy location">
-</div>
+                        <label for="landmark" class="form-label">Landmark (Optional)</label>
+                        <input type="text" class="form-control" id="landmark" name="landmark" 
+                               placeholder="Nearby landmark for easy location">
+                    </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="city" class="form-label">City *</label>
@@ -973,349 +987,395 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
+
+
+
+
+{% endblock %}
 {% block extra_js %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        console.log('Checkout page JavaScript initializing...');
+        // ==================== CONFIGURATION ====================
+        const config = {
+            csrfToken: document.querySelector('[name=csrfmiddlewaretoken]')?.value,
+            urls: {
+                placeOrder: '{% url "place_order" %}',
+                initiatePayment: '/payment/initiate/',
+                verifyPayment: '{% url "verify_payment" %}',
+                applyCoupon: '{% url "apply_coupon" %}',
+                removeCoupon: '{% url "remove_coupon" %}',
+                addAddress: '{% url "user_add_address" %}',
+                orderList: '{% url "order_list" %}'
+            }
+        };
 
         // ==================== DOM ELEMENTS ====================
-        const checkoutForm = document.getElementById('checkoutForm');
-        const addAddressForm = document.getElementById('addAddressForm');
-        const saveAddressBtn = document.getElementById('saveAddressBtn');
-        const applyCouponBtn = document.getElementById('apply_coupon_btn');
-        const removeCouponBtn = document.querySelector('.remove-coupon-btn');
-        const useWalletCheckbox = document.getElementById('use_wallet');
-        const walletAmountSection = document.getElementById('wallet_amount_section');
-
-        // Initialize Bootstrap modals
-        const addAddressModalEl = document.getElementById('addAddressModal');
-        const loadingModalEl = document.getElementById('loadingModal');
-        const addAddressModal = addAddressModalEl ? new bootstrap.Modal(addAddressModalEl) : null;
-        const loadingModal = loadingModalEl ? new bootstrap.Modal(loadingModalEl) : null;
-
-        // ==================== HELPER FUNCTIONS ====================
-        function showNotification(message, type = 'info') {
-            console.log(`${type.toUpperCase()}: ${message}`);
-
-            // Use Bootstrap toast or simple alert for now
-            if (type === 'success') {
-                alert('✓ ' + message);
-            } else if (type === 'error') {
-                alert('✗ ' + message);
-            } else {
-                alert('ℹ ' + message);
-            }
-        }
-
-        function getCsrfToken() {
-            const token = document.querySelector('[name=csrfmiddlewaretoken]');
-            return token ? token.value : null;
-        }
-
-        // ==================== ADDRESS SELECTION ====================
-        document.querySelectorAll('.address-card').forEach(card => {
-            card.addEventListener('click', function () {
-                const radio = this.querySelector('input[type="radio"]');
-                if (radio) {
-                    radio.checked = true;
-                    document.querySelectorAll('.address-card').forEach(c => c.classList.remove('selected'));
-                    this.classList.add('selected');
-                }
-            });
-        });
-
-        // ==================== PAYMENT METHOD SELECTION ====================
-        document.querySelectorAll('.payment-option-card').forEach(card => {
-            card.addEventListener('click', function () {
-                const radio = this.querySelector('input[type="radio"]');
-                if (radio) {
-                    radio.checked = true;
-                    document.querySelectorAll('.payment-option-card').forEach(c => c.classList.remove('selected'));
-                    this.classList.add('selected');
-                }
-            });
-        });
-
-        // ==================== WALLET TOGGLE ====================
-        if (useWalletCheckbox && walletAmountSection) {
-            useWalletCheckbox.addEventListener('change', function () {
-                walletAmountSection.style.display = this.checked ? 'block' : 'none';
-            });
-
-            // Initialize on page load
-            if (useWalletCheckbox.checked) {
-                walletAmountSection.style.display = 'block';
-            }
-        }
-
-// ==================== ADD ADDRESS FUNCTIONALITY ====================
-if (saveAddressBtn && addAddressForm) {
-    saveAddressBtn.addEventListener('click', async function (e) {
-        e.preventDefault();
-
-        console.log('=== STARTING ADDRESS FORM SUBMISSION ===');
-
-        // Show loading state
-        const originalBtnText = saveAddressBtn.innerHTML;
-        saveAddressBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-        saveAddressBtn.disabled = true;
-
-        try {
-            // Get CSRF token
-            const csrfToken = getCsrfToken();
-            if (!csrfToken) {
-                throw new Error('CSRF token not found. Please refresh the page.');
-            }
-
-            // Create FormData and log all fields
-            const formData = new FormData(addAddressForm);
+        const elements = {
+            checkoutForm: document.getElementById('checkoutForm'),
+            placeOrderBtn: document.getElementById('placeOrderBtn'),
+            loadingModal: document.getElementById('loadingModal') ? 
+                          new bootstrap.Modal(document.getElementById('loadingModal')) : null,
             
-            console.log('=== FormData being sent ===');
-            for (let [key, value] of formData.entries()) {
-                console.log(`${key}: "${value}"`);
-            }
-
-            // Add CSRF token to form data
-            if (!formData.has('csrfmiddlewaretoken')) {
-                formData.append('csrfmiddlewaretoken', csrfToken);
-            }
-
-            // Handle checkbox for is_default
-            const isDefaultCheckbox = addAddressForm.querySelector('[name="is_default"]');
-            if (isDefaultCheckbox) {
-                if (isDefaultCheckbox.checked) {
-                    // Remove any existing entry and add with correct value
-                    formData.delete('is_default');
-                    formData.append('is_default', 'on'); // Django expects 'on' for checked checkboxes
-                } else {
-                    // Checkbox is not checked, ensure it's not in formData or set to empty
-                    formData.delete('is_default');
-                    formData.append('is_default', '');
-                }
-            }
-
-            console.log('=== FINAL FormData after processing ===');
-            for (let [key, value] of formData.entries()) {
-                console.log(`${key}: "${value}"`);
-            }
-
-            // Send request
-            console.log('Sending request to: user_add_address_ajax');
-            const response = await fetch('{% url "user_add_address_ajax" %}', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-
-            console.log('Response status:', response.status);
+            // Address
+            addressCards: document.querySelectorAll('.address-card'),
             
-            // Get response text
-            const responseText = await response.text();
-            console.log('Response text:', responseText);
+            // Payment
+            paymentCards: document.querySelectorAll('.payment-option-card'),
+            
+            // Wallet
+            useWallet: document.getElementById('use_wallet'),
+            walletAmountSection: document.getElementById('wallet_amount_section'),
+            
+            // Coupon
+            applyCouponBtn: document.getElementById('apply_coupon_btn'),
+            couponCodeInput: document.getElementById('coupon_code'),
+            couponMessage: document.getElementById('coupon_message'),
+            removeCouponBtn: document.querySelector('.remove-coupon-btn'),
+            couponChips: document.querySelectorAll('.coupon-chip'),
+            
+            // Address Modal
+            saveAddressBtn: document.getElementById('saveAddressBtn'),
+            addAddressForm: document.getElementById('addAddressForm')
+        };
 
-            // Try to parse as JSON
-            try {
-                const data = JSON.parse(responseText);
-                console.log('Parsed response data:', data);
-                handleAddressResponse(data);
-            } catch (parseError) {
-                console.error('Failed to parse JSON:', parseError);
-                console.log('Raw response was:', responseText);
-                showNotification('Server returned unexpected response. Please check console.', 'error');
+        // ==================== UTILITY FUNCTIONS ====================
+        const utils = {
+            showNotification: function(message, type = 'info') {
+                const types = {
+                    success: { icon: '✓', class: 'success' },
+                    error: { icon: '✗', class: 'danger' },
+                    warning: { icon: '⚠', class: 'warning' },
+                    info: { icon: 'ℹ', class: 'info' }
+                };
+                
+                const typeConfig = types[type] || types.info;
+                
+                const notification = document.createElement('div');
+                notification.className = `alert alert-${typeConfig.class} alert-dismissible fade show position-fixed`;
+                notification.style.cssText = `
+                    top: 20px;
+                    right: 20px;
+                    z-index: 9999;
+                    min-width: 300px;
+                    max-width: 400px;
+                `;
+                notification.innerHTML = `
+                    <strong>${typeConfig.icon}</strong> ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Auto-remove after 5 seconds
+                setTimeout(() => notification.remove(), 5000);
+            },
+
+            showLoading: function(show = true) {
+                if (elements.loadingModal) {
+                    if (show) {
+                        elements.loadingModal.show();
+                    } else {
+                        elements.loadingModal.hide();
+                    }
+                }
+                
+                if (elements.placeOrderBtn) {
+                    if (show) {
+                        elements.placeOrderBtn.disabled = true;
+                        elements.placeOrderBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+                    } else {
+                        elements.placeOrderBtn.disabled = false;
+                        elements.placeOrderBtn.innerHTML = '<i class="fas fa-shopping-bag me-2"></i>Place Order';
+                    }
+                }
+            },
+
+            validateForm: function() {
+                const selectedAddress = document.querySelector('input[name="address_id"]:checked');
+                if (!selectedAddress) {
+                    utils.showNotification('Please select a delivery address', 'warning');
+                    return false;
+                }
+
+                const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
+                if (!selectedPayment) {
+                    utils.showNotification('Please select a payment method', 'warning');
+                    return false;
+                }
+
+                return {
+                    addressId: selectedAddress.value,
+                    paymentMethod: selectedPayment.value
+                };
+            },
+
+            getFormData: function(form) {
+                const formData = new FormData(form);
+                
+                // Debug logging
+                console.log("Form Data:");
+                for (let [key, value] of formData.entries()) {
+                    console.log(`  ${key}: ${value}`);
+                }
+                
+                return formData;
             }
+        };
 
-        } catch (error) {
-            console.error('Error:', error);
-            showNotification('Error: ' + error.message, 'error');
-        } finally {
-            // Restore button state
-            saveAddressBtn.innerHTML = originalBtnText;
-            saveAddressBtn.disabled = false;
-        }
-    });
-}
+        // ==================== CHECKOUT HANDLER ====================
+        const checkoutHandler = {
+            async submitForm(e) {
+                e.preventDefault();
+                console.log("=== CHECKOUT FORM SUBMISSION ===");
 
-        // Helper function to handle address response
-        function handleAddressResponse(data) {
-            if (data.success) {
-                showNotification(data.message || 'Address added successfully!', 'success');
+                // Validate form
+                const validation = utils.validateForm();
+                if (!validation) return;
 
-                // Clear form
-                if (addAddressForm) {
-                    addAddressForm.reset();
-                }
-
-                // Close modal
-                if (addAddressModal) {
-                    addAddressModal.hide();
-                }
-
-                // Reload page after delay
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-
-            } else {
-                // Handle form errors
-                let errorMessage = 'Error adding address';
-
-                if (data.message) {
-                    errorMessage = data.message;
-                } else if (data.errors) {
-                    // Handle field-specific errors
-                    const errorMessages = [];
-                    Object.keys(data.errors).forEach(field => {
-                        const fieldErrors = Array.isArray(data.errors[field]) ?
-                            data.errors[field].join(', ') : data.errors[field];
-                        errorMessages.push(fieldErrors);
-                    });
-                    errorMessage = `Please correct: ${errorMessages.join(', ')}`;
-                }
-
-                showNotification(errorMessage, 'error');
-
-                // Highlight errored fields
-                if (data.errors && addAddressForm) {
-                    Object.keys(data.errors).forEach(field => {
-                        const input = addAddressForm.querySelector(`[name="${field}"]`);
-                        if (input) {
-                            input.style.borderColor = '#dc3545';
-                            // Add error message tooltip
-                            input.title = Array.isArray(data.errors[field]) ?
-                                data.errors[field].join(', ') : data.errors[field];
-                        }
-                    });
-                }
-            }
-        }
-
-        // ==================== COUPON FUNCTIONALITY ====================
-        if (applyCouponBtn) {
-            applyCouponBtn.addEventListener('click', async function () {
-                const couponInput = document.getElementById('coupon_code');
-                if (!couponInput) return;
-
-                const code = couponInput.value.trim();
-                if (!code) {
-                    showNotification('Please enter a coupon code', 'warning');
-                    return;
-                }
-
-                const originalBtnText = applyCouponBtn.innerHTML;
-                applyCouponBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
-                applyCouponBtn.disabled = true;
+                utils.showLoading(true);
 
                 try {
-                    const csrfToken = getCsrfToken();
-                    if (!csrfToken) {
-                        throw new Error('CSRF token not found');
-                    }
-
-                    const formData = new FormData();
-                    formData.append('coupon_code', code);
-                    formData.append('csrfmiddlewaretoken', csrfToken);
-
-                    const response = await fetch('{% url "apply_coupon" %}', {
+                    const formData = utils.getFormData(elements.checkoutForm);
+                    
+                    // Submit order
+                    const orderResponse = await fetch(config.urls.placeOrder, {
                         method: 'POST',
                         body: formData,
                         headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-Requested-With': 'XMLHttpRequest'
                         }
                     });
 
-                    const data = await response.json();
+                    const orderData = await orderResponse.json();
+                    console.log("Order Response:", orderData);
 
-                    if (data.success) {
-                        showNotification('Coupon applied successfully!', 'success');
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000);
+                    if (orderData.success) {
+                        await this.handleOrderResponse(orderData, validation.paymentMethod);
                     } else {
-                        showNotification(data.message || 'Invalid coupon code', 'error');
+                        throw new Error(orderData.message || 'Order creation failed');
                     }
-
+                    
                 } catch (error) {
-                    console.error('Coupon error:', error);
-                    showNotification('Error applying coupon', 'error');
+                    console.error("Checkout Error:", error);
+                    utils.showNotification(error.message || 'Error placing order', 'error');
                 } finally {
-                    applyCouponBtn.innerHTML = originalBtnText;
-                    applyCouponBtn.disabled = false;
+                    utils.showLoading(false);
                 }
-            });
-        }
+            },
 
-        if (removeCouponBtn) {
-            removeCouponBtn.addEventListener('click', async function () {
+            async handleOrderResponse(orderData, paymentMethod) {
+                if (orderData.payment_required && paymentMethod === 'online') {
+                    // Online payment required
+                    await paymentHandler.initiate(orderData.order_id);
+                } else {
+                    // COD or wallet payment - redirect to success
+                    console.log("Redirecting to:", orderData.redirect_url);
+                    window.location.href = orderData.redirect_url;
+                }
+            }
+        };
+
+        // ==================== PAYMENT HANDLER ====================
+        const paymentHandler = {
+            async initiate(orderId) {
+                console.log("=== PAYMENT INITIATION ===");
+                console.log("Order ID:", orderId);
+
                 try {
-                    const csrfToken = getCsrfToken();
-                    if (!csrfToken) {
-                        throw new Error('CSRF token not found');
-                    }
-
-                    const response = await fetch('{% url "remove_coupon" %}', {
+                    const response = await fetch(`${config.urls.initiatePayment}${orderId}/`, {
                         method: 'POST',
                         headers: {
-                            'X-CSRFToken': csrfToken,
-                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': config.csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest'
                         }
                     });
 
-                    const data = await response.json();
+                    const paymentData = await response.json();
+                    console.log("Payment Data:", paymentData);
 
-                    if (data.success) {
-                        showNotification('Coupon removed', 'success');
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000);
+                    if (paymentData.success) {
+                        this.openRazorpay(paymentData);
+                    } else {
+                        throw new Error(paymentData.message || 'Payment initiation failed');
                     }
+                    
                 } catch (error) {
-                    console.error('Remove coupon error:', error);
-                    showNotification('Error removing coupon', 'error');
+                    console.error("Payment Initiation Error:", error);
+                    utils.showNotification(error.message, 'error');
+                    
+                    // Redirect to order details
+                    setTimeout(() => {
+                        window.location.href = `/orders/${orderId}/`;
+                    }, 2000);
                 }
-            });
-        }
+            },
 
-        // ==================== PRE-FILL COUPON CHIPS ====================
-        document.querySelectorAll('.coupon-chip').forEach(chip => {
-            chip.addEventListener('click', function () {
-                const couponInput = document.getElementById('coupon_code');
-                if (couponInput) {
-                    couponInput.value = this.dataset.code;
-                    couponInput.focus();
-                }
-            });
-        });
+            openRazorpay(paymentData) {
+                console.log("=== OPENING RAZORPAY ===");
 
-        // ==================== CHECKOUT FORM SUBMISSION ====================
-        if (checkoutForm) {
-            checkoutForm.addEventListener('submit', async function (e) {
-                e.preventDefault();
-
-                // Validate address selection
-                const selectedAddress = document.querySelector('input[name="address_id"]:checked');
-                if (!selectedAddress) {
-                    showNotification('Please select a delivery address', 'warning');
+                // Validate payment data
+                if (!paymentData.key || !paymentData.amount || !paymentData.razorpay_order_id) {
+                    utils.showNotification('Payment configuration error', 'error');
                     return;
                 }
 
-                // Show loading modal
-                if (loadingModal) {
-                    loadingModal.show();
+                // Check Razorpay SDK
+                if (typeof Razorpay === 'undefined') {
+                    utils.showNotification('Payment gateway not available', 'error');
+                    return;
+                }
+
+                const options = {
+                    key: paymentData.key,
+                    amount: paymentData.amount,
+                    currency: 'INR',
+                    name: 'Sanjeri Perfumes',
+                    description: `Order #${paymentData.order_number || ''}`,
+                    order_id: paymentData.razorpay_order_id,
+                    handler: (response) => this.handlePaymentSuccess(response, paymentData.order_id),
+                    prefill: {
+                        name: paymentData.customer_name || '',
+                        email: paymentData.customer_email || '',
+                        contact: paymentData.customer_phone || ''
+                    },
+                    theme: { color: '#431405' },
+                    modal: {
+                        ondismiss: () => this.handlePaymentDismiss(paymentData.order_id)
+                    }
+                };
+
+                try {
+                    const rzp = new Razorpay(options);
+                    
+                    rzp.on('payment.failed', (response) => {
+                        this.handlePaymentFailure(response);
+                    });
+                    
+                    rzp.open();
+                    
+                } catch (error) {
+                    console.error("Razorpay Error:", error);
+                    utils.showNotification('Error opening payment gateway', 'error');
+                }
+            },
+
+            async handlePaymentSuccess(response, orderId) {
+                console.log("Payment Success:", response);
+                utils.showNotification('Payment successful! Verifying...', 'success');
+
+                try {
+                    const verifyResponse = await fetch(config.urls.verifyPayment, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': config.csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_signature: response.razorpay_signature,
+                            order_id: orderId
+                        })
+                    });
+
+                    const verifyData = await verifyResponse.json();
+                    console.log("Verification Response:", verifyData);
+
+                    if (verifyData.success) {
+                        window.location.href = verifyData.redirect_url;
+                    } else {
+                        throw new Error(verifyData.message || 'Payment verification failed');
+                    }
+                    
+                } catch (error) {
+                    console.error("Verification Error:", error);
+                    utils.showNotification(error.message, 'error');
+                }
+            },
+
+            handlePaymentDismiss(orderId) {
+                console.log("Payment Dismissed");
+                utils.showNotification('Payment cancelled. You can retry from your orders page.', 'warning');
+                setTimeout(() => {
+                    window.location.href = config.urls.orderList;
+                }, 1500);
+            },
+
+            handlePaymentFailure(response) {
+                console.error("Payment Failed:", response.error);
+                
+                let errorMessage = response.error.description || 'Payment failed';
+                
+                // User-friendly error messages
+                if (errorMessage.toLowerCase().includes('international')) {
+                    errorMessage = 'International cards are not accepted. Please use an Indian card.';
+                } else if (errorMessage.toLowerCase().includes('card not supported')) {
+                    errorMessage = 'Card not supported. Please try another card or use UPI.';
+                }
+                
+                utils.showNotification(`Payment failed: ${errorMessage}`, 'error');
+            }
+        };
+
+        // ==================== COUPON HANDLER ====================
+        const couponHandler = {
+            async apply(couponCode) {
+                if (!couponCode.trim()) {
+                    if (elements.couponMessage) {
+                        elements.couponMessage.innerHTML = '<div class="text-danger">Please enter a coupon code</div>';
+                    }
+                    return;
                 }
 
                 try {
-                    const formData = new FormData(this);
-                    const csrfToken = getCsrfToken();
+                    const response = await fetch(config.urls.applyCoupon, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRFToken': config.csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: `coupon_code=${encodeURIComponent(couponCode)}`
+                    });
 
-                    if (!csrfToken) {
-                        throw new Error('CSRF token not found');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        if (elements.couponMessage) {
+                            elements.couponMessage.innerHTML = '<div class="text-success">Coupon applied successfully!</div>';
+                        }
+                        // Reload page to update prices
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        if (elements.couponMessage) {
+                            elements.couponMessage.innerHTML = `<div class="text-danger">${data.message}</div>`;
+                        }
                     }
+                } catch (error) {
+                    console.error("Coupon Error:", error);
+                    if (elements.couponMessage) {
+                        elements.couponMessage.innerHTML = '<div class="text-danger">Error applying coupon</div>';
+                    }
+                }
+            },
 
-                    const response = await fetch('{% url "place_order" %}', {
+            remove() {
+                window.location.href = config.urls.removeCoupon;
+            }
+        };
+
+        // ==================== ADDRESS HANDLER ====================
+        const addressHandler = {
+            async saveAddress() {
+                if (!elements.addAddressForm) return;
+
+                try {
+                    const formData = new FormData(elements.addAddressForm);
+                    
+                    const response = await fetch(config.urls.addAddress, {
                         method: 'POST',
                         body: formData,
                         headers: {
@@ -1326,37 +1386,104 @@ if (saveAddressBtn && addAddressForm) {
                     const data = await response.json();
 
                     if (data.success) {
-                        if (data.payment_required) {
-                            // Redirect to payment page
-                            window.location.href = data.redirect_url;
-                        } else {
-                            // COD or wallet-only payment
-                            window.location.href = data.redirect_url;
-                        }
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('addAddressModal'));
+                        if (modal) modal.hide();
+                        window.location.reload();
                     } else {
-                        if (loadingModal) loadingModal.hide();
-                        showNotification(data.message || 'Error placing order', 'error');
+                        utils.showNotification('Error saving address: ' + data.message, 'error');
                     }
                 } catch (error) {
-                    console.error('Order placement error:', error);
-                    if (loadingModal) loadingModal.hide();
-                    showNotification('Error placing order. Please try again.', 'error');
+                    console.error("Address Error:", error);
+                    utils.showNotification('Error saving address', 'error');
                 }
+            }
+        };
+
+        // ==================== EVENT LISTENERS ====================
+        function setupEventListeners() {
+            // Checkout form submission
+            if (elements.checkoutForm) {
+                elements.checkoutForm.addEventListener('submit', (e) => checkoutHandler.submitForm(e));
+            }
+
+            // Address selection
+            elements.addressCards.forEach(card => {
+                card.addEventListener('click', function () {
+                    const radio = this.querySelector('input[type="radio"]');
+                    if (radio) {
+                        radio.checked = true;
+                        elements.addressCards.forEach(c => c.classList.remove('selected'));
+                        this.classList.add('selected');
+                    }
+                });
             });
+
+            // Payment method selection
+            elements.paymentCards.forEach(card => {
+                card.addEventListener('click', function () {
+                    const radio = this.querySelector('input[type="radio"]');
+                    if (radio) {
+                        radio.checked = true;
+                        elements.paymentCards.forEach(c => c.classList.remove('selected'));
+                        this.classList.add('selected');
+                    }
+                });
+            });
+
+            // Wallet toggle
+            if (elements.useWallet && elements.walletAmountSection) {
+                elements.useWallet.addEventListener('change', function () {
+                    elements.walletAmountSection.style.display = this.checked ? 'block' : 'none';
+                });
+                
+                // Initialize on load
+                if (elements.useWallet.checked) {
+                    elements.walletAmountSection.style.display = 'block';
+                }
+            }
+
+            // Coupon application
+            if (elements.applyCouponBtn && elements.couponCodeInput) {
+                elements.applyCouponBtn.addEventListener('click', () => {
+                    couponHandler.apply(elements.couponCodeInput.value);
+                });
+            }
+
+            // Coupon chips
+            elements.couponChips.forEach(chip => {
+                chip.addEventListener('click', function() {
+                    const couponCode = this.getAttribute('data-code');
+                    if (elements.couponCodeInput) {
+                        elements.couponCodeInput.value = couponCode;
+                        couponHandler.apply(couponCode);
+                    }
+                });
+            });
+
+            // Remove coupon
+            if (elements.removeCouponBtn) {
+                elements.removeCouponBtn.addEventListener('click', () => couponHandler.remove());
+            }
+
+            // Save address
+            if (elements.saveAddressBtn) {
+                elements.saveAddressBtn.addEventListener('click', () => addressHandler.saveAddress());
+            }
         }
 
-        // ==================== ENTER KEY FOR COUPON ====================
-        const couponInput = document.getElementById('coupon_code');
-        if (couponInput && applyCouponBtn) {
-            couponInput.addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    applyCouponBtn.click();
-                }
-            });
+        // ==================== INITIALIZATION ====================
+        function init() {
+            console.log("Checkout initialized");
+            setupEventListeners();
+            
+            // Check if CSRF token is available
+            if (!config.csrfToken) {
+                console.warn("CSRF token not found");
+            }
         }
 
-        console.log('Checkout page JavaScript initialized successfully');
+        // Start the application
+        init();
     });
 </script>
 {% endblock %}

@@ -16,6 +16,7 @@ from .views.payment import *
 from .views.wishlist import *
 from .views.payment import *
 from .views.coupon_views import apply_coupon, remove_coupon
+from .views.payment_views import *
 from .views.view_userside import (
     home, men_products, women_products, unisex_products, 
     brands, product_search, wishlist, cart, all_products, brand_products
@@ -176,12 +177,19 @@ path('inventory-management/', admin_inventory_management, name='admin_inventory_
 path('inventory-management/<int:variant_id>/update-stock/', update_stock, name='update_stock'),
 
 # Payment URLs
-    path('order/<int:order_id>/checkout/',checkout_payment, name='checkout_payment'),
-    path('order/<int:order_id>/pay/',initiate_payment, name='initiate_payment'),
-    path('payment/success/',payment_success, name='payment_success'),
-    path('razorpay/webhook/',payment_webhook, name='payment_webhook'),
-    path('order/<int:order_id>/payment-failed/',payment_failure, name='payment_failure'),
-    path('order/<int:order_id>/retry-payment/',retry_payment, name='retry_payment'),
+#   path('test-razorpay/', test_razorpay_connection, name='test_razorpay_connection'),
+    # path('payment/success/',payment_success, name='payment_success'),
+    # path('razorpay/webhook/',payment_webhook, name='payment_webhook'),
+    # path('order/<int:order_id>/payment-failed/',payment_failure, name='payment_failure'),
+    # path('order/<int:order_id>/retry-payment/',retry_payment, name='retry_payment'),
+    # path('payment/verify/', verify_payment, name='verify_payment'),
+
+
+    path('initiate/<int:order_id>/', initiate_payment, name='initiate_payment'),
+    path('verify/', verify_payment, name='verify_payment'),
+    path('retry/<int:order_id>/', payment_retry, name='payment_retry'),
+    path('details/<int:order_id>/', payment_details, name='payment_details'),
+
 # Coupon URLs
     path('coupon/apply/', apply_coupon, name='apply_coupon'),
     path('coupon/remove/', remove_coupon, name='remove_coupon'),

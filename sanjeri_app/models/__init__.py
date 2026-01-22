@@ -6,14 +6,15 @@ from .cart import Cart, CartItem
 from .wishlist import *
 from .order import Order, OrderItem
 from .coupon import Coupon
+from .payment import PaymentTransaction 
 
 __all__ = [
-    'Product', 'ProductVariant', 'Category', 'Brand', 'Volume', 'Gender',
+    'Product', 'ProductVariant', 'ProductImage','Category', 'Brand', 'Volume', 'Gender',
     'CustomUser', 'Address', 'UserProfile',
     'Cart', 'CartItem',
     'Order', 'OrderItem',
     'Wishlist', 'WishlistItem',
-    'Coupon',  
+    'Coupon',  'PaymentTransaction'
     
 ]
 

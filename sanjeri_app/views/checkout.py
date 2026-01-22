@@ -7,8 +7,19 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.db import transaction
 from decimal import Decimal
+from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+import razorpay
+import json
+from django.conf import settings
 from ..models import Cart, CartItem, Address, Order, OrderItem, Coupon
 
+# Initialize Razorpay client
+# In place_order function, you have:
+# razorpay_client = razorpay.Client(
+#     auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
+# )
 # Add these helper functions at the top of the file
 def get_coupon_display_data(cart, coupon_data):
     """Helper function to get coupon display data"""
@@ -162,6 +173,7 @@ def checkout_view(request):
             'total_amount': total_amount,
             'show_online_payment': True,
             'wallet_balance_formatted': f"{wallet_balance:,.2f}",
+            'RAZORPAY_KEY_ID': settings.RAZORPAY_KEY_ID,
         }
         return render(request, 'checkout/checkout.html', context)
         
@@ -169,20 +181,35 @@ def checkout_view(request):
         messages.warning(request, "Your cart is empty. Add some products to checkout.")
         return redirect('cart')
 
+# checkout.py - Only the place_order view needs updating
+# checkout.py - place_order function (SIMPLIFIED)
 @login_required
 @require_POST
 def place_order(request):
-    """Place order with wallet payment option"""
+    """Place order with wallet payment option - SIMPLIFIED VERSION"""
+    print("=== PLACE ORDER STARTED (SIMPLIFIED) ===")
+    
     try:
         with transaction.atomic():
             cart = Cart.objects.get(user=request.user)
             cart_items = cart.items.select_related('variant', 'variant__product').all()
             
-            # Validate cart before placing order
+            print(f"Cart items: {cart_items.count()}")
+            
+            # Get payment method
+            payment_method = request.POST.get('payment_method', 'cod').lower()
+            print(f"Payment method: {payment_method}")
+            
+            # Get wallet payment details
+            use_wallet = request.POST.get('use_wallet') == 'true'
+            wallet_amount = Decimal(request.POST.get('wallet_amount', '0'))
+            print(f"Use wallet: {use_wallet}, Amount: {wallet_amount}")
+
+            # Validate cart
             if not cart.can_checkout:
                 return JsonResponse({
                     'success': False,
-                    'message': 'Some items in your cart are unavailable. Please remove them to proceed.'
+                    'message': 'Some items in your cart are unavailable.'
                 })
             
             if cart.total_items == 0:
@@ -199,13 +226,6 @@ def place_order(request):
                     'message': 'Please select a delivery address.'
                 })
             
-            # Get payment method
-            payment_method = request.POST.get('payment_method', 'cod')
-            
-            # Get wallet payment details
-            use_wallet = request.POST.get('use_wallet') == 'true'
-            wallet_amount = Decimal(request.POST.get('wallet_amount', '0'))
-            
             address = get_object_or_404(Address, id=address_id, user=request.user)
             
             # Get applied coupon
@@ -217,9 +237,8 @@ def place_order(request):
                 try:
                     coupon = Coupon.objects.get(id=applied_coupon_data['coupon_id'], active=True)
                     
-                    # ========== ADD VALIDATION HERE TOO ==========
+                    # Validate single use coupon
                     if coupon.single_use_per_user:
-                        # Double-check user hasn't used coupon
                         used_count = Order.objects.filter(
                             user=request.user,
                             coupon=coupon,
@@ -227,14 +246,12 @@ def place_order(request):
                         ).count()
                         
                         if used_count > 0:
-                            # Remove invalid coupon
                             if 'applied_coupon' in request.session:
                                 del request.session['applied_coupon']
                             return JsonResponse({
                                 'success': False,
                                 'message': f'Coupon "{coupon.code}" has already been used.'
                             })
-                    # ========== END VALIDATION ==========
                     
                     is_valid, message = coupon.is_valid(
                         user=request.user,
@@ -258,11 +275,10 @@ def place_order(request):
             if coupon_discount > subtotal:
                 coupon_discount = subtotal
             
-            # ========== FIXED DISCOUNT CALCULATION ==========
-            # Apply existing 10% discount on ORIGINAL subtotal
+            # Apply existing 10% discount
             other_discount = Decimal('0')
             if subtotal > Decimal('1000'):
-                other_discount = subtotal * Decimal('0.10')  # 10% of ORIGINAL subtotal
+                other_discount = subtotal * Decimal('0.10')
             
             # Calculate total discount
             total_discount = coupon_discount + other_discount
@@ -273,12 +289,10 @@ def place_order(request):
             
             # Calculate total amount before wallet
             total_before_wallet = subtotal + shipping_charge + tax_amount - total_discount
-            # ========== END FIXED CALCULATION ==========
             
             # Validate wallet payment
             wallet_amount_to_use = Decimal('0')
             if use_wallet and wallet_amount > 0:
-                # Check wallet balance
                 try:
                     if request.user.wallet.balance >= wallet_amount:
                         wallet_amount_to_use = min(wallet_amount, total_before_wallet)
@@ -295,16 +309,27 @@ def place_order(request):
             
             # Calculate final amount to pay
             final_amount = total_before_wallet - wallet_amount_to_use
-            
-            # Determine payment method based on wallet usage
+            print(f"Final amount to pay: ₹{final_amount}")
+
+            # Determine payment status
             if wallet_amount_to_use >= total_before_wallet:
-                payment_method = 'wallet'  # Full wallet payment
+                # Full wallet payment
                 payment_status = 'completed'
-            elif wallet_amount_to_use > 0:
-                payment_method = 'mixed'  # Mixed payment
-                payment_status = 'pending' if final_amount > 0 else 'completed'
+                payment_method = 'wallet'
+                print("💰 Full wallet payment")
+            elif wallet_amount_to_use > 0 and final_amount > 0:
+                # Mixed payment (wallet + online)
+                payment_status = 'pending'
+                payment_method = 'mixed'
+                print("💰 Mixed payment (wallet + online)")
+            elif payment_method == 'cod':
+                # Cash on Delivery
+                payment_status = 'pending'
+                print("💰 COD payment")
             else:
-                payment_status = 'pending' if payment_method == 'online' else 'pending'
+                # Online payment (no wallet)
+                payment_status = 'pending'
+                print("💰 Online payment")
             
             # Create order
             order = Order.objects.create(
@@ -342,7 +367,6 @@ def place_order(request):
             
             # Process wallet payment if any
             if wallet_amount_to_use > 0:
-                # Deduct from wallet
                 request.user.wallet.withdraw(
                     wallet_amount_to_use,
                     reason=f"Payment for order #{order.order_number}",
@@ -360,37 +384,28 @@ def place_order(request):
             if 'applied_coupon' in request.session:
                 del request.session['applied_coupon']
             
-            # Handle different payment scenarios
-            if final_amount > 0:
-                if payment_method in ['online', 'mixed'] and final_amount > 0:
-                    # Need online payment for remaining amount
-                    request.session['last_order_id'] = order.id
-                    
-                    return JsonResponse({
-                        'success': True,
-                        'payment_required': True,
-                        'redirect_url': f'/payment/initiate/{order.id}/'
-                    })
-                else:
-                    # COD for remaining amount
-                    return JsonResponse({
-                        'success': True,
-                        'payment_required': False,
-                        'redirect_url': f'/order-success/{order.id}/'
-                    })
-            else:
-                # Fully paid with wallet
-                order.payment_status = 'completed'
-                order.save()
-                
-                return JsonResponse({
-                    'success': True,
-                    'payment_required': False,
-                    'redirect_url': f'/order-success/{order.id}/'
-                })
+            # ========== IMPORTANT CHANGE: SIMPLIFIED RESPONSE ==========
+            print(f"✅ Order created: #{order.order_number}")
+            
+            # Determine if payment is required
+            payment_required = False
+            if payment_method in ['online', 'mixed'] and payment_status == 'pending':
+                payment_required = True
+            
+            # Return SIMPLIFIED response
+            return JsonResponse({
+                'success': True,
+                'payment_required': payment_required,
+                'order_id': order.id,
+                'order_number': order.order_number,
+                'redirect_url': reverse('order_success', args=[order.id])
+                # NO RAZORPAY DATA HERE - that goes to payment_views.py
+            })
             
     except Exception as e:
         import traceback
+        traceback.print_exc()
+        print(f"💥 Exception in place_order: {e}")
         return JsonResponse({
             'success': False,
             'message': f'Error placing order: {str(e)}'
@@ -418,3 +433,42 @@ def order_detail(request, order_id):
     }
     return render(request, 'checkout/order_detail.html', context)
 
+def test_razorpay_connection(request):
+    """Test if Razorpay connection works"""
+    try:
+        # Check if keys exist in settings
+        key_id = settings.RAZORPAY_KEY_ID
+        key_secret = settings.RAZORPAY_KEY_SECRET
+        
+        context = {
+            'key_id_exists': bool(key_id),
+            'key_secret_exists': bool(key_secret),
+            'key_id_preview': key_id[:10] + '...' if key_id else 'None',
+        }
+        
+        if not key_id or not key_secret:
+            context['error'] = 'Razorpay keys missing in settings'
+            return render(request, 'payment/test_connection.html', context)
+        
+        # Test connection to Razorpay
+        client = razorpay.Client(auth=(key_id, key_secret))
+        
+        # Try to fetch account details
+        account = client.account.fetch()
+        
+        context.update({
+            'success': True,
+            'account_email': account.get('email', 'N/A'),
+            'account_name': account.get('name', 'N/A'),
+            'account_status': account.get('status', 'N/A'),
+        })
+        
+    except razorpay.errors.AuthenticationError as e:
+        context['error'] = f'Authentication failed: {str(e)}'
+        context['details'] = 'Your API keys are invalid. Please check your Razorpay dashboard.'
+        
+    except Exception as e:
+        context['error'] = f'Error: {str(e)}'
+        context['error_type'] = type(e).__name__
+    
+    return render(request, 'payment/test_connection.html', context)

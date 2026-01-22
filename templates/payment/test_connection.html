@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Test Razorpay Connection{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Razorpay Connection Test</h4>
+                </div>
+                <div class="card-body">
+                    <h5>Configuration Status</h5>
+                    <table class="table table-bordered">
+                        <tr>
+                            <th>Key ID Exists</th>
+                            <td>{{ key_id_exists|yesno:"✅,❌" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Key Secret Exists</th>
+                            <td>{{ key_secret_exists|yesno:"✅,❌" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Key ID Preview</th>
+                            <td>{{ key_id_preview }}</td>
+                        </tr>
+                    </table>
+                    
+                    {% if success %}
+                    <div class="alert alert-success">
+                        <h5>✅ Connection Successful!</h5>
+                        <p><strong>Account Name:</strong> {{ account_name }}</p>
+                        <p><strong>Account Email:</strong> {{ account_email }}</p>
+                        <p><strong>Status:</strong> {{ account_status }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if error %}
+                    <div class="alert alert-danger">
+                        <h5>❌ Connection Failed!</h5>
+                        <p><strong>Error:</strong> {{ error }}</p>
+                        {% if details %}
+                        <p><strong>Details:</strong> {{ details }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h6>How to fix this:</h6>
+                        <ol>
+                            <li>Go to <a href="https://dashboard.razorpay.com/" target="_blank">Razorpay Dashboard</a></li>
+                            <li>Login to your test account</li>
+                            <li>Go to <strong>Settings → API Keys</strong></li>
+                            <li>Generate new test API keys</li>
+                            <li>Update your <code>.env</code> file with new keys</li>
+                            <li>Restart your Django server</li>
+                        </ol>
+                        
+                        <div class="alert alert-info">
+                            <h6>Test Account Information:</h6>
+                            <p>For testing, you need a <strong>Razorpay Test Account</strong>.</p>
+                            <p>If you don't have one, create at: <a href="https://dashboard.razorpay.com/signup" target="_blank">https://dashboard.razorpay.com/signup</a></p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-4">
+                        <a href="{% url 'homepage' %}" class="btn btn-secondary">Back to Home</a>
+                        <a href="{% url 'checkout' %}" class="btn btn-primary">Go to Checkout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
