@@ -1,0 +1,158 @@
+<!-- templates/orders/cancel_order.html -->
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Cancel Order #{{ order.order_number }} - Sanjeri{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-danger text-white py-3">
+                    <h4 class="mb-0">
+                        <i class="fas fa-times-circle me-2"></i>Cancel Order
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Order Summary -->
+                    <div class="alert alert-warning mb-4">
+                        <h5 class="alert-heading">Order #{{ order.order_number }}</h5>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Order Date:</strong> {{ order.created_at|date:"d M Y" }}</p>
+                                <p class="mb-1"><strong>Total Amount:</strong> ₹{{ order.total_amount|floatformat:2 }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Payment Method:</strong> {{ order.get_payment_method_display }}</p>
+                                <p class="mb-0"><strong>Payment Status:</strong> 
+                                    <span class="badge bg-{% if order.payment_status == 'completed' %}success{% else %}warning{% endif %}">
+                                        {{ order.get_payment_status_display }}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Warning Message -->
+                    <div class="alert alert-danger mb-4">
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-exclamation-triangle me-2 mt-1"></i>
+                            <div>
+                                <h6 class="alert-heading mb-2">Important Information</h6>
+                                <ul class="mb-0">
+                                    <li>This action cannot be undone</li>
+                                    <li>Stock will be restored for all items</li>
+                                    <li>Refund will be processed immediately</li>
+                                    <li>Refund amount: <strong>₹{{ order.total_amount|floatformat:2 }}</strong></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Refund Information -->
+                    <div class="card border-success mb-4">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-wallet me-2"></i>Refund Details
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <p class="mb-2"><strong>Refund Amount:</strong></p>
+                                    <h4 class="text-success">₹{{ order.total_amount|floatformat:2 }}</h4>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-2"><strong>Refund Method:</strong></p>
+                                    <div class="d-flex align-items-center">
+                                        {% if order.wallet_used or order.payment_method == 'wallet' %}
+                                        <i class="fas fa-wallet fa-2x text-success me-3"></i>
+                                        <div>
+                                            <h6 class="mb-0">Wallet Credit</h6>
+                                            <small class="text-muted">Refunded immediately</small>
+                                        </div>
+                                        {% elif order.payment_method == 'online' %}
+                                        <i class="fas fa-credit-card fa-2x text-primary me-3"></i>
+                                        <div>
+                                            <h6 class="mb-0">Original Payment Method</h6>
+                                            <small class="text-muted">Refund in 5-7 business days</small>
+                                        </div>
+                                        {% else %}
+                                        <i class="fas fa-money-bill-wave fa-2x text-warning me-3"></i>
+                                        <div>
+                                            <h6 class="mb-0">Bank Transfer</h6>
+                                            <small class="text-muted">Refund in 3-5 business days</small>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cancel Form -->
+                    <form method="post" id="cancelForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label for="reason" class="form-label fw-semibold">
+                                <i class="fas fa-comment-dots me-2"></i>Reason for Cancellation (Optional)
+                            </label>
+                            <textarea class="form-control" id="reason" name="reason" 
+                                      rows="4" placeholder="Please let us know why you're cancelling this order..."></textarea>
+                            <small class="text-muted">This helps us improve our service</small>
+                        </div>
+
+                        <!-- Confirmation Checkbox -->
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="confirm_cancel" required>
+                                <label class="form-check-label" for="confirm_cancel">
+                                    I understand that this action cannot be undone and I will receive a refund of ₹{{ order.total_amount|floatformat:2 }}
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'order_detail' order.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Order
+                            </a>
+                            <button type="submit" class="btn btn-danger px-4" id="cancelBtn">
+                                <i class="fas fa-times-circle me-2"></i>Confirm Cancellation
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('cancelForm');
+        const cancelBtn = document.getElementById('cancelBtn');
+        
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Confirm final cancellation
+            if (!confirm('Are you absolutely sure you want to cancel this order? This action cannot be undone.')) {
+                return;
+            }
+            
+            // Disable button and show loading
+            cancelBtn.disabled = true;
+            cancelBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Cancelling...';
+            
+            // Submit form
+            form.submit();
+        });
+    });
+</script>
+{% endblock %}

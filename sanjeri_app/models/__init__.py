@@ -7,6 +7,7 @@ from .wishlist import *
 from .order import Order, OrderItem
 from .coupon import Coupon
 from .payment import PaymentTransaction 
+from .wallet import Wallet, WalletTransaction
 
 __all__ = [
     'Product', 'ProductVariant', 'ProductImage','Category', 'Brand', 'Volume', 'Gender',
@@ -15,6 +16,8 @@ __all__ = [
     'Order', 'OrderItem',
     'Wishlist', 'WishlistItem',
     'Coupon',  'PaymentTransaction'
+    'Wallet',             
+    'WalletTransaction',
     
 ]
 

@@ -10,13 +10,27 @@ from .views.admin_views import *
 from .views.user_userprofile_manage import *
 from .views.user_address_manage import *
 from .views.cart import *
-from .views.checkout import *
+from .views.checkout import (
+    get_coupon_display_data,
+    get_coupon_description,
+    checkout_view,
+    place_order,
+    order_success,
+    verify_payment,
+    order_detail, 
+    test_razorpay_connection,debug_payment,simple_verify_payment
+)
 from .views.admin_order_management import *
 from .views.payment import *
 from .views.wishlist import *
 from .views.payment import *
 from .views.coupon_views import apply_coupon, remove_coupon
-from .views.payment_views import *
+from .views.payment_views import (
+    initiate_payment,
+    payment_failed,
+    payment_retry,
+    payment_details
+)
 from .views.view_userside import (
     home, men_products, women_products, unisex_products, 
     brands, product_search, wishlist, cart, all_products, brand_products
@@ -24,15 +38,9 @@ from .views.view_userside import (
 from .views.order_management import *
 from .views.admin_coupon_views import *
 from .views.sales_report_views import sales_report, export_sales_report
+from .views.wallet_views import *
 
-# from .views.wallet_views import (
-#     wallet_dashboard,
-#     WalletTransactionListView,
-#     request_return,
-#     cancel_order as wallet_cancel_order,
-#     wallet_payment,
-# )
-from .views.order_management import order_list, order_detail, cancel_order, cancel_order_item, return_order, download_invoice
+# from .views.order_management import order_list, order_detail, cancel_order, cancel_order_item, return_order, download_invoice
 
 urlpatterns = [
     # Admin routes
@@ -148,7 +156,7 @@ path('products/<int:product_pk>/variants/<int:variant_pk>/restore/', variant_res
     path('orders/<int:order_id>/', order_detail, name='order_detail'),
     path('orders/<int:order_id>/cancel/', cancel_order, name='cancel_order'),
     path('order-items/<int:item_id>/cancel/', cancel_order_item, name='cancel_order'),
-    path('orders/<int:order_id>/return/', return_order, name='return_order'),
+    # path('orders/<int:order_id>/return/', return_order, name='return_order'),
     path('orders/<int:order_id>/invoice/', download_invoice, name='download_invoice'),
 
     # Keep the profile orders as a redirect to the new system
@@ -177,19 +185,11 @@ path('inventory-management/', admin_inventory_management, name='admin_inventory_
 path('inventory-management/<int:variant_id>/update-stock/', update_stock, name='update_stock'),
 
 # Payment URLs
-#   path('test-razorpay/', test_razorpay_connection, name='test_razorpay_connection'),
-    # path('payment/success/',payment_success, name='payment_success'),
-    # path('razorpay/webhook/',payment_webhook, name='payment_webhook'),
-    # path('order/<int:order_id>/payment-failed/',payment_failure, name='payment_failure'),
-    # path('order/<int:order_id>/retry-payment/',retry_payment, name='retry_payment'),
-    # path('payment/verify/', verify_payment, name='verify_payment'),
-
-
-    path('initiate/<int:order_id>/', initiate_payment, name='initiate_payment'),
-    path('verify/', verify_payment, name='verify_payment'),
-    path('retry/<int:order_id>/', payment_retry, name='payment_retry'),
-    path('details/<int:order_id>/', payment_details, name='payment_details'),
-
+path('initiate/<int:order_id>/', initiate_payment, name='initiate_payment'),
+path('payment/verify/', verify_payment, name='verify_payment'),
+path('payment/failed/<int:order_id>/', payment_failed, name='payment_failed'),
+path('retry/<int:order_id>/', payment_retry, name='payment_retry'),
+path('details/<int:order_id>/', payment_details, name='payment_details'),
 # Coupon URLs
     path('coupon/apply/', apply_coupon, name='apply_coupon'),
     path('coupon/remove/', remove_coupon, name='remove_coupon'),
@@ -202,8 +202,21 @@ path('inventory-management/<int:variant_id>/update-stock/', update_stock, name='
     # path('order/<int:order_id>/cancel-wallet/', wallet_cancel_order, name='cancel_order_wallet'),
     # path('wallet/payment/', wallet_payment, name='wallet_payment'),
 
+
+# Wallet URLs with Razorpay integration
+path('wallet/', wallet_dashboard, name='wallet_dashboard'),
+path('wallet/transactions/', wallet_transactions, name='wallet_transactions'),
+path('wallet/add-balance/', add_wallet_balance, name='add_wallet_balance'),
+path('wallet/verify-payment/', verify_wallet_payment, name='verify_wallet_payment'),
+
+    path('wallet/', wallet_balance, name='wallet_balance'),
+    path('use-wallet-payment/',use_wallet_payment, name='use_wallet_payment'),
+    path('orders/<int:order_id>/process-return/', process_return_refund, name='process_return_refund'),
+
 # user order management
 path('order-items/<int:item_id>/cancel/', cancel_order_item, name='cancel_order_item'),
+path('orders/<int:order_id>/request-return/', request_return, name='request_return'),
+
 
 # Admin-coupon management:
 path('coupons/', admin_coupon_list, name='admin_coupon_list'),
@@ -223,4 +236,10 @@ path('coupons/trash/restore-all/', restore_all_coupons, name='restore_all_coupon
 # admin-sales-report
 path('sales-report/', sales_report, name='sales_report'),
 path('sales-report/export/', export_sales_report, name='export_sales_report'),
+
+path('payment/debug/', debug_payment, name='debug_payment'),
+
+
+# In urls.py
+path('payment/simple-verify/', simple_verify_payment, name='simple_verify_payment'),
 ]

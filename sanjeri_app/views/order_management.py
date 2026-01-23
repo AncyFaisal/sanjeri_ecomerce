@@ -13,7 +13,9 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from decimal import Decimal
+from django.utils import timezone
 from ..models import Order, OrderItem
+from ..models import Wallet, WalletTransaction
 
 @login_required
 def order_list(request):
@@ -34,20 +36,22 @@ def order_list(request):
     if status_filter:
         orders = orders.filter(status=status_filter)
     
+    # Get user's wallet balance for the template
+    wallet, _ = Wallet.objects.get_or_create(user=request.user)
+    
     context = {
         'orders': orders,
         'search_query': search_query,
         'status_filter': status_filter,
+        'wallet_balance': wallet.balance,
         'title': 'My Orders - Sanjeri'
     }
     return render(request, 'orders/order_list.html', context)
 
-
-
 @login_required
 @require_POST
 def cancel_order_item(request, item_id):
-    """Cancel specific order item"""
+    """Cancel specific order item and refund to wallet"""
     order_item = get_object_or_404(OrderItem, id=item_id, order__user=request.user)
     
     if order_item.is_cancelled:
@@ -56,8 +60,38 @@ def cancel_order_item(request, item_id):
     
     reason = request.POST.get('reason', '').strip()
     
+    # Get or create user's wallet
+    wallet, _ = Wallet.objects.get_or_create(user=request.user)
+    
+    # Calculate refund amount for this item
+    refund_amount = order_item.total_price
+    
     if order_item.cancel_item(reason):
-        messages.success(request, f"{order_item.product_name} has been cancelled.")
+        try:
+            # Create wallet transaction
+            WalletTransaction.objects.create(
+                wallet=wallet,
+                amount=refund_amount,
+                transaction_type='REFUND',
+                status='COMPLETED',
+                reason=f"Refund for cancelled item: {order_item.product_name} (Order #{order_item.order.order_number})",
+                order=order_item.order
+            )
+            
+            # Update wallet balance
+            wallet.balance += Decimal(refund_amount)
+            wallet.save()
+            
+            # Update user's wallet_balance field
+            user = request.user
+            user.wallet_balance += Decimal(refund_amount)
+            user.save()
+            
+            messages.success(request, f"{order_item.product_name} has been cancelled. ₹{refund_amount} refunded to your wallet.")
+            
+        except Exception as e:
+            messages.error(request, f"Item cancelled but refund failed: {str(e)}")
+            return redirect('order_detail', order_id=order_item.order.id)
         
         # Check if all items in order are cancelled
         order = order_item.order
@@ -66,15 +100,36 @@ def cancel_order_item(request, item_id):
             order.status = 'cancelled'
             order.cancellation_reason = "All items cancelled individually"
             order.save()
+            
+            # Additional refund for any shipping charge if applicable
+            if order.shipping_charge > 0:
+                try:
+                    WalletTransaction.objects.create(
+                        wallet=wallet,
+                        amount=order.shipping_charge,
+                        transaction_type='REFUND',
+                        status='COMPLETED',
+                        reason=f"Shipping charge refund for cancelled order #{order.order_number}",
+                        order=order
+                    )
+                    
+                    # Update balances
+                    wallet.balance += Decimal(order.shipping_charge)
+                    wallet.save()
+                    user.wallet_balance += Decimal(order.shipping_charge)
+                    user.save()
+                    
+                    messages.info(request, "Shipping charge also refunded to wallet.")
+                except Exception as e:
+                    messages.warning(request, f"Order cancelled but shipping refund failed: {str(e)}")
+            
             messages.info(request, "All items in the order have been cancelled. Order marked as cancelled.")
     
     return redirect('order_detail', order_id=order_item.order.id)
 
-
-
 @login_required
 def return_order(request, order_id):
-    """Request return for an order"""
+    """Request return for an order - requires admin approval"""
     order = get_object_or_404(Order, id=order_id, user=request.user)
     
     if request.method == 'POST':
@@ -85,7 +140,18 @@ def return_order(request, order_id):
             return redirect('order_detail', order_id=order_id)
         
         if order.request_return(reason):
-            messages.success(request, "Return request submitted successfully. Please wait for admin approval.")
+            # Create a pending refund transaction
+            wallet, _ = Wallet.objects.get_or_create(user=request.user)
+            WalletTransaction.objects.create(
+                wallet=wallet,
+                amount=order.total_amount,
+                transaction_type='REFUND',
+                status='PENDING',
+                reason=f"Return request for order #{order.order_number}: {reason}",
+                order=order
+            )
+            
+            messages.success(request, "Return request submitted successfully. Please wait for admin approval. Refund will be processed to your wallet after approval.")
         else:
             messages.error(request, "Cannot return this order. It may be outside the return period.")
         
@@ -99,24 +165,162 @@ def return_order(request, order_id):
 @login_required
 @require_POST
 def cancel_order(request, order_id):
-    """Cancel order and handle wallet refund"""
+    """Cancel entire order and refund to wallet directly"""
     order = get_object_or_404(Order, id=order_id, user=request.user)
     
+    # Get or create user's wallet
+    wallet, _ = Wallet.objects.get_or_create(user=request.user)
+    
+    # Calculate refund amount (full order amount)
+    refund_amount = order.total_amount
+    
     if order.cancel_order():
-        # Check if any refund was made to wallet
-        if order.refund_to_wallet:
-            messages.success(request, f"Order cancelled successfully. ₹{order.refund_amount} refunded to your wallet.")
-        else:
-            messages.success(request, "Order cancelled successfully.")
+        try:
+            # Create wallet transaction
+            WalletTransaction.objects.create(
+                wallet=wallet,
+                amount=refund_amount,
+                transaction_type='REFUND',
+                status='COMPLETED',
+                reason=f"Refund for cancelled order #{order.order_number}",
+                order=order
+            )
+            
+            # Update wallet balance
+            wallet.balance += Decimal(refund_amount)
+            wallet.save()
+            
+            # Update user's wallet_balance field
+            user = request.user
+            user.wallet_balance += Decimal(refund_amount)
+            user.save()
+            
+            messages.success(request, f"Order cancelled successfully. ₹{refund_amount} refunded to your wallet.")
+        except Exception as e:
+            messages.error(request, f"Order cancelled but refund failed: {str(e)}")
     else:
         messages.error(request, "Cannot cancel this order. It may have already been shipped.")
     
     return redirect('order_detail', order_id=order_id)
 
 @login_required
+def wallet_balance(request):
+    """View wallet balance and transaction history"""
+    wallet, _ = Wallet.objects.get_or_create(user=request.user)
+    
+    # Get transaction history
+    transactions = WalletTransaction.objects.filter(wallet=wallet).order_by('-created_at')
+    
+    context = {
+        'wallet': wallet,
+        'transactions': transactions,
+        'title': 'My Wallet - Sanjeri'
+    }
+    return render(request, 'orders/wallet.html', context)
+
+@login_required
+def process_return_refund(request, order_id):
+    """Admin view to process return refund to wallet"""
+    # Check if user is admin or staff
+    if not request.user.is_staff:
+        messages.error(request, "You don't have permission to perform this action.")
+        return redirect('order_detail', order_id=order_id)
+    
+    order = get_object_or_404(Order, id=order_id)
+    
+    if request.method == 'POST':
+        # Approve return and process wallet refund
+        if order.status == 'return_requested':
+            # Find pending refund transaction
+            transaction = WalletTransaction.objects.filter(
+                order=order,
+                transaction_type='REFUND',
+                status='PENDING'
+            ).first()
+            
+            if transaction:
+                # Approve the refund
+                if transaction.mark_as_completed(approved_by=request.user):
+                    # Update order status
+                    order.status = 'returned'
+                    order.refund_amount = transaction.amount
+                    order.refunded_at = timezone.now()
+                    order.save()
+                    
+                    # Also update user's wallet_balance
+                    user = order.user
+                    user.wallet_balance += Decimal(transaction.amount)
+                    user.save()
+                    
+                    messages.success(request, f"Return approved. ₹{transaction.amount} refunded to customer's wallet.")
+                else:
+                    messages.error(request, "Failed to process refund.")
+            else:
+                messages.error(request, "No pending refund transaction found.")
+            
+            return redirect('admin:orders_order_change', object_id=order_id)
+    
+    context = {
+        'order': order,
+    }
+    return render(request, 'orders/admin/process_return.html', context)
+
+@login_required
+def use_wallet_payment(request):
+    """Apply wallet balance to cart/order during checkout"""
+    if request.method == 'POST':
+        # Get user's cart (assuming you have a Cart model)
+        cart = getattr(request.user, 'cart', None)
+        
+        if not cart or (hasattr(cart, 'items') and cart.items.count() == 0):
+            return JsonResponse({'success': False, 'message': 'Cart is empty'})
+        
+        wallet, _ = Wallet.objects.get_or_create(user=request.user)
+        
+        # Calculate cart total (adjust based on your cart structure)
+        cart_total = Decimal('0.00')
+        if hasattr(cart, 'get_total_price'):
+            cart_total = cart.subtotal
+        
+        # Check if user wants to use wallet
+        use_wallet = request.POST.get('use_wallet', 'false') == 'true'
+        
+        if use_wallet and wallet.balance > 0:
+            # Determine how much to use from wallet
+            wallet_to_use = min(wallet.balance, cart_total)
+            
+            # Store in session for checkout
+            request.session['wallet_amount_used'] = float(wallet_to_use)
+            request.session['remaining_amount'] = float(cart_total - Decimal(wallet_to_use))
+            
+            return JsonResponse({
+                'success': True,
+                'wallet_used': float(wallet_to_use),
+                'remaining_amount': float(cart_total - Decimal(wallet_to_use)),
+                'wallet_balance': float(wallet.balance - Decimal(wallet_to_use))
+            })
+        
+        return JsonResponse({'success': False, 'message': 'Invalid request'})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+@login_required
 def download_invoice(request, order_id):
     """Generate and download PDF invoice using ReportLab"""
     order = get_object_or_404(Order, id=order_id, user=request.user)
+    
+    # Check if wallet was used for this order
+    wallet_payment = WalletTransaction.objects.filter(
+        order=order,
+        transaction_type='WITHDRAWAL'
+    ).first()
+    
+    # Check if refund was made to wallet
+    wallet_refund = WalletTransaction.objects.filter(
+        order=order,
+        transaction_type='REFUND',
+        status='COMPLETED'
+    ).first()
     
     # Create a file-like buffer to receive PDF data
     buffer = BytesIO()
@@ -216,6 +420,10 @@ def download_invoice(request, order_id):
     if order.discount_amount > 0:
         summary_data.append(['Discount:', f"-₹{order.discount_amount}"])
     
+    # Add wallet payment if used
+    if hasattr(order, 'wallet_amount_used') and order.wallet_amount_used > 0:
+        summary_data.append(['Wallet Payment:', f"-₹{order.wallet_amount_used:.2f}"])
+    
     summary_data.append(['TOTAL:', f"₹{order.total_amount:.2f}"])
     
     summary_table = Table(summary_data, colWidths=[400, 120])
@@ -229,6 +437,19 @@ def download_invoice(request, order_id):
     ]))
     elements.append(summary_table)
     elements.append(Spacer(1, 30))
+    
+    # Add refund information if applicable
+    if order.status in ['cancelled', 'returned'] and wallet_refund:
+        refund_info = Paragraph(
+            f"<b>REFUND INFORMATION:</b><br/>"
+            f"Refund Amount: ₹{wallet_refund.amount}<br/>"
+            f"Refund Method: Wallet<br/>"
+            f"Refund Date: {wallet_refund.created_at.strftime('%B %d, %Y')}<br/>"
+            f"Status: Refunded to customer's wallet",
+            styles['Normal']
+        )
+        elements.append(refund_info)
+        elements.append(Spacer(1, 20))
     
     # Footer
     footer = Paragraph(
@@ -251,12 +472,51 @@ def download_invoice(request, order_id):
 
 @login_required
 def order_detail(request, order_id):
-    """Order detail page"""
+    """Order detail page with wallet information"""
     order = get_object_or_404(Order, id=order_id, user=request.user)
     
+    # Get wallet transactions related to this order
+    wallet_transactions = WalletTransaction.objects.filter(order=order)
+    
+    # Check if wallet was used for payment
+    wallet_payment = wallet_transactions.filter(transaction_type='WITHDRAWAL').first()
+    
+    # Check if refund was made to wallet
+    wallet_refund = wallet_transactions.filter(transaction_type='REFUND', status='COMPLETED').first()
+    
+    additional_discount = order.discount_amount - order.coupon_discount
+
     context = {
         'order': order,
         'order_items': order.items.all(),
+        'wallet_payment': wallet_payment,
+        'wallet_refund': wallet_refund,
+        'additional_discount': additional_discount,
         'title': f'Order #{order.order_number} - Sanjeri'
     }
     return render(request, 'orders/order_detail.html', context)
+
+
+
+
+@login_required
+def request_return(request, order_id):
+    """Request return for delivered order"""
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    
+    if request.method == 'POST':
+        return_reason = request.POST.get('return_reason', '')
+        
+        if not return_reason.strip():
+            messages.error(request, "Please provide a reason for return.")
+            return redirect('order_detail', order_id=order_id)
+        
+        if order.request_return(reason=return_reason):
+            messages.success(request, "Return request submitted. Refund will be processed after admin approval.")
+            return redirect('order_detail', order_id=order_id)
+        else:
+            messages.error(request, "Cannot return this order.")
+            return redirect('order_detail', order_id=order_id)
+    
+    # If GET request, show the return form
+    return render(request, 'orders/request_return.html', {'order': order})

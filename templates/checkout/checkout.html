@@ -1,3 +1,5 @@
+<!-- checkout/checkout.html -->
+
 {% extends 'base.html' %}
 {% load static %}
 {% load math_filters %}
@@ -988,45 +990,36 @@
     </div>
 </div>
 
-
-
-
-
 {% endblock %}
+
 {% block extra_js %}
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
+    window.currentOrderId = null;
     document.addEventListener('DOMContentLoaded', function () {
         // ==================== CONFIGURATION ====================
         const config = {
             csrfToken: document.querySelector('[name=csrfmiddlewaretoken]')?.value,
             urls: {
                 placeOrder: '{% url "place_order" %}',
-                initiatePayment: '/payment/initiate/',
                 verifyPayment: '{% url "verify_payment" %}',
                 applyCoupon: '{% url "apply_coupon" %}',
                 removeCoupon: '{% url "remove_coupon" %}',
                 addAddress: '{% url "user_add_address" %}',
-                orderList: '{% url "order_list" %}'
+                orderList: '{% url "order_list" %}',
+                paymentSuccess: '/orders/success/',
+                paymentFailed: '/orders/failed/'
             }
         };
 
         // ==================== DOM ELEMENTS ====================
         const elements = {
             checkoutForm: document.getElementById('checkoutForm'),
-            placeOrderBtn: document.getElementById('placeOrderBtn'),
-            loadingModal: document.getElementById('loadingModal') ? 
-                          new bootstrap.Modal(document.getElementById('loadingModal')) : null,
+            loadingModal: new bootstrap.Modal(document.getElementById('loadingModal')),
             
-            // Address
-            addressCards: document.querySelectorAll('.address-card'),
-            
-            // Payment
-            paymentCards: document.querySelectorAll('.payment-option-card'),
-            
-            // Wallet
-            useWallet: document.getElementById('use_wallet'),
-            walletAmountSection: document.getElementById('wallet_amount_section'),
+            // Payment method radios
+            paymentCod: document.getElementById('payment_cod'),
+            paymentOnline: document.getElementById('payment_online'),
             
             // Coupon
             applyCouponBtn: document.getElementById('apply_coupon_btn'),
@@ -1044,16 +1037,16 @@
         const utils = {
             showNotification: function(message, type = 'info') {
                 const types = {
-                    success: { icon: '✓', class: 'success' },
-                    error: { icon: '✗', class: 'danger' },
-                    warning: { icon: '⚠', class: 'warning' },
-                    info: { icon: 'ℹ', class: 'info' }
+                    success: { icon: '✓', class: 'alert-success' },
+                    error: { icon: '✗', class: 'alert-danger' },
+                    warning: { icon: '⚠', class: 'alert-warning' },
+                    info: { icon: 'ℹ', class: 'alert-info' }
                 };
                 
                 const typeConfig = types[type] || types.info;
                 
                 const notification = document.createElement('div');
-                notification.className = `alert alert-${typeConfig.class} alert-dismissible fade show position-fixed`;
+                notification.className = `alert ${typeConfig.class} alert-dismissible fade show position-fixed`;
                 notification.style.cssText = `
                     top: 20px;
                     right: 20px;
@@ -1073,22 +1066,10 @@
             },
 
             showLoading: function(show = true) {
-                if (elements.loadingModal) {
-                    if (show) {
-                        elements.loadingModal.show();
-                    } else {
-                        elements.loadingModal.hide();
-                    }
-                }
-                
-                if (elements.placeOrderBtn) {
-                    if (show) {
-                        elements.placeOrderBtn.disabled = true;
-                        elements.placeOrderBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
-                    } else {
-                        elements.placeOrderBtn.disabled = false;
-                        elements.placeOrderBtn.innerHTML = '<i class="fas fa-shopping-bag me-2"></i>Place Order';
-                    }
+                if (show) {
+                    elements.loadingModal.show();
+                } else {
+                    elements.loadingModal.hide();
                 }
             },
 
@@ -1109,18 +1090,6 @@
                     addressId: selectedAddress.value,
                     paymentMethod: selectedPayment.value
                 };
-            },
-
-            getFormData: function(form) {
-                const formData = new FormData(form);
-                
-                // Debug logging
-                console.log("Form Data:");
-                for (let [key, value] of formData.entries()) {
-                    console.log(`  ${key}: ${value}`);
-                }
-                
-                return formData;
             }
         };
 
@@ -1137,10 +1106,10 @@
                 utils.showLoading(true);
 
                 try {
-                    const formData = utils.getFormData(elements.checkoutForm);
+                    // Submit order via AJAX
+                    const formData = new FormData(elements.checkoutForm);
                     
-                    // Submit order
-                    const orderResponse = await fetch(config.urls.placeOrder, {
+                    const response = await fetch(config.urls.placeOrder, {
                         method: 'POST',
                         body: formData,
                         headers: {
@@ -1148,178 +1117,160 @@
                         }
                     });
 
-                    const orderData = await orderResponse.json();
-                    console.log("Order Response:", orderData);
+                    const data = await response.json();
+                    console.log("Order Response:", data);
 
-                    if (orderData.success) {
-                        await this.handleOrderResponse(orderData, validation.paymentMethod);
+                    if (data.success) {
+                        if (data.payment_required) {
+                            // Online payment required
+                            window.currentOrderId = data.order_id;
+                            console.log("Saved order ID:", window.currentOrderId);
+
+                            await paymentHandler.initiate(data);
+                        } else {
+                            // COD or wallet payment - redirect to success
+                            window.location.href = data.redirect_url;
+                        }
                     } else {
-                        throw new Error(orderData.message || 'Order creation failed');
+                        throw new Error(data.message || 'Order creation failed');
                     }
                     
                 } catch (error) {
                     console.error("Checkout Error:", error);
-                    utils.showNotification(error.message || 'Error placing order', 'error');
+                    utils.showNotification(error.message, 'error');
                 } finally {
                     utils.showLoading(false);
                 }
-            },
-
-            async handleOrderResponse(orderData, paymentMethod) {
-                if (orderData.payment_required && paymentMethod === 'online') {
-                    // Online payment required
-                    await paymentHandler.initiate(orderData.order_id);
-                } else {
-                    // COD or wallet payment - redirect to success
-                    console.log("Redirecting to:", orderData.redirect_url);
-                    window.location.href = orderData.redirect_url;
-                }
             }
         };
 
-        // ==================== PAYMENT HANDLER ====================
-        const paymentHandler = {
-            async initiate(orderId) {
-                console.log("=== PAYMENT INITIATION ===");
-                console.log("Order ID:", orderId);
-
-                try {
-                    const response = await fetch(`${config.urls.initiatePayment}${orderId}/`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': config.csrfToken,
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    });
-
-                    const paymentData = await response.json();
-                    console.log("Payment Data:", paymentData);
-
-                    if (paymentData.success) {
-                        this.openRazorpay(paymentData);
-                    } else {
-                        throw new Error(paymentData.message || 'Payment initiation failed');
-                    }
-                    
-                } catch (error) {
-                    console.error("Payment Initiation Error:", error);
-                    utils.showNotification(error.message, 'error');
-                    
-                    // Redirect to order details
-                    setTimeout(() => {
-                        window.location.href = `/orders/${orderId}/`;
-                    }, 2000);
-                }
-            },
-
-            openRazorpay(paymentData) {
-                console.log("=== OPENING RAZORPAY ===");
-
-                // Validate payment data
-                if (!paymentData.key || !paymentData.amount || !paymentData.razorpay_order_id) {
-                    utils.showNotification('Payment configuration error', 'error');
-                    return;
-                }
-
-                // Check Razorpay SDK
-                if (typeof Razorpay === 'undefined') {
-                    utils.showNotification('Payment gateway not available', 'error');
-                    return;
-                }
-
-                const options = {
-                    key: paymentData.key,
-                    amount: paymentData.amount,
-                    currency: 'INR',
-                    name: 'Sanjeri Perfumes',
-                    description: `Order #${paymentData.order_number || ''}`,
-                    order_id: paymentData.razorpay_order_id,
-                    handler: (response) => this.handlePaymentSuccess(response, paymentData.order_id),
-                    prefill: {
-                        name: paymentData.customer_name || '',
-                        email: paymentData.customer_email || '',
-                        contact: paymentData.customer_phone || ''
-                    },
-                    theme: { color: '#431405' },
-                    modal: {
-                        ondismiss: () => this.handlePaymentDismiss(paymentData.order_id)
-                    }
-                };
-
-                try {
-                    const rzp = new Razorpay(options);
-                    
-                    rzp.on('payment.failed', (response) => {
-                        this.handlePaymentFailure(response);
-                    });
-                    
-                    rzp.open();
-                    
-                } catch (error) {
-                    console.error("Razorpay Error:", error);
-                    utils.showNotification('Error opening payment gateway', 'error');
-                }
-            },
-
-            async handlePaymentSuccess(response, orderId) {
-                console.log("Payment Success:", response);
-                utils.showNotification('Payment successful! Verifying...', 'success');
-
-                try {
-                    const verifyResponse = await fetch(config.urls.verifyPayment, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': config.csrfToken,
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: JSON.stringify({
-                            razorpay_payment_id: response.razorpay_payment_id,
-                            razorpay_order_id: response.razorpay_order_id,
-                            razorpay_signature: response.razorpay_signature,
-                            order_id: orderId
-                        })
-                    });
-
-                    const verifyData = await verifyResponse.json();
-                    console.log("Verification Response:", verifyData);
-
-                    if (verifyData.success) {
-                        window.location.href = verifyData.redirect_url;
-                    } else {
-                        throw new Error(verifyData.message || 'Payment verification failed');
-                    }
-                    
-                } catch (error) {
-                    console.error("Verification Error:", error);
-                    utils.showNotification(error.message, 'error');
-                }
-            },
-
-            handlePaymentDismiss(orderId) {
-                console.log("Payment Dismissed");
-                utils.showNotification('Payment cancelled. You can retry from your orders page.', 'warning');
-                setTimeout(() => {
-                    window.location.href = config.urls.orderList;
-                }, 1500);
-            },
-
-            handlePaymentFailure(response) {
-                console.error("Payment Failed:", response.error);
+       // ==================== RAZORPAY PAYMENT HANDLER ====================
+const paymentHandler = {
+    async initiate(paymentData) {
+        console.log("=== INITIATING RAZORPAY PAYMENT ===");
+        
+        try {
+            // Save order ID
+            window.currentOrderId = paymentData.order_id;
+            
+            const options = {
+                key: paymentData.key,
+                amount: paymentData.amount,
+                currency: 'INR',
+                name: 'Sanjeri Perfumes',
+                description: `Order #${paymentData.order_number}`,
+                order_id: paymentData.razorpay_order_id,
                 
-                let errorMessage = response.error.description || 'Payment failed';
+                handler: (response) => {
+                    console.log("✅ Payment successful!");
+                    this.handleSuccessSimple(response, paymentData.order_id);
+                },
                 
-                // User-friendly error messages
-                if (errorMessage.toLowerCase().includes('international')) {
-                    errorMessage = 'International cards are not accepted. Please use an Indian card.';
-                } else if (errorMessage.toLowerCase().includes('card not supported')) {
-                    errorMessage = 'Card not supported. Please try another card or use UPI.';
+                // FORCE UPI as preferred method for testing
+                // method: {
+                //     upi: true,
+                //     card: false,  // Disable cards for testing
+                //     netbanking: false
+                // },
+                
+                prefill: {
+                    name: paymentData.customer_name || '',
+                    email: paymentData.customer_email || '',
+                    contact: paymentData.customer_phone || ''
+                },
+                
+                theme: {
+                    color: '#431405'
                 }
-                
-                utils.showNotification(`Payment failed: ${errorMessage}`, 'error');
-            }
+            };
+
+            const rzp = new Razorpay(options);
+            
+            rzp.on('payment.failed', (response) => {
+                console.error("Payment failed:", response);
+                this.handleFailureSimple(response, paymentData.order_id);
+            });
+            
+            rzp.open();
+            
+        } catch (error) {
+            console.error("Razorpay Error:", error);
+            alert('Error: ' + error.message);
+        }
+    },
+
+    handleSuccessSimple(response, orderId) {
+        console.log("🎉 Payment successful!");
+        
+        // Get CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        
+        if (!csrfToken) {
+            alert("Error: CSRF token missing.");
+            window.location.reload();
+            return;
+        }
+        
+        // Create form
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/payment/verify/';
+        
+        // Add CSRF token
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        
+        // Add payment data
+        const fields = {
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_signature: response.razorpay_signature,
+            order_id: orderId || window.currentOrderId
         };
+        
+        console.log("Form data:", fields);
+        
+        for (const key in fields) {
+            if (fields[key]) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = fields[key];
+                form.appendChild(input);
+            }
+        }
+        
+        // Show loading
+        document.body.innerHTML = `
+            <div style="text-align: center; padding: 50px;">
+                <h2 style="color: green;">✅ Payment Successful!</h2>
+                <p>Completing order...</p>
+                <div class="spinner-border text-success" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        `;
+        
+        setTimeout(() => {
+            document.body.appendChild(form);
+            form.submit();
+        }, 1000);
+    },
 
+    handleFailureSimple(response, orderId) {
+        console.error("❌ Payment failed:", response);
+        
+        alert("Payment Failed: " + (response.error?.description || 'Please try another method'));
+        
+        // Redirect after delay
+        setTimeout(() => {
+            window.location.href = '/payment/failed/' + orderId + '/';
+        }, 2000);
+    }
+};
         // ==================== COUPON HANDLER ====================
         const couponHandler = {
             async apply(couponCode) {
@@ -1406,39 +1357,41 @@
                 elements.checkoutForm.addEventListener('submit', (e) => checkoutHandler.submitForm(e));
             }
 
-            // Address selection
-            elements.addressCards.forEach(card => {
+            // Address card selection
+            document.querySelectorAll('.address-card').forEach(card => {
                 card.addEventListener('click', function () {
                     const radio = this.querySelector('input[type="radio"]');
                     if (radio) {
                         radio.checked = true;
-                        elements.addressCards.forEach(c => c.classList.remove('selected'));
+                        document.querySelectorAll('.address-card').forEach(c => c.classList.remove('selected'));
                         this.classList.add('selected');
                     }
                 });
             });
 
-            // Payment method selection
-            elements.paymentCards.forEach(card => {
+            // Payment option selection
+            document.querySelectorAll('.payment-option-card').forEach(card => {
                 card.addEventListener('click', function () {
                     const radio = this.querySelector('input[type="radio"]');
                     if (radio) {
                         radio.checked = true;
-                        elements.paymentCards.forEach(c => c.classList.remove('selected'));
+                        document.querySelectorAll('.payment-option-card').forEach(c => c.classList.remove('selected'));
                         this.classList.add('selected');
                     }
                 });
             });
 
             // Wallet toggle
-            if (elements.useWallet && elements.walletAmountSection) {
-                elements.useWallet.addEventListener('change', function () {
-                    elements.walletAmountSection.style.display = this.checked ? 'block' : 'none';
+            const useWallet = document.getElementById('use_wallet');
+            const walletAmountSection = document.getElementById('wallet_amount_section');
+            if (useWallet && walletAmountSection) {
+                useWallet.addEventListener('change', function () {
+                    walletAmountSection.style.display = this.checked ? 'block' : 'none';
                 });
                 
                 // Initialize on load
-                if (elements.useWallet.checked) {
-                    elements.walletAmountSection.style.display = 'block';
+                if (useWallet.checked) {
+                    walletAmountSection.style.display = 'block';
                 }
             }
 
@@ -1446,6 +1399,14 @@
             if (elements.applyCouponBtn && elements.couponCodeInput) {
                 elements.applyCouponBtn.addEventListener('click', () => {
                     couponHandler.apply(elements.couponCodeInput.value);
+                });
+                
+                // Allow Enter key to apply coupon
+                elements.couponCodeInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        couponHandler.apply(elements.couponCodeInput.value);
+                    }
                 });
             }
 
@@ -1486,4 +1447,5 @@
         init();
     });
 </script>
+
 {% endblock %}

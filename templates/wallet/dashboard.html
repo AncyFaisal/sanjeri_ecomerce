@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Wallet - Sanjeri{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Wallet Balance Card -->
+            <div class="card shadow-lg border-0 mb-4">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-wallet fa-4x text-amber-900 mb-4"></i>
+                    <h1 class="display-4 fw-bold text-amber-900 mb-3">₹{{ wallet.balance|floatformat:2 }}</h1>
+                    <p class="text-muted mb-0">Available Balance</p>
+                    <p class="text-success small mb-4">
+                        <i class="fas fa-check-circle me-1"></i>
+                        ₹{{ wallet.available_balance|floatformat:2 }} available for use
+                    </p>
+                    <a href="{% url 'add_wallet_balance' %}" class="btn btn-amber-900 btn-lg px-4">
+                        <i class="fas fa-plus me-2"></i>Add Money
+                    </a>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>Recent Transactions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_transactions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Description</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in recent_transactions %}
+                                    <tr>
+                                        <td>{{ transaction.created_at|date:"d M Y" }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                {% if transaction.transaction_type == 'DEPOSIT' %}
+                                                <i class="fas fa-arrow-down text-success me-2"></i>
+                                                {% elif transaction.transaction_type == 'WITHDRAWAL' %}
+                                                <i class="fas fa-arrow-up text-danger me-2"></i>
+                                                {% elif transaction.transaction_type == 'REFUND' %}
+                                                <i class="fas fa-undo text-warning me-2"></i>
+                                                {% endif %}
+                                                <div>
+                                                    <div class="fw-medium">{{ transaction.get_transaction_type_display }}</div>
+                                                    <small class="text-muted">{{ transaction.reason|truncatechars:30 }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="fw-bold {% if transaction.is_deposit or transaction.is_refund %}text-success{% else %}text-danger{% endif %}">
+                                            {{ transaction.display_amount }}
+                                        </td>
+                                        <td>
+                                            <span class="badge {% if transaction.status == 'COMPLETED' %}bg-success{% elif transaction.status == 'PENDING' %}bg-warning{% else %}bg-danger{% endif %}">
+                                                {{ transaction.get_status_display }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-center mt-3">
+                            <a href="{% url 'wallet_transactions' %}" class="btn btn-outline-amber-900">
+                                View All Transactions
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                            <p class="text-muted mb-0">No transactions yet</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Wallet Information</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                            <span>Wallet Created</span>
+                            <span>{{ wallet.created_at|date:"d M Y" }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                            <span>Total Transactions</span>
+                            <span>{{ wallet.transactions.count }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                            <span>Last Updated</span>
+                            <span>{{ wallet.updated_at|date:"d M Y" }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'order_list' %}" class="btn btn-outline-amber-900">
+                            <i class="fas fa-shopping-bag me-2"></i>My Orders
+                        </a>
+                        <a href="{% url 'checkout' %}" class="btn btn-outline-amber-900">
+                            <i class="fas fa-shopping-cart me-2"></i>Checkout
+                        </a>
+                        <a href="{% url 'user_profile' %}" class="btn btn-outline-amber-900">
+                            <i class="fas fa-user me-2"></i>My Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

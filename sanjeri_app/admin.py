@@ -7,8 +7,9 @@ from django.contrib import admin
 from .models import Coupon
 from django.utils.html import format_html
 # from .models import Wallet, WalletTransaction
-from .models import Order
-
+from .models import Order, OrderItem
+from django.urls import reverse
+from .models.wallet import Wallet, WalletTransaction
 
 admin.site.register(CustomUser)
 
@@ -79,6 +80,233 @@ class CouponAdmin(admin.ModelAdmin):
         }),
     )
 
+    # admin.py - Update OrderAdmin
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = [
+        'order_number', 
+        'user', 
+        'total_amount', 
+        'payment_status', 
+        'status',
+        'return_status_display',
+        'return_actions',
+        'created_at'
+    ]
+    list_filter = [
+        'payment_status', 
+        'status', 
+        'return_status',
+        'payment_method',
+        'created_at'
+    ]
+    search_fields = [
+        'order_number', 
+        'user__email', 
+        'user__username',
+        'razorpay_order_id',
+        'razorpay_payment_id'
+    ]
+    readonly_fields = [
+        'order_number', 
+        'created_at', 
+        'updated_at',
+        'return_requested_at',
+        'return_approved_at',
+        'cancelled_at',
+        'returned_at'
+    ]
+    actions = ['approve_selected_returns', 'reject_selected_returns']
+    
+    fieldsets = (
+        ('Order Information', {
+            'fields': ('order_number', 'user', 'status', 'created_at', 'updated_at')
+        }),
+        ('Payment Information', {
+            'fields': ('payment_method', 'payment_status', 'total_amount', 
+                      'wallet_amount', 'wallet_used', 'razorpay_order_id',
+                      'razorpay_payment_id')
+        }),
+        ('Return & Cancellation', {
+            'fields': ('return_status', 'return_reason', 'return_requested_at',
+                      'return_approved_at', 'return_approved_by',
+                      'cancellation_reason', 'cancelled_at',
+                      'refund_amount', 'refund_processed_at')
+        }),
+        ('Address & Shipping', {
+            'fields': ('shipping_address', 'shipping_charge', 'tracking_number',
+                      'delivered_at')
+        }),
+        ('Financial Details', {
+            'fields': ('subtotal', 'discount_amount', 'coupon_discount', 'tax_amount')
+        }),
+    )
+    
+    def return_status_display(self, obj):
+        colors = {
+            'not_requested': 'secondary',
+            'requested': 'warning',
+            'approved': 'success',
+            'rejected': 'danger',
+            'completed': 'info'
+        }
+        return format_html(
+            '<span class="badge bg-{}">{}</span>',
+            colors.get(obj.return_status, 'secondary'),
+            obj.get_return_status_display()
+        )
+    return_status_display.short_description = 'Return Status'
+    
+    def return_actions(self, obj):
+        if obj.return_status == 'requested':
+            approve_url = reverse('admin:approve_return', args=[obj.id])
+            reject_url = reverse('admin:reject_return', args=[obj.id])
+            return format_html(
+                '<a href="{}" class="btn btn-sm btn-success me-1">Approve</a>'
+                '<a href="{}" class="btn btn-sm btn-danger">Reject</a>',
+                approve_url, reject_url
+            )
+        return "-"
+    return_actions.short_description = 'Actions'
+    
+    def approve_selected_returns(self, request, queryset):
+        """Admin action to approve selected returns"""
+        approved_count = 0
+        for order in queryset.filter(return_status='requested'):
+            if order.approve_return(approved_by=request.user):
+                approved_count += 1
+        
+        self.message_user(
+            request, 
+            f"{approved_count} return request(s) approved and refunds processed."
+        )
+    
+    approve_selected_returns.short_description = "Approve selected returns"
+    
+    def reject_selected_returns(self, request, queryset):
+        """Admin action to reject selected returns"""
+        rejected_count = 0
+        for order in queryset.filter(return_status='requested'):
+            if order.reject_return(rejection_reason="Bulk rejection"):
+                rejected_count += 1
+        
+        self.message_user(
+            request, 
+            f"{rejected_count} return request(s) rejected."
+        )
+    
+    reject_selected_returns.short_description = "Reject selected returns"
+    
+    # Custom admin views for return actions
+    def get_urls(self):
+        urls = super().get_urls()
+        from django.urls import path
+        custom_urls = [
+            path('<int:order_id>/approve-return/',
+                 self.admin_site.admin_view(self.approve_return_view),
+                 name='approve_return'),
+            path('<int:order_id>/reject-return/',
+                 self.admin_site.admin_view(self.reject_return_view),
+                 name='reject_return'),
+        ]
+        return custom_urls + urls
+    
+    def approve_return_view(self, request, order_id):
+        """View to approve a return"""
+        from django.shortcuts import redirect
+        from django.contrib import messages
+        
+        order = Order.objects.get(id=order_id)
+        if order.approve_return(approved_by=request.user):
+            messages.success(request, f"Return for order #{order.order_number} approved and refund processed.")
+        else:
+            messages.error(request, f"Failed to approve return for order #{order.order_number}.")
+        
+        return redirect(reverse('admin:your_app_order_changelist'))
+    
+    def reject_return_view(self, request, order_id):
+        """View to reject a return"""
+        from django.shortcuts import redirect
+        from django.contrib import messages
+        
+        order = Order.objects.get(id=order_id)
+        rejection_reason = request.POST.get('rejection_reason', 'Not specified')
+        
+        if order.reject_return(rejection_reason=rejection_reason):
+            messages.success(request, f"Return for order #{order.order_number} rejected.")
+        else:
+            messages.error(request, f"Failed to reject return for order #{order.order_number}.")
+        
+        return redirect(reverse('admin:your_app_order_changelist'))
+
+
+
+@admin.register(Wallet)
+class WalletAdmin(admin.ModelAdmin):
+    list_display = ['user', 'balance', 'available_balance', 'created_at']
+    search_fields = ['user__username', 'user__email']
+    list_filter = ['created_at']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    def available_balance(self, obj):
+        return obj.available_balance
+    available_balance.short_description = 'Available Balance'
+
+@admin.register(WalletTransaction)
+class WalletTransactionAdmin(admin.ModelAdmin):
+    list_display = [
+        'id', 
+        'wallet_user', 
+        'amount_display', 
+        'transaction_type', 
+        'status', 
+        'admin_approved',
+        'created_at'
+    ]
+    list_filter = ['transaction_type', 'status', 'admin_approved', 'created_at']
+    search_fields = ['wallet__user__username', 'order__order_number', 'reason']
+    readonly_fields = ['created_at', 'updated_at']
+    actions = ['approve_refunds', 'mark_as_completed', 'mark_as_failed']
+    
+    def wallet_user(self, obj):
+        return obj.wallet.user.username
+    wallet_user.short_description = 'User'
+    
+    def amount_display(self, obj):
+        return obj.display_amount
+    amount_display.short_description = 'Amount'
+    
+    def approve_refunds(self, request, queryset):
+        """Approve selected refund transactions"""
+        pending_refunds = queryset.filter(
+            transaction_type='REFUND',
+            status='PENDING'
+        )
+        
+        approved_count = 0
+        for transaction in pending_refunds:
+            if transaction.mark_as_completed(approved_by=request.user):
+                approved_count += 1
+        
+        self.message_user(request, f"{approved_count} refund(s) approved and processed.")
+    
+    approve_refunds.short_description = "Approve selected refunds"
+    
+    def mark_as_completed(self, request, queryset):
+        """Mark selected transactions as completed"""
+        updated_count = queryset.update(status='COMPLETED')
+        self.message_user(request, f"{updated_count} transaction(s) marked as completed.")
+    
+    mark_as_completed.short_description = "Mark as completed"
+    
+    def mark_as_failed(self, request, queryset):
+        """Mark selected transactions as failed"""
+        updated_count = queryset.update(status='FAILED')
+        self.message_user(request, f"{updated_count} transaction(s) marked as failed.")
+    
+    mark_as_failed.short_description = "Mark as failed"
 # @admin.register(Wallet)
 # class WalletAdmin(admin.ModelAdmin):
 #     list_display = ['user', 'balance', 'created_at']

@@ -9,4 +9,5 @@ from .cart import *
 from .wishlist import *
 from .checkout import *
 from .payment_views import *
-# from .wallet_views import *
+from .wallet_views import *
+from .order_management import *

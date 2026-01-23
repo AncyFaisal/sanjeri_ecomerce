@@ -1,0 +1,150 @@
+<!-- templates/wallet/transactions.html -->
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Wallet Transactions - Sanjeri{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-history me-2"></i>Wallet Transactions
+                </h1>
+                <a href="{% url 'wallet_dashboard' %}" class="btn btn-outline-amber-900">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Wallet
+                </a>
+            </div>
+
+            <!-- Balance Card -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body text-center py-4">
+                    <div class="d-flex justify-content-center align-items-center mb-3">
+                        <i class="fas fa-wallet fa-2x text-amber-900 me-3"></i>
+                        <div>
+                            <h2 class="mb-0 fw-bold text-amber-900">₹{{ wallet.balance|floatformat:2 }}</h2>
+                            <p class="text-muted mb-0">Current Balance</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transactions Table -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0">Transaction History</h5>
+                </div>
+                <div class="card-body">
+                    {% if transactions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Description</th>
+                                        <th class="text-end">Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in transactions %}
+                                    <tr>
+                                        <td>{{ transaction.created_at|date:"d M Y, h:i A" }}</td>
+                                        <td>
+                                            <span class="badge {% if transaction.transaction_type == 'DEPOSIT' or transaction.transaction_type == 'REFUND' %}bg-success{% elif transaction.transaction_type == 'WITHDRAWAL' %}bg-danger{% else %}bg-info{% endif %}">
+                                                {{ transaction.get_transaction_type_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                {% if transaction.order %}
+                                                <i class="fas fa-shopping-bag text-muted me-2"></i>
+                                                <div>
+                                                    <div>{{ transaction.reason|truncatechars:40 }}</div>
+                                                    {% if transaction.order %}
+                                                    <small class="text-muted">Order #{{ transaction.order.order_number }}</small>
+                                                    {% endif %}
+                                                </div>
+                                                {% else %}
+                                                {{ transaction.reason|truncatechars:50 }}
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td class="text-end fw-bold {% if transaction.transaction_type == 'DEPOSIT' or transaction.transaction_type == 'REFUND' %}text-success{% else %}text-danger{% endif %}">
+                                            {{ transaction.display_amount }}
+                                        </td>
+                                        <td>
+                                            <span class="badge {% if transaction.status == 'COMPLETED' %}bg-success{% elif transaction.status == 'PENDING' %}bg-warning{% else %}bg-danger{% endif %}">
+                                                {{ transaction.get_status_display }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        {% if page_obj.has_other_pages %}
+                        <nav aria-label="Transaction pagination">
+                            <ul class="pagination justify-content-center mt-4">
+                                {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                                </li>
+                                {% endif %}
+                                
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        {% endif %}
+                        
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No transactions yet</h5>
+                            <p class="text-muted mb-0">Your transaction history will appear here</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Info Box -->
+            <div class="alert alert-info mt-4">
+                <div class="d-flex align-items-start">
+                    <i class="fas fa-info-circle me-2 mt-1"></i>
+                    <div>
+                        <h6 class="alert-heading mb-2">About Wallet Transactions</h6>
+                        <ul class="mb-0 ps-3">
+                            <li><strong>Deposits:</strong> Adding money to wallet</li>
+                            <li><strong>Withdrawals:</strong> Using wallet for purchases</li>
+                            <li><strong>Refunds:</strong> Money returned from cancelled/returned orders</li>
+                            <li>Refunds may take 3-5 business days to process</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
