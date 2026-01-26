@@ -1,3 +1,5 @@
+# models/order.py
+
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
@@ -129,28 +131,50 @@ class Order(models.Model):
         if not self.order_number:
             self.order_number = self.generate_order_number()
         
-        # Update payment status based on wallet usage
-        if self.wallet_amount > 0:
+        # AUTO-UPDATE PAYMENT STATUS FOR COD
+        # This ensures payment_status updates when status changes to delivered
+        if self.status == 'delivered' and self.delivered_at is None:
+            self.delivered_at = timezone.now()
+            
+            # COD payment completes upon delivery
+            if self.payment_method == 'cod' and self.payment_status == 'pending':
+                self.payment_status = 'completed'
+        
+        # Update wallet usage flag
+        if self.wallet_amount > 0 or self.wallet_amount_used > 0:
             self.wallet_used = True
             
-            # If wallet covers full amount, mark as partially paid
-            if self.wallet_amount >= self.total_amount and self.payment_status == 'pending':
+            # If wallet covers full amount
+            wallet_amount = self.wallet_amount or self.wallet_amount_used
+            if wallet_amount >= self.total_amount and self.payment_status == 'pending':
                 self.payment_status = 'partially_paid'
         
         super().save(*args, **kwargs)
-    
+
     def generate_order_number(self):
-        """Generate unique order number"""
-        timestamp = timezone.now().strftime('%Y%m%d')
-        last_order = Order.objects.filter(order_number__startswith=f'ORD{timestamp}').order_by('-id').first()
+        """Generate unique order number within 20 character limit"""
+        import random
+        import time
         
-        if last_order:
-            last_num = int(last_order.order_number[-4:])
-            new_num = last_num + 1
-        else:
-            new_num = 1
-            
-        return f"ORD{timestamp}{new_num:04d}"
+        # Use shorter timestamp format (YYYYMMDD + time in seconds)
+        timestamp = timezone.now().strftime('%y%m%d%H%M%S')  # %y = 2-digit year
+        
+        # Generate shorter random string
+        import secrets
+        random_str = secrets.token_hex(2)[:3].upper()  # 3 characters
+        
+        # Create order number: ORD + timestamp (14) + random (3) = 20 characters
+        order_number = f"ORD{timestamp}{random_str}"
+        
+        # Ensure it's exactly 20 characters
+        order_number = order_number[:20]
+        
+        # Ensure uniqueness
+        while Order.objects.filter(order_number=order_number).exists():
+            random_str = secrets.token_hex(2)[:3].upper()
+            order_number = f"ORD{timestamp}{random_str}"[:20]
+        
+        return order_number
     
     @property
     def can_be_cancelled(self):
@@ -237,19 +261,19 @@ class Order(models.Model):
         
         return summary
     
-    # UPDATED: Added Razorpay-specific method
+    
     def mark_as_paid(self, razorpay_payment_id=None, razorpay_signature=None):
         """Mark order as paid (complete payment)"""
         if self.payment_status in ['completed', 'success']:
             return False
         
-        # Use 'success' for Razorpay payments, 'completed' for others
+        # Use 'success' for Razorpay payments
         if razorpay_payment_id:
             self.payment_status = 'success'
         else:
             self.payment_status = 'completed'
         
-        # Only update status if it's pending
+        # Update status if it's pending
         if self.status == 'pending':
             self.status = 'confirmed'
         
@@ -262,6 +286,7 @@ class Order(models.Model):
         self.save()
         return True
     
+
     def update_razorpay_info(self, razorpay_order_id):
         """Update Razorpay order ID for tracking"""
         self.razorpay_order_id = razorpay_order_id
@@ -272,9 +297,8 @@ class Order(models.Model):
         self.payment_status = 'failed'
         self.save()
     
-    
     def cancel_order(self, reason=""):
-        """Cancel order and refund to wallet DIRECTLY"""
+        """Cancel order - only refund if payment was made"""
         if not self.can_be_cancelled:
             return False
         
@@ -284,87 +308,112 @@ class Order(models.Model):
                 item.variant.stock += item.quantity
                 item.variant.save()
             
-            # DIRECT REFUND for cancellations
+            # ========== FIXED REFUND LOGIC ==========
             refund_amount = Decimal('0')
             
-            # Refund wallet amount if used
-            if self.wallet_amount > 0 and self.wallet_used:
-                try:
-                    from .wallet import WalletTransaction
-                    # Create COMPLETED refund transaction
-                    WalletTransaction.objects.create(
-                        wallet=self.user.wallet,
-                        amount=self.wallet_amount,
-                        transaction_type='REFUND',
-                        status='COMPLETED',
-                        reason=f"Refund for cancelled order #{self.order_number}: {reason}",
-                        order=self,
-                        admin_approved=True
-                    )
-                    
-                    # Actually refund to wallet
-                    self.user.wallet.deposit(
-                        self.wallet_amount,
-                        reason=f"Refund for cancelled order #{self.order_number}",
-                        order=self
-                    )
-                    
-                    self.refund_to_wallet = True
-                    refund_amount += self.wallet_amount
-                    print(f"✅ Wallet refund of ₹{self.wallet_amount} processed")
-                except Exception as e:
-                    print(f"❌ Wallet refund failed: {e}")
+            # Check if user actually paid anything
+            user_paid = self.payment_status in ['completed', 'success', 'partially_paid']
             
-            # Refund Razorpay amount if paid online
-            if self.payment_status == 'success' and self.razorpay_payment_id:
-                # Calculate online payment amount
-                online_amount = self.total_amount - self.wallet_amount
-                if online_amount > 0:
+            # Only process refunds if user actually paid
+            if user_paid:
+                # Refund wallet amount if used
+                if self.wallet_amount > 0 and self.wallet_used:
                     try:
-                        # Initiate Razorpay refund
-                        import razorpay
-                        from django.conf import settings
-                        
-                        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-                        
-                        # Create refund in Razorpay
-                        refund = client.payment.refund(
-                            self.razorpay_payment_id,
-                            {
-                                'amount': int(online_amount * 100),  # Convert to paise
-                                'notes': {
-                                    'order_id': str(self.id),
-                                    'order_number': self.order_number,
-                                    'reason': f"Cancellation: {reason}"
-                                }
-                            }
+                        from .wallet import WalletTransaction
+                        # Create COMPLETED refund transaction
+                        WalletTransaction.objects.create(
+                            wallet=self.user.wallet,
+                            amount=self.wallet_amount,
+                            transaction_type='REFUND',
+                            status='COMPLETED',
+                            reason=f"Refund for cancelled order #{self.order_number}: {reason}",
+                            order=self,
+                            admin_approved=True
                         )
                         
-                        # Record refund details
-                        self.razorpay_refund_id = refund.get('id')
-                        refund_amount += online_amount
-                        self.payment_status = 'refunded'
-                        print(f"✅ Razorpay refund initiated: {refund.get('id')}")
+                        # Actually refund to wallet
+                        self.user.wallet.deposit(
+                            self.wallet_amount,
+                            reason=f"Refund for cancelled order #{self.order_number}",
+                            order=self
+                        )
                         
+                        self.refund_to_wallet = True
+                        refund_amount += self.wallet_amount
+                        print(f"✅ Wallet refund of ₹{self.wallet_amount} processed")
                     except Exception as e:
-                        print(f"❌ Razorpay refund failed: {e}")
-                        # Still mark as refunded in our system
-                        self.payment_status = 'refunded'
+                        print(f"❌ Wallet refund failed: {e}")
+                
+                # Refund Razorpay amount if paid online
+                if self.payment_status == 'success' and self.razorpay_payment_id:
+                    # Calculate online payment amount
+                    online_amount = self.total_amount - self.wallet_amount
+                    if online_amount > 0:
+                        try:
+                            # Initiate Razorpay refund
+                            import razorpay
+                            from django.conf import settings
+                            
+                            client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+                            
+                            # Create refund in Razorpay
+                            refund = client.payment.refund(
+                                self.razorpay_payment_id,
+                                {
+                                    'amount': int(online_amount * 100),  # Convert to paise
+                                    'notes': {
+                                        'order_id': str(self.id),
+                                        'order_number': self.order_number,
+                                        'reason': f"Cancellation: {reason}"
+                                    }
+                                }
+                            )
+                            
+                            # Record refund details
+                            self.razorpay_refund_id = refund.get('id')
+                            refund_amount += online_amount
+                            self.payment_status = 'refunded'
+                            print(f"✅ Razorpay refund initiated: {refund.get('id')}")
+                            
+                        except Exception as e:
+                            print(f"❌ Razorpay refund failed: {e}")
+                            # Still mark as refunded in our system
+                            self.payment_status = 'refunded'
+            else:
+                # User didn't pay, so no refund needed
+                self.payment_status = 'cancelled'  # Set payment status to 'cancelled'
+                print(f"ℹ️ Order cancelled - no refund needed (payment was pending)")
+            # ========== END FIX ==========
             
-            # Update order status
+            # Update order status and cancellation details
             self.status = 'cancelled'
             self.cancellation_reason = reason
             self.cancelled_at = timezone.now()
             self.refund_amount = refund_amount
-            self.refund_processed_at = timezone.now()
-            self.save()
+            self.refund_processed_at = timezone.now() if user_paid else None  # Only set if refund was processed
+            
+            # Force save to ensure all fields are updated
+            self.save(update_fields=[
+                'status',
+                'payment_status',
+                'cancellation_reason',
+                'cancelled_at',
+                'refund_amount',
+                'refund_processed_at',
+                'refund_to_wallet',
+                'updated_at'  # This is important for admin to see the update
+            ])
+            
+            print(f"✅ Order #{self.order_number} cancelled successfully")
+            print(f"   Status: {self.status}, Payment Status: {self.payment_status}")
+            print(f"   Cancelled at: {self.cancelled_at}")
             
             return True
             
         except Exception as e:
-            print(f"Error cancelling order {self.order_number}: {e}")
+            print(f"❌ Error cancelling order {self.order_number}: {e}")
             return False
-    
+
     def request_return(self, reason):
         """Request return - creates PENDING refund (requires admin approval)"""
         if not self.can_be_returned:
@@ -412,6 +461,7 @@ class Order(models.Model):
             self.return_status = 'approved'
             self.return_approved_at = timezone.now()
             self.return_approved_by = approved_by
+            self.status = 'refunded'
             self.save()
             
             # Find and approve the pending refund transaction

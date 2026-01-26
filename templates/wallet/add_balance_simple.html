@@ -1,0 +1,123 @@
+templates/wallet/add_balance_simple.html
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Add Money to Wallet - Sanjeri{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-amber-900 text-white py-3">
+                    <h4 class="mb-0">
+                        <i class="fas fa-wallet me-2"></i>Add Money to Wallet
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Current Balance -->
+                    <div class="alert alert-info">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Current Balance:</span>
+                            <span class="fw-bold fs-5">₹{{ wallet.balance|floatformat:2 }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Form -->
+                    <form method="POST" action="{% url 'add_wallet_balance' %}">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Enter Amount (₹)</label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" 
+                                       name="amount" 
+                                       class="form-control" 
+                                       placeholder="Enter amount" 
+                                       min="10" 
+                                       max="100"
+                                       step="1"
+                                       value="100"
+                                       required>
+                            </div>
+                            <div class="form-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Test mode: Use ₹100 for successful payment
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Quick Amount Buttons -->
+                        <div class="row mb-4">
+                            <div class="col-4">
+                                <button type="button" class="btn btn-outline-amber-900 w-100 quick-amount" data-amount="50">₹50</button>
+                            </div>
+                            <div class="col-4">
+                                <button type="button" class="btn btn-outline-amber-900 w-100 quick-amount active" data-amount="100">₹100</button>
+                            </div>
+                            <div class="col-4">
+                                <button type="button" class="btn btn-outline-amber-900 w-100 quick-amount" data-amount="200">₹200</button>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-amber-900 btn-lg w-100 py-3">
+                            <i class="fas fa-credit-card me-2"></i>Proceed to Payment
+                        </button>
+                        
+                        <!-- Test Info -->
+                        <div class="alert alert-warning mt-4">
+                            <h6><i class="fas fa-vial me-2"></i>Test Mode Instructions</h6>
+                            <small class="text-muted">
+                                Use test card: <strong>4111 1111 1111 1111</strong><br>
+                                Expiry: Any future date | CVV: Any 3 digits<br>
+                                Amounts over ₹100 may fail in test mode
+                            </small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Direct Add (for testing) -->
+            <div class="card shadow-sm border-0 mt-4">
+                <div class="card-body">
+                    <h6 class="mb-3">Testing Only</h6>
+                    <form method="POST" action="{% url 'direct_add_money' %}">
+                        {% csrf_token %}
+                        <div class="input-group">
+                            <input type="number" name="amount" class="form-control" placeholder="Amount" value="100">
+                            <button class="btn btn-success" type="submit">Add Directly (No Payment)</button>
+                        </div>
+                        <small class="text-muted">This bypasses payment for testing</small>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Quick amount buttons
+    document.querySelectorAll('.quick-amount').forEach(button => {
+        button.addEventListener('click', function() {
+            const amount = this.getAttribute('data-amount');
+            document.querySelector('input[name="amount"]').value = amount;
+            
+            // Update active state
+            document.querySelectorAll('.quick-amount').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+        });
+    });
+</script>
+
+<style>
+.quick-amount.active {
+    background-color: #431405;
+    color: white;
+    border-color: #431405;
+}
+</style>
+{% endblock %}

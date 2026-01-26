@@ -1,0 +1,59 @@
+
+<!-- templates/admin/orders/approve_return.html -->
+
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main" class="col-12">
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <h2>✅ Return Approved Successfully</h2>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-success">
+                <h4><i class="fas fa-check-circle"></i> Return Approved for Order #{{ order.order_number }}</h4>
+                <p><strong>Customer:</strong> {{ order.user.get_full_name|default:order.user.email }}</p>
+                <p><strong>Refund Amount:</strong> ₹{{ refund_amount|floatformat:2 }}</p>
+                <p><strong>Refund Method:</strong> Wallet Credit</p>
+                <p><strong>Approved by:</strong> {{ request.user.get_full_name }}</p>
+                <p><strong>Approved at:</strong> {{ approved_at|date:"d M Y, H:i" }}</p>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5>Refund Details</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th>Order Total:</th>
+                            <td>₹{{ order.total_amount|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <th>Wallet Refund:</th>
+                            <td class="text-success">₹{{ refund_amount|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <th>Customer's New Wallet Balance:</th>
+                            <td><strong>₹{{ new_wallet_balance|floatformat:2 }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Transaction ID:</th>
+                            <td><code>{{ transaction.id }}</code></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <a href="{% url 'admin:sanjeri_app_order_change' order.id %}" class="btn btn-primary">
+                    <i class="fas fa-arrow-left"></i> Back to Order
+                </a>
+                <a href="{% url 'admin_order_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-list"></i> View All Orders
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

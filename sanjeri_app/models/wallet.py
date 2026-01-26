@@ -1,3 +1,4 @@
+# sanjeri_app/models/wallet.py
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
@@ -58,8 +59,8 @@ class Wallet(models.Model):
         if amount <= 0:
             raise ValidationError("Withdrawal amount must be positive")
         
-        if self.balance < amount:
-            raise ValidationError("Insufficient balance")
+        if self.available_balance < amount:
+            raise ValidationError("Insufficient available balance")
         
         # Create withdrawal transaction
         transaction = WalletTransaction.objects.create(
@@ -76,30 +77,6 @@ class Wallet(models.Model):
         self.save()
         
         return transaction
-    
-    def request_refund(self, amount, reason="", order=None):
-        """Request refund to wallet (requires admin approval)"""
-        if amount <= 0:
-            raise ValidationError("Refund amount must be positive")
-        
-        transaction = WalletTransaction.objects.create(
-            wallet=self,
-            amount=amount,
-            transaction_type='REFUND',
-            status='PENDING',
-            reason=reason,
-            order=order
-        )
-        
-        return transaction
-    
-    def get_transaction_history(self):
-        """Get all wallet transactions"""
-        return self.transactions.all().order_by('-created_at')
-    
-    def get_recent_transactions(self, limit=10):
-        """Get recent wallet transactions"""
-        return self.transactions.all().order_by('-created_at')[:limit]
 
 
 class WalletTransaction(models.Model):
@@ -127,11 +104,11 @@ class WalletTransaction(models.Model):
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     
-
-      # Razorpay fields for wallet top-ups
+    # Razorpay fields for wallet top-ups
     razorpay_order_id = models.CharField(max_length=100, blank=True, null=True)
     razorpay_payment_id = models.CharField(max_length=100, blank=True, null=True)
     razorpay_signature = models.CharField(max_length=200, blank=True, null=True)
+    
     # Reference to order (if applicable)
     order = models.ForeignKey(
         Order,
@@ -169,11 +146,6 @@ class WalletTransaction(models.Model):
         """Validate transaction"""
         if self.amount <= 0:
             raise ValidationError("Amount must be positive")
-        
-        # For withdrawals, check wallet balance
-        if self.transaction_type == 'WITHDRAWAL' and self.status == 'COMPLETED':
-            if self.wallet.balance < self.amount:
-                raise ValidationError("Insufficient wallet balance")
     
     def save(self, *args, **kwargs):
         self.full_clean()

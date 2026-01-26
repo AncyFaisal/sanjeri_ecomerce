@@ -1,0 +1,396 @@
+<!-- templates/wallet/test_payment.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Wallet Payment - Sanjeri</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            padding: 30px; 
+            background: #f8f9fa;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        h2 { 
+            color: #431405; 
+            border-bottom: 2px solid #431405;
+            padding-bottom: 10px;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-bottom: none;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+        }
+        .tab.active {
+            background: #431405;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px 0;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        input, button { 
+            padding: 12px; 
+            margin: 5px 0; 
+            width: 100%; 
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        input:focus {
+            border-color: #431405;
+            outline: none;
+        }
+        .btn {
+            background: #431405;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #5a2a0e;
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .result { 
+            margin-top: 20px; 
+            padding: 15px; 
+            background: #f0f0f0;
+            border-radius: 5px;
+            border-left: 4px solid #431405;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #431405;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .test-info {
+            background: #fff7ed;
+            border: 1px solid #ffedd5;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .test-info h4 {
+            margin-top: 0;
+            color: #431405;
+        }
+        .payment-status {
+            text-align: center;
+            padding: 30px;
+            display: none;
+        }
+        .success {
+            color: green;
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>💰 Test Wallet Payment</h2>
+        
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" data-tab="direct">Direct Add</div>
+            <div class="tab" data-tab="razorpay">Razorpay Payment</div>
+        </div>
+        
+        <!-- Direct Add Tab -->
+        <div class="tab-content active" id="direct-tab">
+            <form id="directForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="direct">
+                
+                <div class="form-group">
+                    <label for="amount">Amount (₹)</label>
+                    <input type="number" name="amount" placeholder="Amount" value="100" min="1" max="10000" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="user_id">User ID (optional)</label>
+                    <input type="number" name="user_id" placeholder="Leave empty for current user">
+                </div>
+                
+                <button type="submit" class="btn">Add Money Directly</button>
+            </form>
+        </div>
+        
+        <!-- Razorpay Tab -->
+        <div class="tab-content" id="razorpay-tab">
+            <div class="test-info">
+                <h4>💳 Test Card Details</h4>
+                <p><strong>Card Number:</strong> 4111 1111 1111 1111</p>
+                <p><strong>Expiry:</strong> Any future date (e.g., 12/30)</p>
+                <p><strong>CVV:</strong> Any 3 digits (e.g., 123)</p>
+                <p><strong>Name:</strong> Any name</p>
+                <p><strong>Note:</strong> Use amounts under ₹100 for best results in test mode</p>
+            </div>
+            
+            <form id="razorpayForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="razorpay">
+                
+                <div class="form-group">
+                    <label for="razorpay_amount">Amount (₹)</label>
+                    <input type="number" name="amount" id="razorpay_amount" placeholder="Amount" value="100" min="10" max="100" required>
+                    <small class="text-muted">Test mode works best with ₹100 or less</small>
+                </div>
+                
+                <button type="submit" class="btn">Pay with Razorpay</button>
+            </form>
+        </div>
+        
+        <!-- Loading -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+        
+        <!-- Payment Status -->
+        <div class="payment-status" id="paymentSuccess">
+            <div class="success">✓</div>
+            <h3>Payment Successful!</h3>
+            <p id="successMessage"></p>
+            <p>Redirecting to wallet...</p>
+        </div>
+        
+        <!-- Error Message -->
+        <div class="error" id="errorMessage"></div>
+        
+        <!-- Result Display -->
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabId = this.getAttribute('data-tab');
+                
+                // Update active tab
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Show corresponding content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(tabId + '-tab').classList.add('active');
+            });
+        });
+        
+        // Direct form submission
+        document.getElementById('directForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            showLoading();
+            
+            const formData = new FormData(this);
+            
+            fetch('/wallet/test-payment/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    showResult(`✅ ${data.message} (New balance: ₹${data.new_balance})`);
+                } else {
+                    showError(data.message);
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showError('Network error: ' + error.message);
+            });
+        });
+        
+        // Razorpay form submission
+        document.getElementById('razorpayForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            showLoading();
+            
+            const formData = new FormData(this);
+            
+            fetch('/wallet/test-payment/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                
+                if (data.success && data.action === 'razorpay') {
+                    // Open Razorpay payment
+                    openRazorpay(data);
+                } else if (data.success) {
+                    showResult(`✅ ${data.message}`);
+                } else {
+                    showError(data.message);
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showError('Network error: ' + error.message);
+            });
+        });
+        
+        // Open Razorpay payment
+        function openRazorpay(data) {
+            const options = {
+                "key": data.razorpay_key,
+                "amount": data.amount,
+                "currency": data.currency,
+                "name": "Sanjeri Test Payment",
+                "description": "Wallet Top-up Test",
+                "order_id": data.razorpay_order_id,
+                "handler": function(response) {
+                    verifyRazorpayPayment(response, data.transaction_id);
+                },
+                "prefill": {
+                    "name": data.customer_name,
+                    "email": data.customer_email
+                },
+                "theme": {
+                    "color": "#431405"
+                },
+                "modal": {
+                    "ondismiss": function() {
+                        showError("Payment cancelled. You can try again.");
+                    }
+                }
+            };
+            
+            try {
+                const rzp = new Razorpay(options);
+                rzp.open();
+            } catch (error) {
+                showError("Error opening payment: " + error.message);
+            }
+        }
+        
+        // Verify Razorpay payment
+        function verifyRazorpayPayment(response, transactionId) {
+            showLoading();
+            
+            const formData = new FormData();
+            formData.append('razorpay_payment_id', response.razorpay_payment_id);
+            formData.append('razorpay_order_id', response.razorpay_order_id);
+            formData.append('razorpay_signature', response.razorpay_signature);
+            formData.append('transaction_id', transactionId);
+            
+            // Add CSRF token
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            formData.append('csrfmiddlewaretoken', csrfToken);
+            
+            fetch('/wallet/verify-wallet-payment/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                
+                if (data.success) {
+                    showPaymentSuccess(data.message + ' (New balance: ₹' + data.new_balance + ')');
+                    
+                    // Redirect after 3 seconds
+                    setTimeout(() => {
+                        window.location.href = '/wallet/';
+                    }, 3000);
+                } else {
+                    showError(data.message);
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showError('Verification error: ' + error.message);
+            });
+        }
+        
+        // UI Helper functions
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('paymentSuccess').style.display = 'none';
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+        
+        function showResult(message) {
+            document.getElementById('result').innerHTML = message;
+            document.getElementById('result').style.display = 'block';
+        }
+        
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorMessage').style.display = 'block';
+        }
+        
+        function showPaymentSuccess(message) {
+            document.getElementById('successMessage').textContent = message;
+            document.getElementById('paymentSuccess').style.display = 'block';
+        }
+    </script>
+</body>
+</html>

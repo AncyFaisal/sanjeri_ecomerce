@@ -132,6 +132,20 @@
                             <i class="fas fa-credit-card me-2"></i>Pay ₹{{ order.amount_to_pay|floatformat:2 }}
                         </button>
                         {% endif %}
+
+                        <!-- Add this near other action buttons in order_detail.html -->
+{% if order.status == 'cancelled' or order.return_status == 'approved' %}
+<a href="{% url 'refund_status' order.id %}" class="btn btn-outline-info">
+    <i class="fas fa-receipt me-2"></i>View Refund Status
+</a>
+{% endif %}
+
+<!-- Or for pending returns -->
+{% if order.return_status == 'requested' %}
+<a href="{% url 'refund_status' order.id %}" class="btn btn-outline-warning">
+    <i class="fas fa-clock me-2"></i>Check Refund Status
+</a>
+{% endif %}
                     </div>
                 </div>
             </div>
@@ -522,8 +536,8 @@
                 <h5 class="modal-title">Return Order #{{ order.order_number }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{% url 'request_return' order.id %}">
-                {% csrf_token %}
+<form method="POST" action="{% url 'request_return' order.id %}">   
+                 {% csrf_token %}
                 <div class="modal-body">
                     <p>Please provide a reason for returning this order.</p>
                     

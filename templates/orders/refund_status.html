@@ -1,0 +1,289 @@
+<!-- templates/orders/refund_status.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Refund Status - Order #{{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header 
+                    {% if transaction.status == 'COMPLETED' %}bg-success
+                    {% elif transaction.status == 'PENDING' %}bg-warning
+                    {% else %}bg-danger{% endif %} text-white py-3">
+                    <h4 class="mb-0">
+                        <i class="fas fa-receipt me-2"></i>Refund Status
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Order Info -->
+                    <div class="alert alert-info mb-4">
+                        <h5 class="mb-2">Order #{{ order.order_number }}</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Order Date:</strong> {{ order.created_at|date:"d M Y" }}</p>
+                                <p class="mb-1"><strong>Total Amount:</strong> ₹{{ order.total_amount|floatformat:2 }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Payment Method:</strong> {{ order.get_payment_method_display }}</p>
+                                <p class="mb-0"><strong>Order Status:</strong> {{ order.get_status_display }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Refund Status Card -->
+                    <div class="card mb-4">
+                        <div class="card-body text-center">
+                            {% if transaction.status == 'COMPLETED' %}
+                            <div class="success-animation mb-3">
+                                <i class="fas fa-check-circle fa-4x text-success"></i>
+                            </div>
+                            <h3 class="text-success mb-2">Refund Completed</h3>
+                            <p class="text-muted">Your refund has been successfully processed.</p>
+                            
+                            {% elif transaction.status == 'PENDING' %}
+                            <div class="pending-animation mb-3">
+                                <i class="fas fa-clock fa-4x text-warning"></i>
+                            </div>
+                            <h3 class="text-warning mb-2">Refund Pending</h3>
+                            <p class="text-muted">Your refund is awaiting admin approval.</p>
+                            
+                            {% else %}
+                            <div class="failed-animation mb-3">
+                                <i class="fas fa-times-circle fa-4x text-danger"></i>
+                            </div>
+                            <h3 class="text-danger mb-2">Refund Failed</h3>
+                            <p class="text-muted">There was an issue processing your refund.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Refund Details -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Refund Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table">
+                                <tr>
+                                    <th width="40%">Transaction ID:</th>
+                                    <td>{{ transaction.id }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Refund Amount:</th>
+                                    <td class="fw-bold text-success">₹{{ transaction.amount|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Refund Method:</th>
+                                    <td>Wallet Credit</td>
+                                </tr>
+                                <tr>
+                                    <th>Status:</th>
+                                    <td>
+                                        <span class="badge 
+                                            {% if transaction.status == 'COMPLETED' %}bg-success
+                                            {% elif transaction.status == 'PENDING' %}bg-warning
+                                            {% else %}bg-danger{% endif %}">
+                                            {{ transaction.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Initiated:</th>
+                                    <td>{{ transaction.created_at|date:"d M Y, h:i A" }}</td>
+                                </tr>
+                                {% if transaction.status == 'COMPLETED' %}
+                                <tr>
+                                    <th>Completed:</th>
+                                    <td>{{ transaction.updated_at|date:"d M Y, h:i A" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Approved by:</th>
+                                    <td>{{ transaction.approved_by.get_full_name|default:"Admin" }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <th>Reason:</th>
+                                    <td>{{ transaction.reason }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Timeline -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Refund Timeline</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="timeline">
+                                <div class="timeline-item {% if transaction.created_at %}active{% endif %}">
+                                    <div class="timeline-marker"></div>
+                                    <div class="timeline-content">
+                                        <h6>Refund Requested</h6>
+                                        <p class="text-muted small">{{ transaction.created_at|date:"d M Y, h:i A" }}</p>
+                                    </div>
+                                </div>
+                                
+                                {% if transaction.status == 'COMPLETED' %}
+                                <div class="timeline-item active">
+                                    <div class="timeline-marker success"></div>
+                                    <div class="timeline-content">
+                                        <h6>Refund Approved & Processed</h6>
+                                        <p class="text-muted small">{{ transaction.updated_at|date:"d M Y, h:i A" }}</p>
+                                        <p class="mb-0">Amount credited to your wallet</p>
+                                    </div>
+                                </div>
+                                {% elif transaction.status == 'PENDING' %}
+                                <div class="timeline-item">
+                                    <div class="timeline-marker pending"></div>
+                                    <div class="timeline-content">
+                                        <h6>Awaiting Admin Approval</h6>
+                                        <p class="text-muted small">Usually processed within 24-48 hours</p>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'order_detail' order.id %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Order
+                        </a>
+                        <div>
+                            <a href="{% url 'wallet_dashboard' %}" class="btn btn-amber-900 me-2">
+                                <i class="fas fa-wallet me-2"></i>View Wallet
+                            </a>
+                            {% if transaction.status == 'PENDING' %}
+                            <button class="btn btn-outline-primary" id="refreshStatus">
+                                <i class="fas fa-sync-alt me-2"></i>Check Status
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .success-animation, .pending-animation, .failed-animation {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #dee2e6;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        left: -24px;
+        top: 5px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #6c757d;
+        border: 3px solid white;
+    }
+    
+    .timeline-item.active .timeline-marker {
+        background: #431405;
+    }
+    
+    .timeline-marker.success {
+        background: #28a745;
+    }
+    
+    .timeline-marker.pending {
+        background: #ffc107;
+    }
+    
+    .timeline-content {
+        padding-left: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-refresh for pending refunds
+    document.addEventListener('DOMContentLoaded', function() {
+        const refreshBtn = document.getElementById('refreshStatus');
+        
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', function() {
+                refreshBtn.disabled = true;
+                refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Checking...';
+                
+                fetch(`{% url 'check_refund_status' order.id %}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (data.status !== 'PENDING') {
+                                // Refund status changed, reload page
+                                window.location.reload();
+                            } else {
+                                // Still pending
+                                alert('Refund is still pending. Please check back later.');
+                                refreshBtn.disabled = false;
+                                refreshBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Check Status';
+                            }
+                        } else {
+                            alert(data.message);
+                            refreshBtn.disabled = false;
+                            refreshBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Check Status';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error checking refund status');
+                        refreshBtn.disabled = false;
+                        refreshBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Check Status';
+                    });
+            });
+            
+            // Auto-check every 30 seconds if status is pending
+            if ('{{ transaction.status }}' === 'PENDING') {
+                setInterval(() => {
+                    fetch(`{% url 'check_refund_status' order.id %}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success && data.status !== 'PENDING') {
+                                window.location.reload();
+                            }
+                        });
+                }, 30000); // 30 seconds
+            }
+        }
+    });
+</script>
+{% endblock %}

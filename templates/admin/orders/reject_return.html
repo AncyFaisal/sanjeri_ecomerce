@@ -1,0 +1,41 @@
+<!-- templates/admin/orders/reject_return.html -->
+
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main" class="col-12">
+    <div class="card">
+        <div class="card-header bg-danger text-white">
+            <h2>❌ Return Rejected</h2>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning">
+                <h4><i class="fas fa-times-circle"></i> Return Rejected for Order #{{ order.order_number }}</h4>
+                <p><strong>Customer:</strong> {{ order.user.get_full_name|default:order.user.email }}</p>
+                <p><strong>Rejection Reason:</strong> {{ rejection_reason }}</p>
+                <p><strong>Rejected by:</strong> {{ request.user.get_full_name }}</p>
+                <p><strong>Rejected at:</strong> {% now "d M Y, H:i" %}</p>
+            </div>
+            
+            <div class="alert alert-info">
+                <h5><i class="fas fa-info-circle"></i> What happened?</h5>
+                <ul>
+                    <li>The return request has been marked as rejected</li>
+                    <li>Order status changed back to "delivered"</li>
+                    <li>Pending refund transaction has been cancelled</li>
+                    <li>Customer has been notified (if email configured)</li>
+                </ul>
+            </div>
+            
+            <div class="mt-4">
+                <a href="{% url 'admin:sanjeri_app_order_change' order.id %}" class="btn btn-primary">
+                    <i class="fas fa-arrow-left"></i> Back to Order
+                </a>
+                <a href="{% url 'admin_order_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-list"></i> View All Orders
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

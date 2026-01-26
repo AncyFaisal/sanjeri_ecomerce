@@ -13,6 +13,8 @@ from django.utils import timezone
 import razorpay
 import json
 from django.conf import settings
+
+from sanjeri_app.models import order
 from ..models import Cart, CartItem, Address, Order, OrderItem, Coupon
 from ..models import Wallet, WalletTransaction, CustomUser
 
@@ -165,6 +167,52 @@ def checkout_view(request):
     return render(request, 'checkout/checkout.html', context)
 
 @login_required
+def apply_wallet_payment(request):
+    """Apply wallet payment to checkout (AJAX)"""
+    if request.method == 'POST':
+        try:
+            use_wallet = request.POST.get('use_wallet') == 'true'
+            wallet_amount = Decimal(request.POST.get('wallet_amount', '0.00'))
+            
+            # Get user's wallet
+            wallet, _ = Wallet.objects.get_or_create(user=request.user)
+            
+            # Get cart total
+            cart = Cart.objects.filter(user=request.user).first()
+            if not cart:
+                return JsonResponse({'success': False, 'message': 'Cart is empty'})
+            
+            subtotal = cart.subtotal
+            seasonal_discount = subtotal * Decimal('0.10')
+            subtotal_after_seasonal = subtotal - seasonal_discount
+            shipping = Decimal('50.00') if subtotal_after_seasonal < Decimal('500.00') else Decimal('0.00')
+            tax = (subtotal_after_seasonal * Decimal('0.18'))
+            total_before_wallet = subtotal_after_seasonal + shipping + tax
+            
+            wallet_discount = Decimal('0.00')
+            if use_wallet and wallet_amount > 0:
+                # Ensure wallet amount doesn't exceed wallet balance
+                wallet_amount_used = min(wallet_amount, wallet.balance)
+                # Ensure wallet amount doesn't exceed total
+                wallet_amount_used = min(wallet_amount_used, total_before_wallet)
+                wallet_discount = wallet_amount_used
+            
+            total_amount = total_before_wallet - wallet_discount
+            
+            return JsonResponse({
+                'success': True,
+                'wallet_used': float(wallet_discount),
+                'remaining_amount': float(total_amount),
+                'wallet_balance': float(wallet.balance)
+            })
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request'})
+
+
+@login_required
 @transaction.atomic
 def place_order(request):
     """Place order view"""
@@ -172,7 +220,7 @@ def place_order(request):
     print(f"Method: {request.method}")
     print(f"Is AJAX: {request.headers.get('X-Requested-With')}")
     
-    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+    if request.method == 'POST':
         try:
             # Get user's cart
             cart = Cart.objects.filter(user=request.user).first()
@@ -185,6 +233,12 @@ def place_order(request):
             coupon_code = request.POST.get('coupon_code', '')
             use_wallet = request.POST.get('use_wallet') == 'true'
             wallet_amount = Decimal(request.POST.get('wallet_amount', '0.00'))
+            
+            # ==================== ADD THIS ====================
+            # Get preferred method for online payments
+            preferred_method = request.POST.get('preferred_method', 'card')
+            print(f"Preferred method from request: {preferred_method}")
+            # ==================== END ADDITION ====================
             
             # Get address
             address = Address.objects.filter(id=address_id, user=request.user).first()
@@ -244,8 +298,8 @@ def place_order(request):
                 tax_amount=tax_amount,
                 total_amount=total_amount,
                 payment_method=payment_method,
-                payment_status='pending' if payment_method == 'online' else 'pending',
-                status='pending',
+                payment_status='pending',  # COD starts as pending
+                status='confirmed',  # FIXED: COD orders should be confirmed immediately
                 wallet_amount_used=wallet_amount_used
             )
             
@@ -297,8 +351,23 @@ def place_order(request):
             if 'applied_coupon' in request.session:
                 del request.session['applied_coupon']
             
+
+            # ========== FIXED: HANDLE COD REDIRECT ==========
+            if payment_method == 'cod':
+                # FIXED: Redirect directly to success page for COD
+                return JsonResponse({
+                    'success': True,
+                    'payment_required': False,
+                    'redirect_url': f'/order-success/{order.id}/',
+                    'order_id': order.id,
+                    'order_number': order.order_number
+                })
+            
+
+
+
             # Handle online payment
-            if payment_method == 'online' and total_amount > 0:
+            elif payment_method == 'online' and total_amount > 0:
                 # Initialize Razorpay client
                 client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
                 
@@ -317,6 +386,7 @@ def place_order(request):
                 order.razorpay_order_id = razorpay_order['id']
                 order.save()
                 
+                # ==================== ADD THIS ====================
                 # Prepare response for online payment
                 return JsonResponse({
                     'success': True,
@@ -329,13 +399,49 @@ def place_order(request):
                     'razorpay_order_id': razorpay_order['id'],
                     'customer_name': request.user.get_full_name() or request.user.username,
                     'customer_email': request.user.email,
-                    'customer_phone': address.phone
+                    'customer_phone': address.phone,
+                    # Add preferred method to response
+                    'preferred_method': preferred_method
                 })
+                
+                # print(f"Sending response with preferred_method: {preferred_method}")
+                # return JsonResponse(response_data)
+                # ==================== END ADDITION ====================
             
             # For COD or full wallet payment, mark as confirmed
-            order.payment_status = 'pending' if total_amount > 0 else 'paid'
-            order.status = 'confirmed'
-            order.save()
+            # if payment_method == 'cod':
+            #     # COD stays pending until delivered
+            #     order.payment_status = 'pending'
+            #     order.status = 'confirmed'
+           # Handle full wallet payment
+            elif payment_method == 'wallet' or (use_wallet and total_amount == 0):
+                order.payment_status = 'completed'
+                order.save()
+                return JsonResponse({
+                    'success': True,
+                    'payment_required': False,
+                    'redirect_url': f'/order-success/{order.id}/',
+                    'order_id': order.id,
+                    'order_number': order.order_number
+                })
+            # Handle mixed payment
+            elif payment_method == 'mixed':
+                order.payment_status = 'partially_paid'
+                order.save()
+                return JsonResponse({
+                    'success': True,
+                    'payment_required': True,
+                    'order_id': order.id,
+                    'order_number': order.order_number,
+                    'key': settings.RAZORPAY_KEY_ID,
+                    'amount': amount_in_paise,
+                    'currency': 'INR',
+                    'razorpay_order_id': razorpay_order['id'],
+                    'customer_name': request.user.get_full_name() or request.user.username,
+                    'customer_email': request.user.email,
+                    'customer_phone': address.phone,
+                    'preferred_method': preferred_method
+                })
             
             # Send success message
             if wallet_amount_used > 0 and total_amount == 0:
@@ -346,16 +452,16 @@ def place_order(request):
             return JsonResponse({
                 'success': True,
                 'payment_required': False,
-                'redirect_url': f'/orders/{order.id}/success/'
+                'redirect_url': f'/order-success/{order.id}/'
             })
             
         except Exception as e:
             return JsonResponse({'success': False, 'message': f'Error placing order: {str(e)}'})
     
     else:
-        print("❌ Invalid request - Not AJAX or not POST")
+        # print("❌ Invalid request - Not AJAX or not POST")
         return JsonResponse({'success': False, 'message': 'Invalid request'})
-    return JsonResponse({'success': False, 'message': 'Invalid request'})
+    # return JsonResponse({'success': False, 'message': 'Invalid request'})
 
 
 @login_required
@@ -380,84 +486,145 @@ def order_success(request, order_id):
         messages.error(request, "Order not found!")
         return redirect('order_list')
 
-
 @csrf_exempt
-@require_POST
 def verify_payment(request):
-    """Simple payment verification"""
-    print("\n" + "="*50)
-    print("=== SIMPLE PAYMENT VERIFICATION ===")
+    """Payment verification endpoint"""
+    print("\n=== PAYMENT VERIFICATION ===")
     
-    if request.method == "POST":
-        try:
-            # Get data from POST form (not JSON!)
-            razorpay_payment_id = request.POST.get("razorpay_payment_id")
-            razorpay_order_id = request.POST.get("razorpay_order_id")
-            razorpay_signature = request.POST.get("razorpay_signature")
-            order_id = request.POST.get("order_id")
-            
-            print(f"Order ID from form: {order_id}")
-            print(f"Payment ID: {razorpay_payment_id}")
-            print(f"Razorpay Order ID: {razorpay_order_id}")
-            print(f"Signature received: {'Yes' if razorpay_signature else 'No'}")
-            
-            # Verify we have all required data
-            if not all([razorpay_payment_id, razorpay_order_id, razorpay_signature, order_id]):
-                print("❌ Missing required data")
-                return redirect('payment_failed', order_id=order_id or 0)
-            
-            # Initialize Razorpay client
-            client = razorpay.Client(
-                auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
-            )
-            
-            # Verify signature
+    try:
+        # Determine request type
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        print(f"Is AJAX: {is_ajax}")
+        
+        # Get data
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        elif request.method == 'POST':
+            data = request.POST.dict()
+        else:
+            data = request.GET.dict()
+        
+        print(f"Received data: {data}")
+        
+        # Extract payment data
+        razorpay_payment_id = data.get('razorpay_payment_id')
+        razorpay_order_id = data.get('razorpay_order_id')
+        razorpay_signature = data.get('razorpay_signature')
+        order_id = data.get('order_id')
+        
+        print(f"Payment ID: {razorpay_payment_id}")
+        print(f"Razorpay Order ID: {razorpay_order_id}")
+        print(f"Order ID: {order_id}")
+        
+
+        # FIXED: If no order_id in data, check URL parameter
+        if not order_id:
+            # Check if order_id is in URL pattern
+            path = request.path
+            import re
+            match = re.search(r'verify-payment/(\d+)/', path)
+            if match:
+                order_id = match.group(1)
+
+
+        # If still no order_id, try to find by razorpay_order_id
+        if not order_id and razorpay_order_id:
             try:
-                client.utility.verify_payment_signature({
+                order = Order.objects.get(razorpay_order_id=razorpay_order_id)
+                order_id = order.id
+                print(f"Found order by razorpay_order_id: #{order.order_number}")
+            except Order.DoesNotExist:
+                pass
+        
+        print(f"Order ID to use: {order_id}")
+        
+        if not order_id:
+            print("❌ No order ID found")
+            if is_ajax:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'No order ID provided',
+                    'data': data
+                })
+            else:
+                return redirect('payment_failed', order_id=0)
+        
+        # Get the order
+        try:
+            order = Order.objects.get(id=order_id)
+            print(f"✅ Found order #{order.order_number}")
+        except Order.DoesNotExist:
+            print(f"❌ Order {order_id} not found")
+            if is_ajax:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'Order {order_id} not found'
+                })
+            else:
+                return redirect('homepage')
+        
+        # Verify signature for online payments
+        if razorpay_payment_id and razorpay_order_id and razorpay_signature:
+            try:
+                client = razorpay.Client(
+                    auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
+                )
+                params_dict = {
                     "razorpay_order_id": razorpay_order_id,
                     "razorpay_payment_id": razorpay_payment_id,
                     "razorpay_signature": razorpay_signature,
-                })
-                print("✅ Signature verified successfully")
+                }
+                client.utility.verify_payment_signature(params_dict)
+                print("✅ Signature verified")
                 
-            except Exception as e:
-                print(f"⚠️ Signature verification warning: {e}")
-                # Continue anyway for testing - you can remove this in production
-            
-            # Get and update the order
-            try:
-                order = Order.objects.get(id=order_id)
-                print(f"✅ Found order #{order.order_number}")
-                
-                # Mark as paid
-                order.payment_status = 'paid'
-                order.status = 'confirmed'
+                # Update order for successful online payment
+                order.payment_status = 'success'
                 order.razorpay_payment_id = razorpay_payment_id
                 order.razorpay_signature = razorpay_signature
-                order.paid_at = timezone.now()
-                order.save()
                 
-                print(f"✅ Order #{order.order_number} marked as PAID")
-                
-                # Redirect to order success page
-                return redirect('order_detail', order_id=order.id)
-                
-            except Order.DoesNotExist:
-                print(f"❌ Order {order_id} not found")
-                return redirect('order_list')
-                
-        except Exception as e:
-            print(f"💥 Error in verify_payment: {e}")
-            import traceback
-            traceback.print_exc()
-            
-            # Try to redirect to order page anyway
-            if order_id:
-                return redirect('order_detail', order_id=order_id)
-            return redirect('order_list')
-    
-    print("❌ Not a POST request")
-    return redirect('homepage')
+            except Exception as e:
+                print(f"⚠️ Signature verification failed: {e}")
+                if is_ajax:
+                    return JsonResponse({
+                        'success': False,
+                        'message': f'Payment verification failed: {str(e)}'
+                    })
+                else:
+                    return redirect('payment_failed', order_id=order.id)
+        
+        # Update order status
+        order.status = 'confirmed'
+        order.save()
+        
+        print(f"✅ Order #{order.order_number} updated successfully")
+        
+        # Return appropriate response
+        if is_ajax:
+            return JsonResponse({
+                'success': True,
+                'message': 'Payment verified successfully',
+                'order_id': order.id,
+                'order_number': order.order_number,
+                'redirect_url': f'/order-success/{order.id}/'
+            })
+        else:
+            # For non-AJAX requests, redirect to success page
+            return redirect('order_success', order_id=order.id)
+        
+    except Exception as e:
+        print(f"❌ Error in verify_payment: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        if is_ajax:
+            return JsonResponse({
+                'success': False,
+                'message': f'Error: {str(e)}'
+            })
+        else:
+            # Try to get order_id from various sources
+            order_id = request.POST.get('order_id') or request.GET.get('order_id') or 0
+            return redirect('payment_failed', order_id=order_id)
 
 
 @login_required
@@ -597,3 +764,18 @@ def simple_verify_payment(request):
             'redirect_url': '/orders/',
             'message': f'Error but continuing: {str(e)}'
         })
+
+@login_required
+def payment_failed(request, order_id):
+    """Payment failed page"""
+    try:
+        order = Order.objects.get(id=order_id, user=request.user)
+    except Order.DoesNotExist:
+        order = None
+    
+    context = {
+        'order': order,
+        'title': 'Payment Failed - Sanjeri'
+    }
+    
+    return render(request, 'payment/payment_failed.html', context)

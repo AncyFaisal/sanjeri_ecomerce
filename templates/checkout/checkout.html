@@ -7,8 +7,10 @@
 {% block title %}Checkout - Sanjeri{% endblock %}
 
 {% block extra_head %}
+<!-- Force HTTPS for Razorpay but allow HTTP for local development -->
 <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
 {% endblock %}
+
 
 {% block extra_css %}
 <style>
@@ -463,6 +465,45 @@
         color: #431405;
     }
 
+
+    /* Add to your checkout.css */
+.payment-methods-icons {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.payment-method-icon {
+    padding: 4px 8px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: #6c757d;
+    cursor: pointer;
+    border: 1px solid #dee2e6;
+}
+
+.payment-method-icon:hover,
+.payment-method-icon.active {
+    background: #431405;
+    color: white;
+    border-color: #431405;
+}
+
+.method-option {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.method-option:hover .card {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.method-option.selected .card {
+    border: 2px solid #431405;
+    background: #fff7ed;
+}
     /* Responsive Design */
     @media (max-width: 992px) {
         .checkout-step {
@@ -616,63 +657,108 @@
                 </div>
 
                 <!-- Step 2: Payment Method -->
-                <div class="checkout-step mb-4">
-                    <div class="checkout-step-header">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-credit-card checkout-step-icon me-3"></i>
-                            <h3 class="checkout-step-title">2. Payment Method</h3>
+                <!-- In your checkout.html, enhance payment options section -->
+<div class="checkout-step mb-4">
+    <div class="checkout-step-header">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-credit-card checkout-step-icon me-3"></i>
+            <h3 class="checkout-step-title">2. Payment Method</h3>
+        </div>
+    </div>
+
+    <div class="checkout-step-body">
+        <div class="payment-options">
+            <!-- Cash on Delivery -->
+            <div class="payment-option-card {% if not payment_required %}selected{% endif %}" id="codOption">
+                <div class="form-check mb-0">
+                    <input class="form-check-input" type="radio" name="payment_method" 
+                           id="payment_cod" value="cod" 
+                           {% if not payment_required %}checked{% endif %}>
+                    <label class="form-check-label w-100" for="payment_cod">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong class="d-block mb-1">Cash on Delivery</strong>
+                                <p class="text-gray-600 mb-0 small">Pay when you receive your order</p>
+                            </div>
+                            <i class="fas fa-money-bill-wave payment-icon"></i>
                         </div>
-                    </div>
+                    </label>
+                </div>
+            </div>
 
-                    <div class="checkout-step-body">
-                        <div class="payment-options">
-                            <div class="payment-option-card selected">
-                                <div class="form-check mb-0">
-                                    <input class="form-check-input" type="radio" name="payment_method" id="payment_cod"
-                                        value="cod" checked>
-                                    <label class="form-check-label w-100" for="payment_cod">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <strong class="d-block mb-1">Cash on Delivery</strong>
-                                                <p class="text-gray-600 mb-0 small">Pay when you receive your order</p>
-                                            </div>
-                                            <i class="fas fa-money-bill-wave payment-icon"></i>
-                                        </div>
-                                    </label>
+            <!-- Online Payment -->
+            <div class="payment-option-card {% if payment_required %}selected{% endif %}" id="onlineOption">
+                <div class="form-check mb-0">
+                    <input class="form-check-input" type="radio" name="payment_method" 
+                           id="payment_online" value="online" 
+                           {% if payment_required %}checked{% endif %}>
+                    <label class="form-check-label w-100" for="payment_online">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong class="d-block mb-1">Online Payment</strong>
+                                <p class="text-gray-600 mb-1 small">Pay securely online</p>
+                                <div class="payment-methods-icons">
+                                    <span class="payment-method-icon" data-method="card">
+                                        <i class="fab fa-cc-visa"></i> Card
+                                    </span>
+                                    <span class="payment-method-icon" data-method="upi">
+                                        <i class="fas fa-mobile-alt"></i> UPI
+                                    </span>
+                                    <span class="payment-method-icon" data-method="netbanking">
+                                        <i class="fas fa-university"></i> Net Banking
+                                    </span>
                                 </div>
                             </div>
-
-                            <div class="payment-option-card">
-                                <div class="form-check mb-0">
-                                    <input class="form-check-input" type="radio" name="payment_method"
-                                        id="payment_online" value="online">
-                                    <label class="form-check-label w-100" for="payment_online">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <strong class="d-block mb-1">Online Payment</strong>
-                                                <p class="text-gray-600 mb-1 small">Pay securely with your card or UPI</p>
-                                                <div class="payment-badges">
-                                                    <span class="payment-badge bg-primary">Visa</span>
-                                                    <span class="payment-badge bg-success">MasterCard</span>
-                                                    <span class="payment-badge bg-warning">UPI</span>
-                                                </div>
-                                            </div>
-                                            <div class="text-end">
-                                                <i class="fas fa-credit-card payment-icon"></i>
-                                                <div class="mt-2">
-                                                    <span class="badge bg-success small">
-                                                        <i class="fas fa-shield-alt me-1"></i>100% Secure
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </label>
+                            <div class="text-end">
+                                <i class="fas fa-credit-card payment-icon"></i>
+                                <div class="mt-2">
+                                    <span class="badge bg-success small">
+                                        <i class="fas fa-shield-alt me-1"></i>100% Secure
+                                    </span>
                                 </div>
                             </div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Preferred Payment Method Selection (Hidden by default) -->
+        <div class="preferred-method mt-4" id="preferredMethodSection" style="display: none;">
+            <h6 class="mb-3">Select Preferred Payment Method:</h6>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="method-option" data-method="card">
+                        <div class="card h-100 text-center p-3">
+                            <i class="fas fa-credit-card fa-2x mb-3 text-primary"></i>
+                            <h6>Card</h6>
+                            <p class="small text-muted">Credit/Debit Card</p>
                         </div>
                     </div>
                 </div>
-
+                <div class="col-md-4">
+                    <div class="method-option" data-method="upi">
+                        <div class="card h-100 text-center p-3">
+                            <i class="fas fa-mobile-alt fa-2x mb-3 text-success"></i>
+                            <h6>UPI</h6>
+                            <p class="small text-muted">Google Pay, PhonePe, etc.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="method-option" data-method="netbanking">
+                        <div class="card h-100 text-center p-3">
+                            <i class="fas fa-university fa-2x mb-3 text-info"></i>
+                            <h6>Net Banking</h6>
+                            <p class="small text-muted">Bank Transfer</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" name="preferred_method" id="preferredMethod" value="">
+        </div>
+    </div>
+</div>
                 <!-- Coupon Section -->
                 <div class="coupon-section">
                     <div class="d-flex align-items-center mb-3">
@@ -1001,14 +1087,14 @@
         const config = {
             csrfToken: document.querySelector('[name=csrfmiddlewaretoken]')?.value,
             urls: {
-                placeOrder: '{% url "place_order" %}',
-                verifyPayment: '{% url "verify_payment" %}',
-                applyCoupon: '{% url "apply_coupon" %}',
-                removeCoupon: '{% url "remove_coupon" %}',
-                addAddress: '{% url "user_add_address" %}',
-                orderList: '{% url "order_list" %}',
-                paymentSuccess: '/orders/success/',
-                paymentFailed: '/orders/failed/'
+                 placeOrder: '{% url "place_order" %}',
+        verifyPayment: '{% url "verify_payment" %}',
+        applyCoupon: '{% url "apply_coupon" %}',
+        removeCoupon: '{% url "remove_coupon" %}',
+        addAddress: '{% url "user_add_address" %}',
+        orderList: '{% url "order_list" %}',
+        orderSuccess: 'order-success/ORDER_ID/',
+        paymentFailed: '{% url "payment_failed" 0 %}'.replace('0', 'ORDER_ID') // Template
             }
         };
 
@@ -1092,185 +1178,381 @@
                 };
             }
         };
+// ==================== CHECKOUT HANDLER ====================
+const checkoutHandler = {
+    async submitForm(e) {
+        e.preventDefault();
+        console.log("=== CHECKOUT FORM SUBMISSION ===");
 
-        // ==================== CHECKOUT HANDLER ====================
-        const checkoutHandler = {
-            async submitForm(e) {
-                e.preventDefault();
-                console.log("=== CHECKOUT FORM SUBMISSION ===");
+        // Validate form
+        const validation = utils.validateForm();
+        if (!validation) return;
 
-                // Validate form
-                const validation = utils.validateForm();
-                if (!validation) return;
+        utils.showLoading(true);
 
-                utils.showLoading(true);
+        try {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const formData = new FormData(elements.checkoutForm);
+            
+            // Get selected payment method
+            const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+            if (!paymentMethod) {
+                utils.showNotification('Please select a payment method', 'error');
+                utils.showLoading(false);
+                return;
+            }
+            
+            console.log("Selected payment method:", paymentMethod.value);
+            
+            const response = await fetch(config.urls.placeOrder, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                },
+                body: new URLSearchParams(formData).toString()
+            });
 
-                try {
-                    // Submit order via AJAX
-                    const formData = new FormData(elements.checkoutForm);
-                    
-                    const response = await fetch(config.urls.placeOrder, {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
+            const responseData = await response.json();
+            console.log("Order Response:", responseData);
+
+            if (responseData.success) {
+                if (responseData.payment_required) {
+                    // Online payment required
+                    console.log("Opening Razorpay for online payment...");
+                    paymentHandler.initiate(responseData);
+                } else {
+                    // COD or Wallet payment - redirect immediately
+                    console.log("Redirecting to success page:", responseData.redirect_url);
+                    // FIXED: Removed request.session reference
+                    window.location.href = responseData.redirect_url;
+                }
+            } else {
+                throw new Error(responseData.message || 'Order creation failed');
+            }
+            
+        } catch (error) {
+            console.error("Checkout Error:", error);
+            utils.showNotification(error.message, 'error');
+        } finally {
+            utils.showLoading(false);
+        }
+    }
+};
+
+// Add this to your checkout JavaScript
+// function setupPaymentMethodSelection() {
+//     const onlineOption = document.getElementById('onlineOption');
+//     const preferredMethodSection = document.getElementById('preferredMethodSection');
+//     const preferredMethodInput = document.getElementById('preferredMethod');
+//     const methodOptions = document.querySelectorAll('.method-option');
+    
+//     // Toggle preferred method section when online payment is selected
+//     document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+//         radio.addEventListener('change', function() {
+//             if (this.value === 'online') {
+//                 preferredMethodSection.style.display = 'block';
+//                 // Auto-select first method
+//                 if (!preferredMethodInput.value) {
+//                     selectMethod('card');
+//                 }
+//             } else {
+//                 preferredMethodSection.style.display = 'none';
+//                 preferredMethodInput.value = '';
+//             }
+//         });
+//     });
+    
+//     // Handle method selection
+//     methodOptions.forEach(option => {
+//         option.addEventListener('click', function() {
+//             const method = this.getAttribute('data-method');
+//             selectMethod(method);
+//         });
+//     });
+    
+//     function selectMethod(method) {
+//         // Update UI
+//         methodOptions.forEach(opt => {
+//             opt.classList.remove('selected');
+//             if (opt.getAttribute('data-method') === method) {
+//                 opt.classList.add('selected');
+//             }
+//         });
+        
+//         // Update hidden input
+//         preferredMethodInput.value = method;
+        
+//         // Update payment method icons
+//         document.querySelectorAll('.payment-method-icon').forEach(icon => {
+//             icon.classList.remove('active');
+//             if (icon.getAttribute('data-method') === method) {
+//                 icon.classList.add('active');
+//             }
+//         });
+//     }
+    
+//     // Initialize
+//     if (document.getElementById('payment_online').checked) {
+//         preferredMethodSection.style.display = 'block';
+//         selectMethod('card'); // Default to card
+//     }
+// }
+
+// // Call this in your init() function
+// setupPaymentMethodSelection();
+
+
+// ==================== RAZORPAY PAYMENT HANDLER ====================
+const paymentHandler = {
+    initiate(paymentData) {
+        console.log("🔄 INITIATING PAYMENT WITH DATA:", paymentData);
+        
+        const options = {
+            key: paymentData.key,
+            amount: paymentData.amount,
+            currency: paymentData.currency,
+            name: 'Sanjeri Perfumes',
+            description: 'Order #' + paymentData.order_number,
+            order_id: paymentData.razorpay_order_id,
+            
+            config: {
+                display: {
+                    blocks: {
+                        banks: {
+                            name: "Net Banking",
+                            instruments: [
+                                {
+                                    method: "netbanking",
+                                    banks: [
+                                        "HDFC", "ICICI", "AXIS", "SBI", 
+                                        "KOTAK", "YESBANK", "INDUSIND"
+                                    ]
+                                }
+                            ]
+                        },
+                        upi: {
+                            name: "UPI",
+                            instruments: [
+                                {
+                                    method: {
+                                        upi: true
+                                    }
+                                }
+                            ]
+                        },
+                        card: {
+                            name: "Card",
+                            instruments: [
+                                {
+                                    method: "card"
+                                }
+                            ]
                         }
-                    });
-
-                    const data = await response.json();
-                    console.log("Order Response:", data);
-
-                    if (data.success) {
-                        if (data.payment_required) {
-                            // Online payment required
-                            window.currentOrderId = data.order_id;
-                            console.log("Saved order ID:", window.currentOrderId);
-
-                            await paymentHandler.initiate(data);
-                        } else {
-                            // COD or wallet payment - redirect to success
-                            window.location.href = data.redirect_url;
-                        }
-                    } else {
-                        throw new Error(data.message || 'Order creation failed');
+                    },
+                    sequence: ["block.upi", "block.card", "block.banks"],
+                    preferences: {
+                        show_default_blocks: true,
+                        default_payment_method: 'upi'
                     }
-                    
+                }
+            },
+
+            handler: async function(response) {
+                console.log("✅ PAYMENT SUCCESS:", response);
+                
+                // Show loading message
+                document.body.innerHTML = `
+                    <div style="text-align: center; padding: 50px;">
+                        <h2 style="color: green;">✅ Payment Successful!</h2>
+                        <p>Verifying payment and completing your order...</p>
+                        <div class="spinner-border text-success" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                `;
+                
+                try {
+                    // Call verifyPayment with Razorpay response
+                    await verifyPayment(response, paymentData);
                 } catch (error) {
-                    console.error("Checkout Error:", error);
-                    utils.showNotification(error.message, 'error');
-                } finally {
-                    utils.showLoading(false);
+                    console.error("Payment verification error:", error);
+                    // Fallback: Redirect to order details
+                    window.location.href = '/orders/' + paymentData.order_id + '/';
+                }
+            },
+            
+            prefill: {
+                name: paymentData.customer_name || '',
+                email: paymentData.customer_email || '',
+                contact: paymentData.customer_phone || ''
+            },
+            
+            theme: { color: '#431405' },
+            
+            modal: {
+                ondismiss: function() {
+                    console.log("Payment modal closed");
+                    
+                    // Create a better cancellation page
+                    const cancellationMessage = `
+                        <div style="text-align: center; padding: 50px; max-width: 600px; margin: 0 auto;">
+                            <div style="color: #f59e0b; font-size: 4rem; margin-bottom: 20px;">⚠️</div>
+                            <h2 style="color: #78350f;">Payment Cancelled</h2>
+                            <p style="font-size: 1.1rem; margin-bottom: 30px;">
+                                You can complete your payment from your orders page.
+                            </p>
+                            <div style="display: flex; gap: 10px; justify-content: center;">
+                                <a href="/orders/${paymentData.order_id}/" 
+                                   style="padding: 12px 24px; background: #431405; color: white; 
+                                          text-decoration: none; border-radius: 8px;">
+                                    View Order Details
+                                </a>
+                                <a href="/checkout/" 
+                                   style="padding: 12px 24px; background: #f3f4f6; color: #431405; 
+                                          text-decoration: none; border-radius: 8px; border: 2px solid #431405;">
+                                    Try Again
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.body.innerHTML = cancellationMessage;
                 }
             }
         };
-
-       // ==================== RAZORPAY PAYMENT HANDLER ====================
-const paymentHandler = {
-    async initiate(paymentData) {
-        console.log("=== INITIATING RAZORPAY PAYMENT ===");
+        
+        console.log("Razorpay Options:", options);
         
         try {
-            // Save order ID
-            window.currentOrderId = paymentData.order_id;
-            
-            const options = {
-                key: paymentData.key,
-                amount: paymentData.amount,
-                currency: 'INR',
-                name: 'Sanjeri Perfumes',
-                description: `Order #${paymentData.order_number}`,
-                order_id: paymentData.razorpay_order_id,
-                
-                handler: (response) => {
-                    console.log("✅ Payment successful!");
-                    this.handleSuccessSimple(response, paymentData.order_id);
-                },
-                
-                // FORCE UPI as preferred method for testing
-                // method: {
-                //     upi: true,
-                //     card: false,  // Disable cards for testing
-                //     netbanking: false
-                // },
-                
-                prefill: {
-                    name: paymentData.customer_name || '',
-                    email: paymentData.customer_email || '',
-                    contact: paymentData.customer_phone || ''
-                },
-                
-                theme: {
-                    color: '#431405'
-                }
-            };
-
             const rzp = new Razorpay(options);
             
-            rzp.on('payment.failed', (response) => {
-                console.error("Payment failed:", response);
-                this.handleFailureSimple(response, paymentData.order_id);
+            rzp.on('payment.failed', function(response) {
+                console.error("❌ Payment failed:", response);
+                const errorMsg = response.error?.description || 'Payment failed';
+                
+                // Create a better error page
+                const errorPage = `
+                    <div style="text-align: center; padding: 50px; max-width: 600px; margin: 0 auto;">
+                        <div style="color: #dc2626; font-size: 4rem; margin-bottom: 20px;">❌</div>
+                        <h2 style="color: #7f1d1d;">Payment Failed</h2>
+                        <p style="font-size: 1.1rem; margin-bottom: 10px;">
+                            <strong>Error:</strong> ${errorMsg}
+                        </p>
+                        <p style="font-size: 1rem; color: #6b7280; margin-bottom: 30px;">
+                            Order: #${paymentData.order_number}
+                        </p>
+                        <div style="display: flex; gap: 10px; justify-content: center;">
+                            <a href="/orders/${paymentData.order_id}/" 
+                               style="padding: 12px 24px; background: #dc2626; color: white; 
+                                      text-decoration: none; border-radius: 8px;">
+                                View Order Details
+                            </a>
+                            <a href="/checkout/" 
+                               style="padding: 12px 24px; background: #f3f4f6; color: #7f1d1d; 
+                                      text-decoration: none; border-radius: 8px; border: 2px solid #dc2626;">
+                                Try Again
+                            </a>
+                        </div>
+                        <p style="margin-top: 30px; font-size: 0.9rem; color: #6b7280;">
+                            If this error persists, please contact support.
+                        </p>
+                    </div>
+                `;
+                
+                document.body.innerHTML = errorPage;
             });
             
             rzp.open();
-            
         } catch (error) {
-            console.error("Razorpay Error:", error);
-            alert('Error: ' + error.message);
-        }
-    },
-
-    handleSuccessSimple(response, orderId) {
-        console.log("🎉 Payment successful!");
-        
-        // Get CSRF token
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-        
-        if (!csrfToken) {
-            alert("Error: CSRF token missing.");
-            window.location.reload();
-            return;
-        }
-        
-        // Create form
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/payment/verify/';
-        
-        // Add CSRF token
-        const csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = 'csrfmiddlewaretoken';
-        csrfInput.value = csrfToken;
-        form.appendChild(csrfInput);
-        
-        // Add payment data
-        const fields = {
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_signature: response.razorpay_signature,
-            order_id: orderId || window.currentOrderId
-        };
-        
-        console.log("Form data:", fields);
-        
-        for (const key in fields) {
-            if (fields[key]) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = fields[key];
-                form.appendChild(input);
-            }
-        }
-        
-        // Show loading
-        document.body.innerHTML = `
-            <div style="text-align: center; padding: 50px;">
-                <h2 style="color: green;">✅ Payment Successful!</h2>
-                <p>Completing order...</p>
-                <div class="spinner-border text-success" role="status">
-                    <span class="visually-hidden">Loading...</span>
+            console.error("Failed to open Razorpay:", error);
+            
+            // Create error message
+            const errorHTML = `
+                <div style="text-align: center; padding: 50px;">
+                    <h2 style="color: #dc2626;">Payment Gateway Error</h2>
+                    <p>${error.message}</p>
+                    <p>Please try again or contact support.</p>
+                    <a href="/checkout/" class="btn btn-primary mt-3">Back to Checkout</a>
                 </div>
-            </div>
-        `;
-        
-        setTimeout(() => {
-            document.body.appendChild(form);
-            form.submit();
-        }, 1000);
-    },
-
-    handleFailureSimple(response, orderId) {
-        console.error("❌ Payment failed:", response);
-        
-        alert("Payment Failed: " + (response.error?.description || 'Please try another method'));
-        
-        // Redirect after delay
-        setTimeout(() => {
-            window.location.href = '/payment/failed/' + orderId + '/';
-        }, 2000);
+            `;
+            
+            document.body.innerHTML = errorHTML;
+        }
     }
 };
+
+
+// ==================== CHECKOUT HANDLER ====================
+// const checkoutHandler = {
+//     async submitForm(e) {
+//         e.preventDefault();
+//         console.log("=== CHECKOUT FORM SUBMISSION ===");
+
+//         // Validate form
+//         const validation = utils.validateForm();
+//         if (!validation) return;
+
+//         utils.showLoading(true);
+
+//         try {
+//             // Get CSRF token
+//             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+//             // Collect form data
+//             const formData = new FormData(elements.checkoutForm);
+            
+//             console.log("Submitting to:", config.urls.placeOrder);
+            
+//             // Submit order via AJAX
+//             const response = await fetch(config.urls.placeOrder, {
+//                 method: 'POST',
+//                 headers: {
+//                     'Content-Type': 'application/x-www-form-urlencoded',
+//                     'X-Requested-With': 'XMLHttpRequest',
+//                     'X-CSRFToken': csrfToken
+//                 },
+//                 body: new URLSearchParams(formData).toString()
+//             });
+
+//             const responseData = await response.json();
+//             console.log("Order Response:", responseData);
+
+//             if (responseData.success) {
+//                 if (responseData.payment_required) {
+//                     // Online payment required
+//                     console.log("Payment required for order:", responseData.order_id);
+                    
+//                     // Remove debug alert for production
+//                     // alert(`Payment required for order ${responseData.order_number}. Opening payment gateway...`);
+                    
+//                     // Call payment handler
+//                     setTimeout(() => {
+//                         paymentHandler.initiate(responseData);
+//                     }, 500);
+                    
+//                 } else {
+//                     // COD or wallet payment - redirect to success
+//                     if (responseData.redirect_url) {
+//                         window.location.href = responseData.redirect_url;
+//                     } else {
+//                         // Fallback: Construct the success URL
+//                         window.location.href = `/order-success/${responseData.order_id}/`;
+//                     }
+//                 }
+//             } else {
+//                 throw new Error(responseData.message || 'Order creation failed');
+//             }
+            
+//         } catch (error) {
+//             console.error("Checkout Error:", error);
+//             utils.showNotification(error.message, 'error');
+//         } finally {
+//             utils.showLoading(false);
+//         }
+//     }
+// };
         // ==================== COUPON HANDLER ====================
         const couponHandler = {
             async apply(couponCode) {
@@ -1436,6 +1718,15 @@ const paymentHandler = {
         function init() {
             console.log("Checkout initialized");
             setupEventListeners();
+
+                // Ensure form submission is handled
+    if (elements.checkoutForm) {
+        // Remove any existing listeners to prevent duplicates
+        elements.checkoutForm.removeEventListener('submit', checkoutHandler.submitForm);
+        elements.checkoutForm.addEventListener('submit', (e) => checkoutHandler.submitForm(e));
+    }
+
+
             
             // Check if CSRF token is available
             if (!config.csrfToken) {

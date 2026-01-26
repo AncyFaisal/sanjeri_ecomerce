@@ -1,6 +1,5 @@
-# # models/product.py
+# sanjeri_app/models/product.py
 
-# models/product.py
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify

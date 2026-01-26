@@ -1,4 +1,4 @@
-# # your_project/your_app/context_processors.py
+# context_processors.py
 from django.db.models import Sum
 from .models import Cart, Wishlist
 from django.contrib.auth import get_user_model

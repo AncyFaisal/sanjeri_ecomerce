@@ -1,3 +1,5 @@
+# admin.py
+
 # Register your models here.
 from django.contrib import admin
 # from .models.product import Product, ProductImage
@@ -82,7 +84,6 @@ class CouponAdmin(admin.ModelAdmin):
 
     # admin.py - Update OrderAdmin
 
-
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = [
@@ -93,7 +94,10 @@ class OrderAdmin(admin.ModelAdmin):
         'status',
         'return_status_display',
         'return_actions',
-        'created_at'
+        'created_at',    
+        'payment_method',
+        'cancelled_at',    # This shows when cancelled
+        'updated_at'
     ]
     list_filter = [
         'payment_status', 
@@ -120,15 +124,17 @@ class OrderAdmin(admin.ModelAdmin):
     ]
     actions = ['approve_selected_returns', 'reject_selected_returns']
     
+    # FIXED: Removed duplicate 'payment_status' from 'Order Information' fieldset
     fieldsets = (
         ('Order Information', {
-            'fields': ('order_number', 'user', 'status', 'created_at', 'updated_at')
+            'fields': ('order_number', 'user', 'status', 'created_at', 'updated_at')  # Removed 'payment_status' from here
         }),
         ('Payment Information', {
             'fields': ('payment_method', 'payment_status', 'total_amount', 
                       'wallet_amount', 'wallet_used', 'razorpay_order_id',
                       'razorpay_payment_id')
         }),
+        
         ('Return & Cancellation', {
             'fields': ('return_status', 'return_reason', 'return_requested_at',
                       'return_approved_at', 'return_approved_by',
@@ -240,8 +246,6 @@ class OrderAdmin(admin.ModelAdmin):
             messages.error(request, f"Failed to reject return for order #{order.order_number}.")
         
         return redirect(reverse('admin:your_app_order_changelist'))
-
-
 
 @admin.register(Wallet)
 class WalletAdmin(admin.ModelAdmin):

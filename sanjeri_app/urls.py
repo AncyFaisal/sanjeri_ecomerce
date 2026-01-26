@@ -18,16 +18,16 @@ from .views.checkout import (
     order_success,
     verify_payment,
     order_detail, 
+    payment_failed,
     test_razorpay_connection,debug_payment,simple_verify_payment
 )
 from .views.admin_order_management import *
-from .views.payment import *
+
 from .views.wishlist import *
-from .views.payment import *
+
 from .views.coupon_views import apply_coupon, remove_coupon
 from .views.payment_views import (
     initiate_payment,
-    payment_failed,
     payment_retry,
     payment_details
 )
@@ -38,7 +38,16 @@ from .views.view_userside import (
 from .views.order_management import *
 from .views.admin_coupon_views import *
 from .views.sales_report_views import sales_report, export_sales_report
-from .views.wallet_views import *
+from .views.wallet_views import (
+    wallet_dashboard, 
+    add_wallet_balance, 
+    verify_wallet_payment, 
+    wallet_transactions,
+    test_wallet_payment,
+    verify_payment_simple,
+    
+    
+)
 
 # from .views.order_management import order_list, order_detail, cancel_order, cancel_order_item, return_order, download_invoice
 
@@ -156,9 +165,10 @@ path('products/<int:product_pk>/variants/<int:variant_pk>/restore/', variant_res
     path('orders/<int:order_id>/', order_detail, name='order_detail'),
     path('orders/<int:order_id>/cancel/', cancel_order, name='cancel_order'),
     path('order-items/<int:item_id>/cancel/', cancel_order_item, name='cancel_order'),
-    # path('orders/<int:order_id>/return/', return_order, name='return_order'),
+    path('orders/<int:order_id>/return/', return_order, name='return_order'),
     path('orders/<int:order_id>/invoice/', download_invoice, name='download_invoice'),
 
+    
     # Keep the profile orders as a redirect to the new system
     path('profile/orders/', order_list, name='order_history'),  # Redirect to new order list
 
@@ -185,9 +195,14 @@ path('inventory-management/', admin_inventory_management, name='admin_inventory_
 path('inventory-management/<int:variant_id>/update-stock/', update_stock, name='update_stock'),
 
 # Payment URLs
-path('initiate/<int:order_id>/', initiate_payment, name='initiate_payment'),
+
+# Payment URLs
 path('payment/verify/', verify_payment, name='verify_payment'),
 path('payment/failed/<int:order_id>/', payment_failed, name='payment_failed'),
+
+
+
+path('initiate/<int:order_id>/', initiate_payment, name='initiate_payment'),
 path('retry/<int:order_id>/', payment_retry, name='payment_retry'),
 path('details/<int:order_id>/', payment_details, name='payment_details'),
 # Coupon URLs
@@ -204,11 +219,23 @@ path('details/<int:order_id>/', payment_details, name='payment_details'),
 
 
 # Wallet URLs with Razorpay integration
-path('wallet/', wallet_dashboard, name='wallet_dashboard'),
-path('wallet/transactions/', wallet_transactions, name='wallet_transactions'),
-path('wallet/add-balance/', add_wallet_balance, name='add_wallet_balance'),
-path('wallet/verify-payment/', verify_wallet_payment, name='verify_wallet_payment'),
 
+
+
+# Wallet URLs (simple version)
+path('wallet/', wallet_dashboard, name='wallet_dashboard'),
+
+# path('wallet/add-balance/', add_wallet_balance, name='add_wallet_balance'),
+path('wallet/verify-payment/', verify_wallet_payment, name='verify_wallet_payment'),
+path('wallet/transactions/', wallet_transactions, name='wallet_transactions'),
+# path('wallet/', wallet_dashboard, name='wallet_dashboard'),
+# path('wallet/transactions/', wallet_transactions, name='wallet_transactions'),
+# path('wallet/add-balance/', add_wallet_balance, name='add_wallet_balance'),
+# path('wallet/verify-payment/', verify_wallet_payment, name='verify_wallet_payment'),
+# path('wallet/direct-add/', direct_add_money, name='direct_add_money'),
+path('wallet/verify-payment-simple/', verify_payment_simple, name='verify_payment_simple'),
+# path('wallet/test-add/', test_add_money, name='test_add_money'),
+ path('wallet/add-balance/', add_wallet_balance, name='add_wallet_balance'),
     path('wallet/', wallet_balance, name='wallet_balance'),
     path('use-wallet-payment/',use_wallet_payment, name='use_wallet_payment'),
     path('orders/<int:order_id>/process-return/', process_return_refund, name='process_return_refund'),
@@ -240,6 +267,20 @@ path('sales-report/export/', export_sales_report, name='export_sales_report'),
 path('payment/debug/', debug_payment, name='debug_payment'),
 
 
+path('payment/test/', lambda request: HttpResponse("Payment test endpoint works!"), name='payment_test'),
+
+path('wallet/test-payment/', test_wallet_payment, name='test_wallet_payment'),
 # In urls.py
 path('payment/simple-verify/', simple_verify_payment, name='simple_verify_payment'),
+
+   # Admin Return URLs
+    path('admin/orders/<int:order_id>/approve-return/', approve_return, name='approve_return'),
+    path('admin/orders/<int:order_id>/reject-return/', reject_return, name='reject_return'),
+    
+    # Refund Status
+    path('orders/<int:order_id>/refund-status/', refund_status, name='refund_status'),
+ path('orders/<int:order_id>/check-refund/', check_refund_status, name='check_refund_status'),
+
+
+
 ]

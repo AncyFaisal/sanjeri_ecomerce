@@ -102,7 +102,9 @@ def admin_order_detail(request, order_id):
         print(f"Error in admin_order_detail: {e}")
         messages.error(request, "Order not found.")
         return redirect('admin_order_list')
-    
+
+
+
 @login_required
 @admin_required
 @user_passes_test(lambda u: u.is_staff)
@@ -115,31 +117,48 @@ def update_order_status(request, order_id):
         
         if new_status in dict(Order.ORDER_STATUS_CHOICES):
             old_status = order.status
-            order.status = new_status
             
-            # Update timestamps for specific status changes
-            if new_status == 'delivered' and old_status != 'delivered':
-                # Automatically update payment status to 'completed' when delivered
-                if order.payment_method == 'cod':
-                    # For COD, payment is completed upon delivery
+            # ========== SPECIAL HANDLING FOR REFUNDED ==========
+            if new_status == 'refunded' and old_status != 'refunded':
+                # If order has return_requested status, use approve_return method
+                if order.return_status == 'requested':
+                    # This will process wallet refund
+                    if order.approve_return(approved_by=request.user):
+                        messages.success(request, f"Return approved and ₹{order.total_amount} refunded to wallet.")
+                    else:
+                        messages.error(request, "Failed to process refund.")
+                    return redirect('admin_order_detail', order_id=order_id)
+                else:
+                    # For direct refunds (not from return request)
+                    order.status = new_status
+                    order.returned_at = timezone.now()
+                    order.payment_status = 'refunded'
+                    order.save()
+            
+            elif new_status == 'delivered' and old_status != 'delivered':
+                order.delivered_at = timezone.now()
+                order.status = new_status
+                
+                # COD payment completes upon delivery
+                if order.payment_method == 'cod' and order.payment_status == 'pending':
                     order.payment_status = 'completed'
-                elif order.payment_method == 'online' and order.payment_status == 'pending':
-                    # For online payments that are still pending, complete them
-                    order.payment_status = 'completed'
-                # You could set delivered_at here if you have the field
-                # order.delivered_at = timezone.now()
+                order.save()
+            
             elif new_status == 'cancelled' and old_status != 'cancelled':
                 order.cancelled_at = timezone.now()
-                # If cancelled before delivery and payment was completed, refund
-                if order.payment_status == 'completed':
+                order.status = new_status
+                if order.payment_status in ['completed', 'success']:
                     order.payment_status = 'refunded'
-            elif new_status == 'refunded' and old_status != 'refunded':
-                order.returned_at = timezone.now()
-                # If returning after delivery, refund payment
-                if order.payment_status == 'completed':
-                    order.payment_status = 'refunded'
+                elif order.payment_status in ['pending', 'partially_paid']:
+                    order.payment_status = 'failed'
+                order.save()
             
-            order.save()
+            else:
+                # For other statuses
+                order.status = new_status
+                order.save()
+            
+            # ========== END FIX ==========
             
             # If AJAX request
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -163,6 +182,7 @@ def update_order_status(request, order_id):
                 messages.error(request, 'Invalid status')
     
     return redirect('admin_order_detail', order_id=order_id)
+
 
 @login_required
 @admin_required

@@ -88,16 +88,16 @@ def payment_details(request, order_id):
 
 
 
-@login_required
-def payment_failed(request, order_id):
-    """Payment failure page"""
-    order = get_object_or_404(Order, id=order_id, user=request.user)
+# @login_required
+# def payment_failed(request, order_id):
+#     """Payment failure page"""
+#     order = get_object_or_404(Order, id=order_id, user=request.user)
     
-    context = {
-        'order': order,
-        'order_items': order.items.all(),
-    }
-    return render(request, 'payment/failure.html', context)
+#     context = {
+#         'order': order,
+#         'order_items': order.items.all(),
+#     }
+#     return render(request, 'payment/failure.html', context)
 
 
 
