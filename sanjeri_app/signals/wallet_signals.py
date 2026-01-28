@@ -15,20 +15,34 @@ def create_user_wallet(sender, instance, created, **kwargs):
 def update_wallet_balance(sender, instance, created, **kwargs):
     """Update wallet balance when transaction status changes"""
     
-    # If it's a new COMPLETED transaction
-    if created and instance.status == 'COMPLETED':
-        update_wallet_balance_amount(instance)
+    # Skip if it's a pending transaction
+    if instance.status != 'COMPLETED':
+        return
     
-    # If an existing transaction status changed to COMPLETED
-    elif not created:
-        try:
-            old_transaction = WalletTransaction.objects.get(pk=instance.pk)
-            if old_transaction.status != 'COMPLETED' and instance.status == 'COMPLETED':
-                update_wallet_balance_amount(instance)
-        except WalletTransaction.DoesNotExist:
-            pass
-
-
+    try:
+        wallet = instance.wallet
+        old_balance = wallet.balance
+        
+        if instance.transaction_type in ['DEPOSIT', 'REFUND']:
+            wallet.balance += instance.amount
+            print(f"➕ Adding ₹{instance.amount} to wallet {wallet.id}")
+        elif instance.transaction_type == 'WITHDRAWAL':
+            wallet.balance -= instance.amount
+            print(f"➖ Subtracting ₹{instance.amount} from wallet {wallet.id}")
+        
+        # Save the wallet
+        wallet.save(update_fields=['balance'])
+        
+        # Also update the user's wallet_balance field
+        user = wallet.user
+        if hasattr(user, 'wallet_balance'):
+            user.wallet_balance = wallet.balance
+            user.save(update_fields=['wallet_balance'])
+        
+        print(f"💰 Wallet {wallet.id} updated: {old_balance} → {wallet.balance}")
+        
+    except Exception as e:
+        print(f"❌ Error in update_wallet_balance: {e}")
 def update_wallet_balance_amount(transaction):
     """Update wallet balance based on transaction"""
     try:
@@ -93,12 +107,19 @@ def handle_order_refund_signals(sender, instance, created, **kwargs):
         except Exception as e:
             print(f"❌ Error in handle_order_refund_signals: {e}")
 
-
+# Update this function in your signals.py
 def process_wallet_refund(order):
     """Process refund to wallet when order is marked as refunded"""
     try:
+        print(f"🔄 Processing wallet refund for order #{order.order_number}")
+        
         # Get or create wallet
-        wallet, _ = Wallet.objects.get_or_create(user=order.user)
+        wallet, created = Wallet.objects.get_or_create(user=order.user)
+        print(f"Wallet for {order.user.email}: {wallet.id}, balance: {wallet.balance}")
+        
+        # Calculate refund amount
+        refund_amount = order.total_amount
+        print(f"Refund amount: ₹{refund_amount}")
         
         # Check if refund already processed
         existing_refund = WalletTransaction.objects.filter(
@@ -119,51 +140,39 @@ def process_wallet_refund(order):
         ).first()
         
         if pending_refund:
+            print(f"Found pending refund transaction: {pending_refund.id}")
             # Update existing pending refund to COMPLETED
             pending_refund.status = 'COMPLETED'
             pending_refund.admin_approved = True
             pending_refund.reason = f"Approved refund for order #{order.order_number}"
-            pending_refund.save()
+            pending_refund.save()  # This will trigger the signal
             
-            print(f"✅ Updated pending refund to COMPLETED for order #{order.order_number}")
         else:
             # Create new COMPLETED refund transaction
-            WalletTransaction.objects.create(
+            transaction = WalletTransaction.objects.create(
                 wallet=wallet,
-                amount=order.total_amount,
+                amount=refund_amount,
                 transaction_type='REFUND',
                 status='COMPLETED',
                 reason=f"Refund for order #{order.order_number}",
                 order=order,
                 admin_approved=True
             )
-            print(f"✅ Created new refund transaction for order #{order.order_number}")
+            print(f"✅ Created new refund transaction: {transaction.id}")
         
-        # Update wallet balance (signal will handle this automatically)
-        # But we need to trigger it by saving the transaction
-        if pending_refund:
-            # Save to trigger the update_wallet_balance signal
-            pending_refund.save()
-        else:
-            # The signal will handle the newly created transaction
-            pass
+        # Manually update wallet balance to ensure it's updated
+        wallet.refresh_from_db()  # Get latest wallet data
+        wallet.balance += Decimal(refund_amount)
+        wallet.save(update_fields=['balance'])
         
-        # Update order fields
-        order.refund_amount = order.total_amount
-        order.refund_processed_at = timezone.now()
+        # Update user's wallet_balance field
+        user = order.user
+        if hasattr(user, 'wallet_balance'):
+            user.wallet_balance = wallet.balance
+            user.save(update_fields=['wallet_balance'])
+            print(f"Updated user wallet_balance: ₹{user.wallet_balance}")
         
-        # Save order without triggering the signal again
-        Order.objects.filter(pk=order.pk).update(
-            refund_amount=order.total_amount,
-            refund_processed_at=order.refund_processed_at
-        )
-        
-        # Also update user's wallet_balance field if it exists
-        if hasattr(order.user, 'wallet_balance'):
-            order.user.wallet_balance += order.total_amount
-            order.user.save(update_fields=['wallet_balance'])
-        
-        print(f"✅ Refund processed: ₹{order.total_amount} added to {order.user.email}'s wallet")
+        print(f"✅ Final wallet balance for {order.user.email}: ₹{wallet.balance}")
         
     except Exception as e:
         print(f"❌ Error processing refund: {e}")

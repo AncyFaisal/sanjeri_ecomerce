@@ -639,7 +639,8 @@ def product_search(request):
             Q(description__icontains=query) |
             Q(brand__icontains=query) |
             Q(fragrance_type__icontains=query) |
-            Q(variants__sku__icontains=query),
+            Q(variants__sku__icontains=query) |
+            Q(category__name__icontains=query),
             is_active=True,
             is_deleted=False,
             variants__is_active=True

@@ -3,100 +3,117 @@
 
 {% block title %}Payment Failed - Sanjeri{% endblock %}
 
-{% block extra_css %}
-<style>
-    .failed-container {
-        min-height: 70vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem;
-    }
-    
-    .failed-card {
-        background: white;
-        border-radius: 20px;
-        padding: 3rem;
-        text-align: center;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        max-width: 600px;
-        width: 100%;
-    }
-    
-    .failed-icon {
-        font-size: 5rem;
-        color: #EF4444;
-        margin-bottom: 1.5rem;
-    }
-    
-    .order-details {
-        background: #FEF2F2;
-        border: 1px solid #FECACA;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin: 2rem 0;
-        text-align: left;
-    }
-    
-    .action-buttons {
-        display: flex;
-        gap: 1rem;
-        justify-content: center;
-        margin-top: 2rem;
-        flex-wrap: wrap;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="failed-container">
-    <div class="failed-card">
-        <i class="fas fa-times-circle failed-icon"></i>
-        
-        <h1 class="display-6 fw-bold text-danger mb-3">Payment Failed</h1>
-        <p class="lead text-gray-600 mb-4">
-            Sorry, we couldn't process your payment. Please try again or choose a different payment method.
-        </p>
-        
-        <div class="order-details">
-            <h5 class="fw-semibold mb-3 text-danger">Order Information</h5>
-            <div class="row">
-                <div class="col-md-6">
-                    <p class="mb-2">
-                        <strong>Order Number:</strong><br>
-                        <span class="text-amber-900">{{ order.order_number }}</span>
-                    </p>
-                    <p class="mb-2">
-                        <strong>Order Date:</strong><br>
-                        {{ order.created_at|date:"F d, Y h:i A" }}
-                    </p>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0"><i class="fas fa-times-circle me-2"></i>Payment Failed</h4>
                 </div>
-                <div class="col-md-6">
-                    <p class="mb-2">
-                        <strong>Payment Method:</strong><br>
-                        {{ order.get_payment_method_display }}
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-4x text-danger mb-4"></i>
+                    
+                    <h3 class="text-danger mb-3">Payment Failed!</h3>
+                    
+                    {% if order %}
+                    <p class="lead mb-4">
+                        Your payment for order <strong>#{{ order.order_number }}</strong> has failed.
                     </p>
-                    <p class="mb-0">
-                        <strong>Total Amount:</strong><br>
-                        <span class="fs-5 fw-bold">₹{{ order.total_amount|floatformat:2 }}</span>
+                    
+                    {% if messages %}
+                    <div class="alert alert-info mb-4">
+                        {% for message in messages %}
+                        <div>{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-center gap-3 flex-wrap">
+                        <a href="{% url 'checkout' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-credit-card me-2"></i>Retry Payment
+                        </a>
+                        
+                        <a href="{% url 'cart' %}" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-shopping-cart me-2"></i>View Cart
+                        </a>
+                        
+                        <a href="{% url 'order_detail' order.id %}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-receipt me-2"></i>View Order Details
+                        </a>
+                    </div>
+                    
+                    {% else %}
+                    <p class="lead mb-4">
+                        The payment could not be processed. Please try again.
                     </p>
+                    
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="{% url 'cart' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-shopping-cart me-2"></i>Return to Cart
+                        </a>
+                        
+                        <a href="{% url 'homepage' %}" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-home me-2"></i>Continue Shopping
+                        </a>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-5 pt-4 border-top">
+                        <h6 class="text-muted mb-3">Need Help?</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h6><i class="fas fa-credit-card me-2"></i>Payment Issues</h6>
+                                        <p class="small text-muted mb-0">
+                                            Try a different payment method or check with your bank.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h6><i class="fas fa-headset me-2"></i>Contact Support</h6>
+                                        <p class="small text-muted mb-0">
+                                            Call us at 1800-XXX-XXXX or email support@sanjeri.com
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <div class="action-buttons">
-            <a href="{% url 'order_detail' order.id %}" class="btn btn-danger-outline btn-lg px-4">
-                <i class="fas fa-receipt me-2"></i>View Order Details
-            </a>
-            <a href="{% url 'shop' %}" class="btn btn-outline-secondary btn-lg px-4">
-                <i class="fas fa-shopping-bag me-2"></i>Continue Shopping
-            </a>
-        </div>
-        
-        <div class="alert alert-warning mt-4">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            <strong>Need help?</strong> Contact our support team if you continue to face issues.
-        </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Store order info in localStorage for potential retry
+    {% if order %}
+    try {
+        localStorage.setItem('last_failed_order', JSON.stringify({
+            order_id: {{ order.id }},
+            order_number: "{{ order.order_number|escapejs }}",
+            amount: {{ order.total_amount|floatformat:2 }},
+            timestamp: new Date().toISOString()
+        }));
+    } catch (e) {
+        console.log('Could not store order info in localStorage:', e);
+    }
+    {% endif %}
+    
+    // Clear any pending payment flags
+    try {
+        localStorage.removeItem('payment_in_progress');
+    } catch (e) {
+        console.log('Could not clear payment flags:', e);
+    }
+});
+</script>
 {% endblock %}

@@ -84,7 +84,7 @@ def payment_details(request, order_id):
             'amount': order.total_amount,
         }
     }
-    return render(request, 'payment/details.html', context)
+    return render(request, 'payment/payment_details.html', context)
 
 
 

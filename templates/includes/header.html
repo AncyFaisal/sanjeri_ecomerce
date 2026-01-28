@@ -1,9 +1,10 @@
+<!-- templates/includes/header.html -->
 <!-- Header Navigation -->
 <header class="sticky-top">
     <div class="nav-bar">
         <div class="container">
             <div class="row align-items-center">
-                <div class="col-sm-4 col-lg-4">
+                <div class="col-sm-4 col-lg-3">
                     <div class="main-logo">
                         <div class="icon">
                             <h2 class="logo">SANJERI</h2>
@@ -11,59 +12,77 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-sm-8 col-lg-8">
+                <div class="col-sm-8 col-lg-9">
                     <div class="nav-right">
+                        <!-- Gender Navigation in place of search bar -->
+                        <div class="gender-nav d-none d-lg-flex">
+                             <a href="{% url 'homepage' %}" 
+                               class="gender-nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+                               Home
+                            </a>
+                            <a href="{% url 'men' %}" 
+                               class="gender-nav-link {% if request.resolver_match.url_name == 'men' %}active{% endif %}">
+                               Men
+                            </a>
+                            <a href="{% url 'women' %}" 
+                               class="gender-nav-link {% if request.resolver_match.url_name == 'women' %}active{% endif %}">
+                               Women
+                            </a>
+                            <a href="{% url 'unisex' %}" 
+                               class="gender-nav-link {% if request.resolver_match.url_name == 'unisex' %}active{% endif %}">
+                               Unisex
+                            </a>
+                        </div>
+                        
                         <div class="nav-icons">
-                            <!-- User Info Section -->
+                            <!-- Updated User Info Section -->
                             <div class="user-info">
                                 {% if user.is_authenticated %}
-                                <div class="dropdown">
-                                    <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle"
-                                        data-bs-toggle="dropdown" aria-expanded="false"
-                                        style="color: var(--primary-color);">
-                                        <i class="fas fa-user me-2"></i>
-                                        <span>{{ user.username }}</span>
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="{% url 'user_logout' %}"><i
-                                                    class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                                    </ul>
-                                </div>
+                                <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle"
+                                    data-bs-toggle="dropdown" aria-expanded="false" style="color: var(--primary-color);">
+                                    <i class="fas fa-user me-2"></i>
+                                    <span class="d-none d-md-inline">{{ user.username }}</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="{% url 'user_profile' %}"><i class="fas fa-user me-2"></i>My Profile</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'user_address_list' %}"><i class="fas fa-map-marker-alt me-2"></i>My Addresses</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'order_history' %}"><i class="fas fa-shopping-bag me-2"></i>My Orders</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'wallet_dashboard' %}"><i class="fas fa-wallet me-2"></i>My Wallet</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'user_logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                                </ul>
                                 {% else %}
                                 <a href="{% url 'user_login' %}" class="d-flex align-items-center text-decoration-none"
                                     style="color: var(--primary-color);">
                                     <i class="fas fa-user me-2"></i>
-                                    <span>Login</span>
+                                    <span class="d-none d-md-inline">Login</span>
                                 </a>
                                 {% endif %}
                             </div>
-
- <!-- Wishlist Icon -->
-<a href="{% url 'wishlist' %}" class="icon-btn position-relative text-decoration-none">
-    <i class="fas fa-heart"></i>
-    <span class="cart-count wishlist-badge" 
-          style="{% if wishlist_count == 0 %}display: none;{% endif %}">
-        {{ wishlist_count|default:0 }}
-    </span>
-</a>
-    <!-- Cart Icon -->
-    <!-- <a href="{% url 'cart' %}" class="icon-btn position-relative text-decoration-none">
-        <i class="fas fa-shopping-cart"></i>
-        {% if cart_item_count > 0 %}
-        <span class="cart-count">{{ cart_item_count }}</span>
-        {% else %}
-        <span class="cart-count" style="display: none;">0</span>
-        {% endif %}
-    </a> -->
-</div>
-
-                            <!-- SINGLE CART ICON -->
-                            <a href="{% url 'cart' %}" class="icon-btn position-relative text-decoration-none">
-                                <i class="fas fa-shopping-cart"></i>
-                                <span class="cart-count badge bg-danger" 
-                                      style="{% if not cart_item_count %}display: none;{% endif %}">
-                                    {{ cart_item_count|default:0 }}
+                            
+                            <!-- Wishlist Icon -->
+                            <a href="{% url 'wishlist' %}" class="nav-icon position-relative">
+                                <i class="fas fa-heart"></i>
+                                {% if wishlist_count > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    {{ wishlist_count }}
+                                    <span class="visually-hidden">wishlist items</span>
                                 </span>
+                                {% endif %}
+                            </a>
+                            
+                            <!-- Cart Icon -->
+                            <a href="{% url 'cart' %}" class="nav-icon position-relative">
+                                <i class="fas fa-shopping-cart"></i>
+                                {% if cart_item_count > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-count">
+                                    {{ cart_item_count }}
+                                </span>
+                                {% else %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-count" style="display: none;">
+                                    0
+                                </span>
+                                {% endif %}
                             </a>
                         </div>
                     </div>
@@ -72,119 +91,337 @@
         </div>
     </div>
 
-    <!-- Category Navigation -->
-    <nav class="category-nav">
+    <!-- Main Category Navigation -->
+    <!-- <nav class="category-nav">
         <div class="container">
             <div class="d-flex justify-content-center">
-                <a href="{% url 'homepage' %}"
-                    class="nav-link {% if request.resolver_match.url_name == 'homepage' %}active{% endif %}">Home</a>
-                <a href="{% url 'men' %}"
-                    class="nav-link {% if request.resolver_match.url_name == 'men' %}active{% endif %}">Men</a>
-                <a href="{% url 'women' %}"
-                    class="nav-link {% if request.resolver_match.url_name == 'women' %}active{% endif %}">Women</a>
-                <a href="{% url 'unisex' %}"
-                    class="nav-link {% if request.resolver_match.url_name == 'unisex' %}active{% endif %}">Unisex</a>
+                <a href="{% url 'homepage' %}" 
+                   class="nav-link {% if request.resolver_match.url_name == 'homepage' %}active{% endif %}">
+                   Home
+                </a>
+                <a href="{% url 'men' %}" 
+                   class="nav-link d-lg-none {% if request.resolver_match.url_name == 'men' %}active{% endif %}">
+                   Men
+                </a>
+                <a href="{% url 'women' %}" 
+                   class="nav-link d-lg-none {% if request.resolver_match.url_name == 'women' %}active{% endif %}">
+                   Women
+                </a>
+                <a href="{% url 'unisex' %}" 
+                   class="nav-link d-lg-none {% if request.resolver_match.url_name == 'unisex' %}active{% endif %}">
+                   Unisex
+                </a>
+                <a href="#" class="nav-link">Best Sellers</a>
+                <a href="#" class="nav-link">New Arrivals</a>
+                <a href="#" class="nav-link">Offers</a>
+                <a href="#" class="nav-link">Gift Sets</a>
             </div>
         </div>
-    </nav>
+    </nav> -->
 </header>
+
 <style>
-/* Navbar alignment fixes */
-.nav-bar .row {
-    width: 100%;
+/* Add necessary header-specific styles here or ensure they're in base.html */
+.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+}
+
+/* Reduced navbar height */
+.nav-bar {
+    background-color: white;
+    color: var(--primary-color);
+    padding: 8px 0; /* Reduced from 12px */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    height: 65px; /* Reduced from 80px */
     display: flex;
     align-items: center;
-    justify-content: space-between; /* This ensures logo left, icons right */
+}
+
+.main-logo {
+    display: flex;
+    align-items: center;
+}
+
+.logo {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 1.6rem; /* Reduced from 1.8rem */
+    margin: 0;
+    color: var(--primary-color);
+    letter-spacing: 1.2px; /* Reduced from 1.5px */
+}
+
+.logotag {
+    font-style: italic;
+    font-size: 0.7rem; /* Reduced from 0.8rem */
+    margin: 0;
+    color: var(--primary-color);
+    letter-spacing: 0.6px; /* Reduced from 0.8px */
+    opacity: 0.8;
 }
 
 .nav-right {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     width: 100%;
     height: 100%;
-    gap: 10px;
+}
+
+/* Gender Navigation in place of search bar */
+.gender-nav {
+    display: flex;
+    align-items: center;
+    gap: 25px; /* Space between gender links */
+    flex-grow: 1;
+    margin: 0 30px;
+    justify-content: center;
+}
+
+.gender-nav-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    padding: 6px 0;
+    position: relative;
+    transition: color 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.gender-nav-link:hover {
+    color: #2c0d03;
+}
+
+.gender-nav-link.active {
+    color: #2c0d03;
+    font-weight: 600;
+}
+
+.gender-nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--primary-color);
 }
 
 .nav-icons {
     display: flex;
     align-items: center;
     gap: 20px;
-    justify-content: flex-end;
-    height: 75px; /* Match navbar height */
+    height: 100%;
 }
 
-/* User info styling */
 .user-info {
     display: flex;
     align-items: center;
 }
 
-/* Icon buttons styling */
-.icon-btn {
+.user-info a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.user-info a:hover {
+    color: #2c0d03;
+}
+
+.nav-icon {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    width: 38px; /* Slightly reduced */
+    height: 38px; /* Slightly reduced */
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #2f3e46;
-    font-size: 20px;
-    transition: 0.3s;
+    color: var(--primary-color);
+    transition: all 0.3s;
     position: relative;
-    padding: 8px;
+    text-decoration: none;
 }
 
-.icon-btn:hover {
-    color: #02a6fe;
+.nav-icon:hover {
+    background: #f8f9fa;
+    transform: translateY(-1px);
 }
 
-/* Ensure logo and icons are vertically aligned */
-.main-logo {
-    display: flex;
-    align-items: center;
-    height: 75px; /* Match navbar height */
+.user-info .dropdown-toggle {
+    color: var(--primary-color) !important;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 6px 10px;
+    border-radius: 4px;
+    transition: all 0.3s;
+    font-size: 0.9rem;
 }
 
-.icon {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    height: 100%;
+.user-info .dropdown-toggle:hover {
+    background-color: #f8f9fa;
 }
 
-/* Cart badge styling */
+.user-info .dropdown-menu {
+    border: none;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+    padding: 8px 0;
+    font-size: 0.85rem;
+}
+
+.user-info .dropdown-item {
+    padding: 6px 14px;
+    color: var(--primary-color);
+    transition: all 0.3s;
+    font-size: 0.85rem;
+}
+
+.user-info .dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: var(--primary-color);
+}
+
+.user-info .dropdown-divider {
+    margin: 6px 0;
+}
+
 .cart-count {
     position: absolute;
     top: -8px;
     right: -8px;
-    background-color: #dc3545;
+    background: #dc3545;
     color: white;
     border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    font-size: 12px;
+    width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-/* Wishlist count styling */
-.wishlist-count {
+/* Category Navigation - also reduced height */
+.category-nav {
+    background-color: white;
+    padding: 8px 0; /* Reduced from 12px */
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    border-top: 1px solid #f0f0f0;
+}
+
+.category-nav .nav-link {
+    color: var(--primary-color);
+    font-weight: 500;
+    margin: 0 10px; /* Reduced from 12px */
+    padding: 4px 0; /* Reduced from 6px */
+    position: relative;
+    transition: color 0.3s;
+    font-size: 0.85rem; /* Reduced from 0.9rem */
+}
+
+.category-nav .nav-link:hover {
+    color: #2c0d03;
+}
+
+.category-nav .nav-link.active {
+    color: #2c0d03;
+    font-weight: 600;
+}
+
+.category-nav .nav-link.active::after {
+    content: '';
     position: absolute;
-    top: -8px;
-    right: -8px;
-    background-color: #dc3545;
-    color: white;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--primary-color);
 }
 
-/* Remove the old margin that was pushing it down */
-.nav-right {
-    margin-bottom: 0 !important; /* Remove the 100px margin */
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .gender-nav {
+        gap: 20px;
+        margin: 0 20px;
+    }
+    
+    .gender-nav-link {
+        font-size: 0.9rem;
+    }
 }
 
+@media (max-width: 768px) {
+    .nav-bar {
+        height: 60px; /* Further reduced for mobile */
+        padding: 6px 0;
+    }
+    
+    .nav-right {
+        justify-content: flex-end;
+    }
+    
+    .gender-nav {
+        display: none; /* Hide gender nav on mobile */
+    }
+    
+    .logo {
+        font-size: 1.4rem;
+    }
+    
+    .logotag {
+        font-size: 0.65rem;
+    }
+    
+    .nav-icons {
+        gap: 15px;
+    }
+    
+    .nav-icon {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .category-nav .nav-link {
+        margin: 0 8px;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .logo {
+        font-size: 1.3rem;
+    }
+    
+    .logotag {
+        font-size: 0.6rem;
+    }
+    
+    .nav-icons {
+        gap: 10px;
+    }
+    
+    .nav-icon {
+        width: 34px;
+        height: 34px;
+    }
+    
+    .user-info span {
+        display: none;
+    }
+    
+    .user-info .dropdown-toggle {
+        padding: 6px;
+    }
+    
+    .category-nav .nav-link {
+        margin: 0 6px;
+        font-size: 0.75rem;
+        padding: 3px 0;
+    }
+}
 </style>

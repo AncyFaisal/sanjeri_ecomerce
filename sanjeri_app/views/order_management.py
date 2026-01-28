@@ -65,41 +65,50 @@ def cancel_order_item(request, item_id):
     # Calculate refund amount for this item
     refund_amount = order_item.total_price
     
+    # Get the order for payment status check
+    order = order_item.order
+    
+    # Check if user paid for this order
+    user_paid = order.payment_status in ['completed', 'partially_paid']
+    print(f"Order #{order.order_number} payment status: {order.payment_status}")
+    print(f"User paid: {user_paid}")
+    print(f"Refund amount: ₹{refund_amount}")
+    
     if order_item.cancel_item(reason):
-        # ========== FIXED: Only refund if order was paid ==========
-        order = order_item.order
-        user_paid = order.payment_status in ['completed', 'success', 'partially_paid']
-        
-        if user_paid:
+        if user_paid and refund_amount > 0:
             try:
                 # Create wallet transaction
-                WalletTransaction.objects.create(
+                transaction = WalletTransaction.objects.create(
                     wallet=wallet,
                     amount=refund_amount,
                     transaction_type='REFUND',
                     status='COMPLETED',
-                    reason=f"Refund for cancelled item: {order_item.product_name} (Order #{order_item.order.order_number})",
-                    order=order_item.order
+                    reason=f"Refund for cancelled item: {order_item.product_name} (Order #{order.order_number})",
+                    order=order
                 )
                 
-                # Update wallet balance
+                print(f"Created refund transaction: {transaction.id}")
+                
+                # Manually update wallet balance
+                wallet.refresh_from_db()
                 wallet.balance += Decimal(refund_amount)
-                wallet.save()
+                wallet.save(update_fields=['balance'])
                 
                 # Update user's wallet_balance field
                 user = request.user
-                user.wallet_balance += Decimal(refund_amount)
-                user.save()
+                if hasattr(user, 'wallet_balance'):
+                    user.wallet_balance = wallet.balance
+                    user.save(update_fields=['wallet_balance'])
                 
                 messages.success(request, f"{order_item.product_name} has been cancelled. ₹{refund_amount} refunded to your wallet.")
                 
             except Exception as e:
+                print(f"❌ Error in wallet refund: {e}")
                 messages.error(request, f"Item cancelled but refund failed: {str(e)}")
                 return redirect('order_detail', order_id=order_item.order.id)
         else:
-            # No refund needed - payment was pending
-            messages.success(request, f"{order_item.product_name} has been cancelled. No refund needed (payment was pending).")
-        # ========== END FIX ==========
+            # No refund needed - payment was pending or free
+            messages.success(request, f"{order_item.product_name} has been cancelled. No refund needed.")
         
         # Check if all items in order are cancelled
         remaining_items = order.items.filter(is_cancelled=False)
@@ -118,6 +127,7 @@ def cancel_order_item(request, item_id):
             messages.info(request, "All items in the order have been cancelled. Order marked as cancelled.")
     
     return redirect('order_detail', order_id=order_item.order.id)
+
 
 
 @login_required

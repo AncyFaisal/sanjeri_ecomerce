@@ -896,6 +896,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
    
 
+// Global error handler for payment pages
+window.addEventListener('error', function(e) {
+    if (e.message.includes('order_number') || e.message.includes('localStorage')) {
+        console.warn('Payment page JavaScript error:', e.message);
+        // Don't show alert to user for minor JS errors
+    }
+});
+
+
  </script>
     {% load static %}
     <script src="{% static 'js/wishlist.js' %}"></script>

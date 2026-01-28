@@ -26,12 +26,48 @@ class Wallet(models.Model):
     
     @property
     def available_balance(self):
-        """Get available balance (excluding pending transactions)"""
-        pending_amount = self.transactions.filter(
-            status='PENDING'
+        """Get available balance (excluding SOME pending transactions)"""
+        # Only exclude pending WITHDRAWALS, not DEPOSITS
+        pending_withdrawals = self.transactions.filter(
+            status='PENDING',
+            transaction_type='WITHDRAWAL'
         ).aggregate(models.Sum('amount'))['amount__sum'] or Decimal('0')
         
-        return self.balance - pending_amount
+        return self.balance - pending_withdrawals
+        
+    def withdraw(self, amount, reason="", order=None):
+        """Withdraw money from wallet"""
+        if amount <= 0:
+            raise ValidationError("Withdrawal amount must be positive")
+            
+        # Check ACTUAL balance, not available_balance
+        if self.balance < amount:  # <-- CHANGE THIS LINE
+            raise ValidationError("Insufficient balance")
+
+        # Create withdrawal transaction
+        transaction = WalletTransaction.objects.create(
+            wallet=self,
+            amount=amount,
+            transaction_type='WITHDRAWAL',
+            status='COMPLETED',  # <-- Ensure it's COMPLETED
+            reason=reason,
+            order=order
+        )
+        
+        # ⚠️ CRITICAL FIX: Update wallet balance after withdrawal
+        self.balance -= amount
+        self.save(update_fields=['balance'])
+        
+        # Update user's wallet_balance field
+        user = self.user
+        if hasattr(user, 'wallet_balance'):
+            user.wallet_balance = self.balance
+            user.save(update_fields=['wallet_balance'])
+        
+        print(f"✅ Wallet withdrawal: ₹{amount} deducted from wallet #{self.id}")
+        print(f"   New balance: ₹{self.balance}")
+        
+        return transaction
     
     def deposit(self, amount, reason="", order=None):
         """Deposit money to wallet"""
@@ -43,7 +79,7 @@ class Wallet(models.Model):
             wallet=self,
             amount=amount,
             transaction_type='DEPOSIT',
-            status='COMPLETED',
+            status='COMPLETED',  # <-- MUST BE COMPLETED
             reason=reason,
             order=order
         )
@@ -53,31 +89,14 @@ class Wallet(models.Model):
         self.save()
         
         return transaction
-    
-    def withdraw(self, amount, reason="", order=None):
-        """Withdraw money from wallet"""
-        if amount <= 0:
-            raise ValidationError("Withdrawal amount must be positive")
-        
-        if self.available_balance < amount:
-            raise ValidationError("Insufficient available balance")
-        
-        # Create withdrawal transaction
-        transaction = WalletTransaction.objects.create(
-            wallet=self,
-            amount=amount,
-            transaction_type='WITHDRAWAL',
-            status='COMPLETED',
-            reason=reason,
-            order=order
-        )
         
         # Update balance
         self.balance -= amount
         self.save()
         
-        return transaction
-
+        return transaction   
+         
+    
 
 class WalletTransaction(models.Model):
     """Wallet transaction history"""

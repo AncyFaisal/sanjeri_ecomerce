@@ -87,30 +87,30 @@ def homepage(request):
 
 
 
-def home_product_search(request):
-    """Unified search function for all search bars"""
-    query = request.GET.get('q', '')
-    products = Product.objects.filter(is_active=True, is_deleted=False)
+# def home_product_search(request):
+#     """Unified search function for all search bars"""
+#     query = request.GET.get('q', '')
+#     products = Product.objects.filter(is_active=True, is_deleted=False)
     
-    if query:
-        # Search in product name, brand, description, and fragrance type
-        products = products.filter(
-            Q(name__icontains=query) | 
-            Q(brand__icontains=query) |
-            Q(description__icontains=query) |
-            Q(fragrance_type__icontains=query)
-        )
+#     if query:
+#         # Search in product name, brand, description, and fragrance type
+#         products = products.filter(
+#             Q(name__icontains=query) | 
+#             Q(brand__icontains=query) |
+#             Q(description__icontains=query) |
+#             Q(fragrance_type__icontains=query)
+#         )
     
-    # Pagination
-    paginator = Paginator(products, 3)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+#     # Pagination
+#     paginator = Paginator(products, 3)
+#     page_number = request.GET.get('page')
+#     page_obj = paginator.get_page(page_number)
     
-    context = {
-        'products': page_obj,
-        'query': query,  # This is IMPORTANT - makes the clear button appear
-        'results_count': products.count(),
-        'title': f"Search Results for '{query}' - Sanjeri"
-    }
+#     context = {
+#         'products': page_obj,
+#         'query': query,  # This is IMPORTANT - makes the clear button appear
+#         'results_count': products.count(),
+#         'title': f"Search Results for '{query}' - Sanjeri"
+#     }
     
-    return render(request, 'headsearch_result.html', context)
+#     return render(request, 'headsearch_result.html', context)

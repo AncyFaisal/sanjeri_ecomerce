@@ -723,6 +723,20 @@
             </div>
         </div>
         
+
+        <!-- UPI Test Instructions -->
+<!-- <div class="alert alert-info mt-4 d-none" id="upiTestInstructions">
+    <h6><i class="fas fa-mobile-alt me-2"></i>UPI Test Instructions</h6>
+    <p class="mb-2">For testing UPI payments in Razorpay:</p>
+    <ol class="mb-0">
+        <li>Select <strong>UPI</strong> as payment method</li>
+        <li>Enter UPI ID: <code>success@razorpay</code></li>
+        <li>Click <strong>Pay</strong></li>
+        <li>On Razorpay test page, click <strong>Success</strong></li>
+    </ol>
+</div> -->
+
+
         <!-- Preferred Payment Method Selection (Hidden by default) -->
         <div class="preferred-method mt-4" id="preferredMethodSection" style="display: none;">
             <h6 class="mb-3">Select Preferred Payment Method:</h6>
@@ -823,9 +837,9 @@
                                 value="true" {% if form.use_wallet.value %}checked{% endif %}>
                             <label class="form-check-label fw-semibold" for="use_wallet">
                                 Use Wallet Balance
-                                <span class="text-success ms-2">
+                                <!-- <span class="text-success ms-2">
                                     Available: ₹{{ wallet_balance|floatformat:2 }}
-                                </span>
+                                </span> -->
                             </label>
                         </div>
 
@@ -837,9 +851,9 @@
                                 <input type="number" class="form-control" id="wallet_amount" name="wallet_amount"
                                     min="0" max="{{ wallet_balance }}" step="0.01"
                                     value="{{ form.wallet_amount.value|default:0 }}">
-                                <small class="text-muted">
+                                <!-- <small class="text-muted">
                                     Maximum: ₹{{ max_wallet_amount|floatformat:2 }}
-                                </small>
+                                </small> -->
                             </div>
                         </div>
                     </div>
@@ -1302,12 +1316,242 @@ const checkoutHandler = {
 
 // // Call this in your init() function
 // setupPaymentMethodSelection();
+// // ==================== RAZORPAY PAYMENT HANDLER ====================
+// const paymentHandler = {
+//     initiate(paymentData) {
+//         console.log("🔄 INITIATING PAYMENT WITH DATA:", paymentData);
+        
+//         // Check if we're in test mode
+//         const isTestMode = window.location.hostname === 'localhost' || 
+//                           window.location.hostname === '127.0.0.1' || 
+//                           paymentData.key.includes('test');
+        
+//         console.log("Test mode detected:", isTestMode);
+        
+//         const options = {
+//             key: paymentData.key,
+//             amount: paymentData.amount,
+//             currency: paymentData.currency,
+//             name: 'Sanjeri Perfumes',
+//             description: 'Order #' + paymentData.order_number,
+//             order_id: paymentData.razorpay_order_id,
+            
+//             // PROPER CONFIGURATION FOR UPI
+//             config: {
+//                 display: {
+//                     blocks: {
+//                         upi: {
+//                             name: "UPI",
+//                             instruments: [
+//                                 {
+//                                     method: "upi",
+//                                     flows: ["collect", "intent"]
+//                                 }
+//                             ]
+//                         },
+//                         card: {
+//                             name: "Card",
+//                             instruments: [
+//                                 {
+//                                     method: "card",
+//                                     issuers: ["HDFC", "ICICI", "AXIS"]
+//                                 }
+//                             ]
+//                         },
+//                         netbanking: {
+//                             name: "Net Banking",
+//                             instruments: [
+//                                 {
+//                                     method: "netbanking"
+//                                 }
+//                             ]
+//                         }
+//                     },
+//                     sequence: ["block.upi", "block.card", "block.netbanking"],
+//                     preferences: {
+//                         show_default_blocks: true
+//                     }
+//                 }
+//             },
+
+//             handler: async function(response) {
+//                 console.log("✅ RAZORPAY HANDLER CALLED:", response);
+//                 console.log("Response type:", typeof response);
+//                 console.log("Full response:", JSON.stringify(response));
+                
+//                 // Show loading
+//                 utils.showLoading(true);
+                
+//                 try {
+//                     // Handle both UPI and card responses
+//                     const paymentId = response.razorpay_payment_id || 
+//                                     response.payment_id || 
+//                                     'test_' + Date.now();
+                    
+//                     const orderId = response.razorpay_order_id || 
+//                                    paymentData.razorpay_order_id;
+                    
+//                     console.log("Payment ID to verify:", paymentId);
+                    
+//                     // Send verification request
+//                     const verifyResponse = await fetch('{% url "verify_payment" %}', {
+//                         method: 'POST',
+//                         headers: {
+//                             'Content-Type': 'application/json',
+//                             'X-CSRFToken': config.csrfToken,
+//                             'X-Requested-With': 'XMLHttpRequest'
+//                         },
+//                         body: JSON.stringify({
+//                             razorpay_payment_id: paymentId,
+//                             razorpay_order_id: orderId,
+//                             razorpay_signature: response.razorpay_signature || 'test_signature_' + Date.now(),
+//                             order_id: paymentData.order_id,
+//                             payment_method: response.method || 'upi', // Add payment method
+//                             test_mode: isTestMode
+//                         })
+//                     });
+                    
+//                     const verifyData = await verifyResponse.json();
+//                     console.log("Verification response:", verifyData);
+                    
+//                     if (verifyData.success) {
+//                         console.log("✅ Payment successful!");
+//                         utils.showNotification('Payment successful! Redirecting...', 'success');
+                        
+//                         // Redirect to success page
+//                         setTimeout(() => {
+//                             window.location.href = verifyData.redirect_url || `/order-success/${paymentData.order_id}/`;
+//                         }, 1000);
+                        
+//                     } else {
+//                         console.error("❌ Payment failed:", verifyData.message);
+//                         utils.showNotification(`Payment failed: ${verifyData.message}`, 'error');
+                        
+//                         // Redirect to failed page
+//                         setTimeout(() => {
+//                             window.location.href = `/payment/failed/${paymentData.order_id}/`;
+//                         }, 2000);
+//                     }
+                    
+//                 } catch (error) {
+//                     console.error("❌ Verification error:", error);
+                    
+//                     // In test mode, assume success
+//                     if (isTestMode) {
+//                         console.log("⚠️ Test mode: Assuming success despite error");
+//                         utils.showNotification('Test payment processed', 'info');
+                        
+//                         setTimeout(() => {
+//                             window.location.href = `/order-success/${paymentData.order_id}/`;
+//                         }, 1000);
+//                     } else {
+//                         utils.showNotification('Error verifying payment', 'error');
+//                     }
+                    
+//                 } finally {
+//                     utils.showLoading(false);
+//                 }
+//             },
+            
+//             prefill: {
+//                 name: paymentData.customer_name || '',
+//                 email: paymentData.customer_email || '',
+//                 contact: paymentData.customer_phone || ''
+//             },
+            
+//             theme: { color: '#431405' },
+            
+//             modal: {
+//                 ondismiss: function() {
+//                     console.log("Payment modal closed by user");
+//                     utils.showNotification('Payment cancelled', 'warning');
+//                 }
+//             }
+//         };
+        
+//         // Add UPI-specific configuration
+//         options.upi = {
+//             flow: "collect",
+//             vpa: isTestMode ? "success@razorpay" : "" // Test UPI ID for test mode
+//         };
+        
+//         // Add notes for test mode
+//         if (isTestMode) {
+//             console.log("⚠️ TEST MODE ENABLED");
+//             console.log("For UPI payments, use: success@razorpay");
+            
+//             options.notes = {
+//                 test_mode: true,
+//                 test_upi_id: "success@razorpay",
+//                 order_id: paymentData.order_id
+//             };
+            
+//             // Pre-fill test UPI ID
+//             if (!options.prefill.vpa) {
+//                 options.prefill.vpa = "success@razorpay";
+//             }
+//         }
+        
+//         console.log("Opening Razorpay with UPI support...");
+        
+//         try {
+//             const rzp = new Razorpay(options);
+            
+//             rzp.on('payment.failed', function(response) {
+//                 console.error("❌ Payment failed:", response);
+//                 const errorMsg = response.error?.description || 'Payment failed';
+//                 const errorCode = response.error?.code || '';
+                
+//                 console.log("Error code:", errorCode);
+//                 console.log("Error reason:", response.error?.reason);
+                
+//                 utils.showNotification(`Payment failed: ${errorMsg}`, 'error');
+                
+//                 setTimeout(() => {
+//                     window.location.href = `/payment/failed/${paymentData.order_id}/`;
+//                 }, 2000);
+//             });
+            
+//             // Add UPI-specific event listeners
+//             rzp.on('upi.intent_submitted', function(response) {
+//                 console.log("UPI Intent Submitted:", response);
+//             });
+            
+//             rzp.on('upi.collect_submitted', function(response) {
+//                 console.log("UPI Collect Submitted:", response);
+//             });
+            
+//             rzp.open();
+            
+//             // Log UPI instructions
+//             console.log("=== UPI TEST INSTRUCTIONS ===");
+//             console.log("1. Select 'UPI' payment method");
+//             console.log("2. In test mode, VPA field should auto-fill with: success@razorpay");
+//             console.log("3. Click 'Pay'");
+//             console.log("4. On Razorpay test page, click 'Success'");
+            
+//         } catch (error) {
+//             console.error("Failed to open Razorpay:", error);
+//             utils.showNotification('Payment gateway error', 'error');
+//         }
+//     }
+// };
 
 
 // ==================== RAZORPAY PAYMENT HANDLER ====================
 const paymentHandler = {
     initiate(paymentData) {
         console.log("🔄 INITIATING PAYMENT WITH DATA:", paymentData);
+        
+        // Check test mode
+        const isTestMode = window.location.hostname.includes('localhost') || 
+                          window.location.hostname.includes('127.0.0.1');
+        
+        // Get preferred payment method from form
+        const preferredMethod = document.getElementById('preferredMethod')?.value || 'all';
+        
+        console.log("Preferred method:", preferredMethod);
+        console.log("Test mode:", isTestMode);
         
         const options = {
             key: paymentData.key,
@@ -1317,69 +1561,80 @@ const paymentHandler = {
             description: 'Order #' + paymentData.order_number,
             order_id: paymentData.razorpay_order_id,
             
-            config: {
-                display: {
-                    blocks: {
-                        banks: {
-                            name: "Net Banking",
-                            instruments: [
-                                {
-                                    method: "netbanking",
-                                    banks: [
-                                        "HDFC", "ICICI", "AXIS", "SBI", 
-                                        "KOTAK", "YESBANK", "INDUSIND"
-                                    ]
-                                }
-                            ]
-                        },
-                        upi: {
-                            name: "UPI",
-                            instruments: [
-                                {
-                                    method: {
-                                        upi: true
-                                    }
-                                }
-                            ]
-                        },
-                        card: {
-                            name: "Card",
-                            instruments: [
-                                {
-                                    method: "card"
-                                }
-                            ]
-                        }
-                    },
-                    sequence: ["block.upi", "block.card", "block.banks"],
-                    preferences: {
-                        show_default_blocks: true,
-                        default_payment_method: 'upi'
-                    }
-                }
-            },
-
+            // Proper configuration for UPI, Cards, Netbanking
             handler: async function(response) {
-                console.log("✅ PAYMENT SUCCESS:", response);
+                console.log("✅ RAZORPAY HANDLER CALLED:", response);
                 
-                // Show loading message
-                document.body.innerHTML = `
-                    <div style="text-align: center; padding: 50px;">
-                        <h2 style="color: green;">✅ Payment Successful!</h2>
-                        <p>Verifying payment and completing your order...</p>
-                        <div class="spinner-border text-success" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                `;
+                // Show loading
+                utils.showLoading(true);
                 
                 try {
-                    // Call verifyPayment with Razorpay response
-                    await verifyPayment(response, paymentData);
+                    const paymentId = response.razorpay_payment_id || 
+                                    response.payment_id || 
+                                    'test_' + Date.now();
+                    
+                    const orderId = response.razorpay_order_id || 
+                                   paymentData.razorpay_order_id;
+                    
+                    console.log("Payment ID to verify:", paymentId);
+                    
+                    // Send verification request
+                    const verifyResponse = await fetch('{% url "verify_payment" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': config.csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            razorpay_payment_id: paymentId,
+                            razorpay_order_id: orderId,
+                            razorpay_signature: response.razorpay_signature || 'test_signature_' + Date.now(),
+                            order_id: paymentData.order_id,
+                            payment_method: response.method || preferredMethod,
+                            test_mode: isTestMode
+                        })
+                    });
+                    
+                    const verifyData = await verifyResponse.json();
+                    console.log("Verification response:", verifyData);
+                    
+                    if (verifyData.success) {
+                        console.log("✅ Payment successful!");
+                        utils.showNotification('Payment successful! Redirecting...', 'success');
+                        
+                        // Redirect to success page
+                        setTimeout(() => {
+                            window.location.href = verifyData.redirect_url || `/order-success/${paymentData.order_id}/`;
+                        }, 1000);
+                        
+                    } else {
+                        console.error("❌ Payment failed:", verifyData.message);
+                        utils.showNotification(`Payment failed: ${verifyData.message}`, 'error');
+                        
+                        // Redirect to failed page - IMPORTANT: Don't clear cart here
+                        setTimeout(() => {
+                            window.location.href = `/payment/failed/${paymentData.order_id}/`;
+                        }, 2000);
+                    }
+                    
                 } catch (error) {
-                    console.error("Payment verification error:", error);
-                    // Fallback: Redirect to order details
-                    window.location.href = '/orders/' + paymentData.order_id + '/';
+                    console.error("❌ Verification error:", error);
+                    
+                    // In test mode, assume success
+                    if (isTestMode) {
+                        console.log("⚠️ Test mode: Assuming success despite error");
+                        utils.showNotification('Test payment processed', 'info');
+                        
+                        setTimeout(() => {
+                            window.location.href = `/order-success/${paymentData.order_id}/`;
+                        }, 1000);
+                    } else {
+                        utils.showNotification('Error verifying payment', 'error');
+                    }
+                    
+                } finally {
+                    utils.showLoading(false);
                 }
             },
             
@@ -1389,41 +1644,73 @@ const paymentHandler = {
                 contact: paymentData.customer_phone || ''
             },
             
-            theme: { color: '#431405' },
+            theme: { 
+                color: '#431405',
+                hide_topbar: false
+            },
             
             modal: {
                 ondismiss: function() {
-                    console.log("Payment modal closed");
+                    console.log("Payment modal closed by user");
+                    utils.showNotification('Payment cancelled', 'warning');
                     
-                    // Create a better cancellation page
-                    const cancellationMessage = `
-                        <div style="text-align: center; padding: 50px; max-width: 600px; margin: 0 auto;">
-                            <div style="color: #f59e0b; font-size: 4rem; margin-bottom: 20px;">⚠️</div>
-                            <h2 style="color: #78350f;">Payment Cancelled</h2>
-                            <p style="font-size: 1.1rem; margin-bottom: 30px;">
-                                You can complete your payment from your orders page.
-                            </p>
-                            <div style="display: flex; gap: 10px; justify-content: center;">
-                                <a href="/orders/${paymentData.order_id}/" 
-                                   style="padding: 12px 24px; background: #431405; color: white; 
-                                          text-decoration: none; border-radius: 8px;">
-                                    View Order Details
-                                </a>
-                                <a href="/checkout/" 
-                                   style="padding: 12px 24px; background: #f3f4f6; color: #431405; 
-                                          text-decoration: none; border-radius: 8px; border: 2px solid #431405;">
-                                    Try Again
-                                </a>
-                            </div>
-                        </div>
-                    `;
-                    
-                    document.body.innerHTML = cancellationMessage;
-                }
+                    // IMPORTANT: Save cart items in localStorage before leaving
+                    try {
+                        const cartItems = document.querySelectorAll('.cart-item');
+                        const itemData = Array.from(cartItems).map(item => {
+                            const itemId = item.getAttribute('data-item-id');
+                            const quantity = item.querySelector('.quantity-input')?.value || 1;
+                            return { id: itemId, quantity: quantity };
+                        });
+                        localStorage.setItem('cart_backup', JSON.stringify(itemData));
+                    } catch (e) {
+                        console.error("Failed to backup cart:", e);
+                    }
+                },
+                escape: true,
+                animation: true
             }
         };
         
-        console.log("Razorpay Options:", options);
+        // ========== UPI-SPECIFIC CONFIGURATION ==========
+        options.upi = {
+            flow: "collect",
+            vpa: isTestMode ? "" : "" // Empty for production - user will enter their UPI ID
+        };
+        
+        // ========== METHOD-SPECIFIC CONFIG ==========
+        if (preferredMethod && preferredMethod !== 'all') {
+            options.method = {
+                upi: preferredMethod === 'upi',
+                card: preferredMethod === 'card',
+                netbanking: preferredMethod === 'netbanking',
+                wallet: false // Disable wallet for now
+            };
+        }
+        
+        // ========== NETBANKING CONFIGURATION ==========
+        // Razorpay automatically shows available banks when netbanking is selected
+        
+        // ========== TEST MODE CONFIGURATION ==========
+        if (isTestMode) {
+            console.log("⚠️ TEST MODE ENABLED");
+            console.log("=== TEST INSTRUCTIONS ===");
+            console.log("1. For CARDS: Use 4111 1111 1111 1111");
+            console.log("2. For UPI: Use any UPI ID or success@razorpay");
+            console.log("3. For Netbanking: Select any bank, use test credentials");
+            
+            options.notes = {
+                test_mode: true,
+                order_id: paymentData.order_id
+            };
+            
+            // For test UPI - auto-populate success@razorpay
+            if (preferredMethod === 'upi' && !options.prefill.vpa) {
+                options.prefill.vpa = "success@razorpay";
+            }
+        }
+        
+        console.log("Opening Razorpay with full payment options...");
         
         try {
             const rzp = new Razorpay(options);
@@ -1431,57 +1718,79 @@ const paymentHandler = {
             rzp.on('payment.failed', function(response) {
                 console.error("❌ Payment failed:", response);
                 const errorMsg = response.error?.description || 'Payment failed';
+                const errorCode = response.error?.code || '';
                 
-                // Create a better error page
-                const errorPage = `
-                    <div style="text-align: center; padding: 50px; max-width: 600px; margin: 0 auto;">
-                        <div style="color: #dc2626; font-size: 4rem; margin-bottom: 20px;">❌</div>
-                        <h2 style="color: #7f1d1d;">Payment Failed</h2>
-                        <p style="font-size: 1.1rem; margin-bottom: 10px;">
-                            <strong>Error:</strong> ${errorMsg}
-                        </p>
-                        <p style="font-size: 1rem; color: #6b7280; margin-bottom: 30px;">
-                            Order: #${paymentData.order_number}
-                        </p>
-                        <div style="display: flex; gap: 10px; justify-content: center;">
-                            <a href="/orders/${paymentData.order_id}/" 
-                               style="padding: 12px 24px; background: #dc2626; color: white; 
-                                      text-decoration: none; border-radius: 8px;">
-                                View Order Details
-                            </a>
-                            <a href="/checkout/" 
-                               style="padding: 12px 24px; background: #f3f4f6; color: #7f1d1d; 
-                                      text-decoration: none; border-radius: 8px; border: 2px solid #dc2626;">
-                                Try Again
-                            </a>
-                        </div>
-                        <p style="margin-top: 30px; font-size: 0.9rem; color: #6b7280;">
-                            If this error persists, please contact support.
-                        </p>
-                    </div>
-                `;
+                console.log("Error code:", errorCode);
+                console.log("Error reason:", response.error?.reason);
                 
-                document.body.innerHTML = errorPage;
+                utils.showNotification(`Payment failed: ${errorMsg}`, 'error');
+                
+                // IMPORTANT: Don't clear cart on failure
+                setTimeout(() => {
+                    window.location.href = `/payment/failed/${paymentData.order_id}/`;
+                }, 2000);
+            });
+            
+            // Additional event listeners for debugging
+            rzp.on('payment.loaded', function(response) {
+                console.log("Payment modal loaded:", response);
+            });
+            
+            rzp.on('payment.cancelled', function(response) {
+                console.log("Payment cancelled by user:", response);
+                utils.showNotification('Payment cancelled by user', 'warning');
             });
             
             rzp.open();
+            
         } catch (error) {
             console.error("Failed to open Razorpay:", error);
-            
-            // Create error message
-            const errorHTML = `
-                <div style="text-align: center; padding: 50px;">
-                    <h2 style="color: #dc2626;">Payment Gateway Error</h2>
-                    <p>${error.message}</p>
-                    <p>Please try again or contact support.</p>
-                    <a href="/checkout/" class="btn btn-primary mt-3">Back to Checkout</a>
-                </div>
-            `;
-            
-            document.body.innerHTML = errorHTML;
+            utils.showNotification('Payment gateway error', 'error');
         }
     }
 };
+
+
+// Backup cart items before payment
+function backupCart() {
+    try {
+        const cartItems = [];
+        document.querySelectorAll('.order-item').forEach(item => {
+            const itemId = item.getAttribute('data-item-id');
+            const productName = item.querySelector('.product-name')?.textContent;
+            const quantity = item.querySelector('.product-quantity')?.textContent.match(/\d+/)?.[0] || 1;
+            const price = item.querySelector('.product-price')?.textContent.match(/[\d.]+/)?.[0];
+            
+            if (itemId) {
+                cartItems.push({
+                    id: itemId,
+                    name: productName,
+                    quantity: parseInt(quantity),
+                    price: parseFloat(price)
+                });
+            }
+        });
+        
+        localStorage.setItem('cart_backup', JSON.stringify(cartItems));
+        console.log("Cart backed up:", cartItems.length, "items");
+        return true;
+    } catch (e) {
+        console.error("Failed to backup cart:", e);
+        return false;
+    }
+}
+
+// Call this before opening Razorpay
+function initiatePaymentWithBackup() {
+    if (backupCart()) {
+        // Proceed with payment
+        paymentHandler.initiate(paymentData);
+    } else {
+        utils.showNotification('Failed to backup cart. Please try again.', 'error');
+    }
+}
+
+
 
 
 // ==================== CHECKOUT HANDLER ====================
@@ -1734,6 +2043,21 @@ const paymentHandler = {
             }
         }
 
+
+
+        // Add to your init() function
+function showUPIInstructions() {
+    const upiInstructions = document.getElementById('upiTestInstructions');
+    const isTestMode = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1';
+    
+    if (upiInstructions && isTestMode) {
+        upiInstructions.classList.remove('d-none');
+    }
+}
+
+// Call it
+showUPIInstructions();
         // Start the application
         init();
     });

@@ -198,7 +198,7 @@
             </div>
 
             <!-- Refund Information (if applicable) -->
-            {% if order.payment_status == 'refunded' or order.refund_amount > 0 %}
+            <!-- {% if order.payment_status == 'refunded' or order.refund_amount > 0 %}
             <div class="refund-info mb-4">
                 <div class="d-flex align-items-start">
                     <i class="fas fa-check-circle fa-2x text-success me-3"></i>
@@ -223,7 +223,7 @@
                     </div>
                 </div>
             </div>
-            {% endif %}
+            {% endif %} -->
 
             <!-- Return Status Information -->
             {% if order.return_status == 'requested' %}
