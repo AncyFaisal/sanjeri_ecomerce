@@ -8,6 +8,7 @@ from django.db import transaction
 from decimal import Decimal
 from ..models import Cart, Coupon
 from django.utils import timezone
+from decimal import Decimal
 
 @login_required
 @require_POST

@@ -1,0 +1,240 @@
+<!-- templates/user/referral_dashboard.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}My Referrals - Sanjeri Perfumes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2>My Referral Dashboard</h2>
+            <hr>
+        </div>
+    </div>
+
+    <!-- Referral Stats Cards -->
+    <div class="row mt-4">
+        <div class="col-md-4 mb-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Your Referral Code</h5>
+                    <h3 class="display-6 text-primary fw-bold">{{ user.referral_code }}</h3>
+                    <button class="btn btn-sm btn-outline-primary mt-2" onclick="copyReferralCode()">
+                        <i class="fas fa-copy me-1"></i>Copy Code
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Total Referrals</h5>
+                    <h3 class="display-6 text-success fw-bold">{{ referral_count }}</h3>
+                    <p class="text-muted mt-2">People you've invited</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Coupons Earned</h5>
+                    <h3 class="display-6 text-warning fw-bold">{{ coupons.count }}</h3>
+                    <p class="text-muted mt-2">From successful referrals</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Referral Link Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Your Referral Link</h5>
+                </div>
+                <div class="card-body">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="referralLink" value="{{ referral_link }}" readonly>
+                        <button class="btn btn-primary" type="button" onclick="copyReferralLink()">
+                            <i class="fas fa-copy me-1"></i>Copy Link
+                        </button>
+                    </div>
+                    <small class="text-muted d-block mt-2">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Share this link with friends. When they sign up using this link, you'll get a coupon!
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- How It Works Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">How It Works</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <div class="p-3">
+                                <div class="display-4 text-primary">1</div>
+                                <h6>Share Your Link</h6>
+                                <p class="text-muted small">Share your unique referral link with friends</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="p-3">
+                                <div class="display-4 text-primary">2</div>
+                                <h6>Friend Signs Up</h6>
+                                <p class="text-muted small">They sign up using your link and make their first purchase</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="p-3">
+                                <div class="display-4 text-primary">3</div>
+                                <h6>You Get Rewarded</h6>
+                                <p class="text-muted small">You receive a ₹100 coupon for your next purchase</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Your Referrals List -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">People You've Referred ({{ referrals.count }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if referrals %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Date Joined</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for referral in referrals %}
+                                <tr>
+                                    <td>{{ referral.username }}</td>
+                                    <td>{{ referral.email }}</td>
+                                    <td>{{ referral.date_joined|date:"M d, Y" }}</td>
+                                    <td><span class="badge bg-success">Active</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">You haven't referred anyone yet.</p>
+                        <p class="text-muted small">Share your referral link to start earning rewards!</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Your Coupons Section -->
+    <div class="row mt-4 mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Your Referral Coupons</h5>
+                </div>
+                <div class="card-body">
+                    {% if coupons %}
+                    <div class="row">
+                        {% for coupon in coupons %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card h-100 {% if coupon.is_used %}bg-light{% else %}border-success{% endif %}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <h6 class="card-title fw-bold">{{ coupon.code }}</h6>
+                                        <span class="badge {% if coupon.is_used %}bg-secondary{% else %}bg-success{% endif %}">
+                                            {% if coupon.is_used %}Used{% else %}Available{% endif %}
+                                        </span>
+                                    </div>
+                                    <p class="card-text mt-2">
+                                        <span class="display-6 text-success">₹{{ coupon.discount_value }}</span> OFF
+                                    </p>
+                                    <p class="card-text small text-muted">
+                                        <i class="fas fa-shopping-cart me-1"></i>Min. Order: ₹{{ coupon.min_order_amount }}<br>
+                                        <i class="fas fa-calendar-alt me-1"></i>Valid till: {{ coupon.valid_to|date:"M d, Y" }}
+                                    </p>
+                                    {% if not coupon.is_used %}
+                                    <button class="btn btn-sm btn-outline-primary w-100" onclick="copyCouponCode('{{ coupon.code }}')">
+                                        <i class="fas fa-copy me-1"></i>Copy Code
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-ticket-alt fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No coupons yet.</p>
+                        <p class="text-muted small">Refer friends to earn coupons!</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyReferralCode() {
+    navigator.clipboard.writeText("{{ user.referral_code }}").then(function() {
+        alert("Referral code copied to clipboard!");
+    });
+}
+
+function copyReferralLink() {
+    var link = document.getElementById("referralLink");
+    link.select();
+    navigator.clipboard.writeText(link.value).then(function() {
+        alert("Referral link copied to clipboard!");
+    });
+}
+
+function copyCouponCode(code) {
+    navigator.clipboard.writeText(code).then(function() {
+        alert("Coupon code copied to clipboard!");
+    });
+}
+</script>
+
+<style>
+.card {
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+.display-6 {
+    font-size: 2rem;
+    font-weight: 600;
+}
+</style>
+{% endblock %}

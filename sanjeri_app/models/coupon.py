@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.conf import settings
 # Use string reference to avoid circular import
 from django.db.models import Q
-
+from decimal import Decimal
 
   #CUSTOM MANAGER FOR COUPONS
 class CouponManager(models.Manager):

@@ -1203,73 +1203,97 @@
         };
 
         // ==================== CHECKOUT HANDLER ====================
-        const checkoutHandler = {
-            isSubmitting: false,
-            submissionToken: null,
-            
-            async submitForm(e) {
-                e.preventDefault();
-                console.log("=== CHECKOUT FORM SUBMISSION ===");
+       // ==================== CHECKOUT HANDLER ====================
+const checkoutHandler = {
+    isSubmitting: false,
+    submissionToken: null,
+    
+    async submitForm(e) {
+        e.preventDefault();
+        console.log("=== CHECKOUT FORM SUBMISSION ===");
 
-                if (this.isSubmitting) {
-                    console.log("⚠️ Form already submitting, preventing duplicate");
-                    utils.showNotification('Your order is being processed. Please wait...', 'warning');
-                    return false;
+        if (this.isSubmitting) {
+            console.log("⚠️ Form already submitting, preventing duplicate");
+            utils.showNotification('Your order is being processed. Please wait...', 'warning');
+            return false;
+        }
+        
+        this.submissionToken = 'order_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        document.getElementById('checkoutToken').value = this.submissionToken;
+        
+        this.isSubmitting = true;
+
+        const validation = utils.validateForm();
+        if (!validation) {
+            this.isSubmitting = false;
+            return;
+        }
+
+        utils.showLoading(true);
+
+        try {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const formData = new FormData(elements.checkoutForm);
+            formData.append('checkout_token', this.submissionToken);
+
+            const response = await fetch(config.urls.placeOrder, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                },
+                body: new URLSearchParams(formData).toString()
+            });
+
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                // Not JSON - likely an HTML error page
+                const html = await response.text();
+                console.error("Received HTML instead of JSON:", html.substring(0, 500));
+                
+                // Check if it's a login page
+                if (html.includes('login') || response.url.includes('login')) {
+                    utils.showNotification('Your session has expired. Please login again.', 'error');
+                    setTimeout(() => {
+                        window.location.href = '/login/?next=/checkout/';
+                    }, 2000);
+                } else {
+                    utils.showNotification('Server error occurred. Please try again.', 'error');
                 }
                 
-                this.submissionToken = 'order_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                document.getElementById('checkoutToken').value = this.submissionToken;
-                
-                this.isSubmitting = true;
-
-                const validation = utils.validateForm();
-                if (!validation) {
-                    this.isSubmitting = false;
-                    return;
-                }
-
-                utils.showLoading(true);
-
-                try {
-                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                    const formData = new FormData(elements.checkoutForm);
-                    formData.append('checkout_token', this.submissionToken);
-
-                    const response = await fetch(config.urls.placeOrder, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRFToken': csrfToken
-                        },
-                        body: new URLSearchParams(formData).toString()
-                    });
-
-                    const responseData = await response.json();
-                    console.log("Order Response:", responseData);
-
-                    if (responseData.success) {
-                        if (responseData.payment_required) {
-                            console.log("Opening Razorpay for online payment...");
-                            setTimeout(() => { this.isSubmitting = false; }, 1000);
-                            paymentHandler.initiate(responseData);
-                        } else {
-                            console.log("Redirecting to success page:", responseData.redirect_url);
-                            window.location.href = responseData.redirect_url;
-                        }
-                    } else {
-                        this.isSubmitting = false;
-                        throw new Error(responseData.message || 'Order creation failed');
-                    }
-                } catch (error) {
-                    console.error("Checkout Error:", error);
-                    utils.showNotification(error.message, 'error');
-                    this.isSubmitting = false;
-                } finally {
-                    utils.showLoading(false);
-                }
+                this.isSubmitting = false;
+                utils.showLoading(false);
+                return;
             }
-        };
+
+            const responseData = await response.json();
+            console.log("Order Response:", responseData);
+
+            if (responseData.success) {
+                if (responseData.payment_required) {
+                    console.log("Opening Razorpay for online payment...");
+                    // Reset submitting flag after a delay
+                    setTimeout(() => { this.isSubmitting = false; }, 1000);
+                    paymentHandler.initiate(responseData);
+                } else {
+                    console.log("Redirecting to success page:", responseData.redirect_url);
+                    window.location.href = responseData.redirect_url;
+                }
+            } else {
+                this.isSubmitting = false;
+                throw new Error(responseData.message || 'Order creation failed');
+            }
+        } catch (error) {
+            console.error("Checkout Error:", error);
+            utils.showNotification(error.message, 'error');
+            this.isSubmitting = false;
+        } finally {
+            utils.showLoading(false);
+        }
+    }
+};
 
         // ==================== RAZORPAY PAYMENT HANDLER ====================
         const paymentHandler = {

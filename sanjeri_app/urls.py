@@ -54,7 +54,7 @@ from sanjeri_app.views.admin_offer_views import (
     category_offer_list, category_offer_create, category_offer_edit,
     category_offer_delete, category_offer_toggle_status
 )
-
+from django.views.generic.base import RedirectView
 # from .views.order_management import order_list, order_detail, cancel_order, cancel_order_item, return_order, download_invoice
 
 urlpatterns = [
@@ -62,6 +62,7 @@ urlpatterns = [
     path('dashboard/', admin_dashboard, name='admin_dashboard'),
 
     # User management
+    path('login/', RedirectView.as_view(url='/user-login/', permanent=True), name='login'),
     path('user-list/', user_list, name='user_list'),
     path('users/<int:user_id>/', user_detail, name='user_detail'),
     path('users/<int:user_id>/toggle-status/', toggle_user_status, name='toggle_user_status'),

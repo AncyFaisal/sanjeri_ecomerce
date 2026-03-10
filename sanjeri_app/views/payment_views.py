@@ -6,6 +6,8 @@ from django.conf import settings
 import razorpay
 import json
 from ..models import Order
+from decimal import Decimal
+
 
 # Initialize Razorpay client
 client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))

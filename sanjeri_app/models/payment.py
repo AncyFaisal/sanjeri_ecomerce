@@ -3,6 +3,7 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from .order import *
+from decimal import Decimal
 
 class PaymentTransaction(models.Model):
     """Separate model for payment transactions"""

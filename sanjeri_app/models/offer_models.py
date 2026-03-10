@@ -155,6 +155,7 @@ class OfferApplication(models.Model):
     # created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     offer_name = models.CharField(max_length=200, blank=True, help_text="Snapshot of offer name at time of application")
+    applied_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         app_label = 'sanjeri_app'
