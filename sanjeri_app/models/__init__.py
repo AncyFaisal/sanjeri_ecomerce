@@ -8,6 +8,8 @@ from .order import Order, OrderItem
 from .coupon import Coupon
 from .payment import PaymentTransaction 
 from .wallet import Wallet, WalletTransaction
+# sanjeri_app/models/__init__.py
+from .offer_models import BaseOffer, ProductOffer, CategoryOffer, OfferApplication
 
 __all__ = [
     'Product', 'ProductVariant', 'ProductImage','Category', 'Brand', 'Volume', 'Gender',
@@ -18,6 +20,7 @@ __all__ = [
     'Coupon',  'PaymentTransaction'
     'Wallet',             
     'WalletTransaction',
+    'ProductOffer', 'CategoryOffer', 'OfferApplication', 'BaseOffer',
     
 ]
 

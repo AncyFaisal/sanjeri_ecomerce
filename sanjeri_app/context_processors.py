@@ -2,21 +2,37 @@
 from django.db.models import Sum
 from .models import Cart, Wishlist
 from django.contrib.auth import get_user_model
+from django.utils import timezone
+from .models.offer_models import ProductOffer, CategoryOffer
 
 User = get_user_model()
 
-# def wallet_balance(request):
-#     if request.user.is_authenticated:
-#         try:
-#             # Import inside the function to avoid circular imports
-#             from sanjeri_app.models.wallet import Wallet
-#             wallet = Wallet.objects.get(user=request.user)
-#             return {'wallet_balance': wallet.balance}
-#         except Exception as e:
-#             # Log the error for debugging
-#             print(f"Wallet context processor error: {e}")
-#             return {'wallet_balance': 0}
-#     return {'wallet_balance': 0}
+def wallet_balance(request):
+    """Context processor that auto-creates wallet if missing"""
+    if request.user.is_authenticated:
+        try:
+            # Import inside the function to avoid circular imports
+            from sanjeri_app.models.wallet import Wallet
+            
+            # ========== FIX: Auto-create wallet if it doesn't exist ==========
+            wallet, created = Wallet.objects.get_or_create(
+                user=request.user, 
+                defaults={'balance': 0}
+            )
+            
+            if created:
+                print(f"✅ Auto-created wallet for user {request.user.id} via context processor")
+            
+            return {'wallet_balance': wallet.balance}
+            # ========== END FIX ==========
+            
+        except Exception as e:
+            # Log the error for debugging
+            print(f"Wallet context processor error: {e}")
+            return {'wallet_balance': 0}
+    
+    return {'wallet_balance': 0}
+
 
 def cart_and_wishlist_context(request):
     """
@@ -54,3 +70,25 @@ def cart_and_wishlist_context(request):
     
     return context
 
+def offer_context(request):
+    """Add offer information to all templates"""
+    now = timezone.now()
+    
+    # Get active offers
+    active_product_offers = ProductOffer.objects.filter(
+        is_active=True,
+        valid_from__lte=now,
+        valid_to__gte=now
+    ).prefetch_related('products')
+    
+    active_category_offers = CategoryOffer.objects.filter(
+        is_active=True,
+        valid_from__lte=now,
+        valid_to__gte=now
+    ).select_related('category')
+    
+    return {
+        'now': now,
+        'active_product_offers': active_product_offers,
+        'active_category_offers': active_category_offers,
+    }

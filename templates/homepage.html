@@ -1,3 +1,5 @@
+{% load offer_tags %} 
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -978,15 +980,28 @@
                     <span class="rating-count">({{ product.avg_rating|default:"4.2" }})</span>
                   </div>
 
-                  <div class="price-section">
-                    {% with variant=product.variants.first %}
-                    <span class="current-price fw-bold">₹{{ variant.discount_price|default:variant.price }}</span>
-                    {% if variant.discount_price and variant.discount_price < variant.price %}
-                    <span class="original-price">₹{{ variant.price }}</span>
-                    <span class="discount-badge">{{ variant.get_discount_percentage }}% OFF</span>
-                    {% endif %}
-                    {% endwith %}
-                  </div>
+                <!-- In home.html, find the price section and replace with: -->
+<div class="price-section mb-1">
+  {% with best_offer=product|get_best_offer %}
+    {% if best_offer %}
+      {% with variant=product.variants.first %}
+        {% with discount=variant.price|get_offer_discount:product %}
+          {% with discounted_price=variant.price|subtract:discount %}
+            <div class="d-flex align-items-center flex-wrap">
+              <span class="current-price fw-bold text-danger">₹{{ discounted_price|floatformat:0 }}</span>
+              <small class="text-muted ms-2 text-decoration-line-through">₹{{ variant.price|floatformat:0 }}</small>
+              <span class="badge bg-danger ms-2">{{ best_offer.discount_percentage }}% OFF</span>
+            </div>
+          {% endwith %}
+        {% endwith %}
+      {% endwith %}
+    {% else %}
+      {% with variant=product.variants.first %}
+        <span class="current-price fw-bold">₹{{ variant.price|floatformat:0 }}</span>
+      {% endwith %}
+    {% endif %}
+  {% endwith %}
+</div>
 
                   <div class="stock-status mt-1 mb-2">
                     {% if product.total_stock > 10 %}

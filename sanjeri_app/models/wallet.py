@@ -4,7 +4,6 @@ from django.conf import settings
 from django.utils import timezone
 from decimal import Decimal
 from django.core.exceptions import ValidationError
-from .order import Order
 
 class Wallet(models.Model):
     """User wallet for storing credit balance"""
@@ -26,50 +25,62 @@ class Wallet(models.Model):
     
     @property
     def available_balance(self):
-        """Get available balance (excluding SOME pending transactions)"""
-        # Only exclude pending WITHDRAWALS, not DEPOSITS
+        """Get available balance (excluding pending withdrawals)"""
         pending_withdrawals = self.transactions.filter(
             status='PENDING',
             transaction_type='WITHDRAWAL'
         ).aggregate(models.Sum('amount'))['amount__sum'] or Decimal('0')
         
         return self.balance - pending_withdrawals
-        
+    
     def withdraw(self, amount, reason="", order=None):
         """Withdraw money from wallet"""
         if amount <= 0:
             raise ValidationError("Withdrawal amount must be positive")
+        
+        # Quantize amount to 2 decimal places
+        from decimal import Decimal, ROUND_DOWN
+        amount = Decimal(str(amount)).quantize(Decimal('0.01'))
+        
+        # Use select_for_update to prevent race conditions
+        from django.db import transaction
+        
+        with transaction.atomic():
+            # Refresh wallet from database and lock it
+            wallet = Wallet.objects.select_for_update().get(id=self.id)
             
-        # Check ACTUAL balance, not available_balance
-        if self.balance < amount:  # <-- CHANGE THIS LINE
-            raise ValidationError("Insufficient balance")
-
-        # Create withdrawal transaction
-        transaction = WalletTransaction.objects.create(
-            wallet=self,
-            amount=amount,
-            transaction_type='WITHDRAWAL',
-            status='COMPLETED',  # <-- Ensure it's COMPLETED
-            reason=reason,
-            order=order
-        )
-        
-        # ⚠️ CRITICAL FIX: Update wallet balance after withdrawal
-        self.balance -= amount
-        self.save(update_fields=['balance'])
-        
-        # Update user's wallet_balance field
-        user = self.user
-        if hasattr(user, 'wallet_balance'):
-            user.wallet_balance = self.balance
-            user.save(update_fields=['wallet_balance'])
-        
-        print(f"✅ Wallet withdrawal: ₹{amount} deducted from wallet #{self.id}")
-        print(f"   New balance: ₹{self.balance}")
-        
-        return transaction
+            # Also quantize wallet balance for comparison
+            wallet_balance = wallet.balance.quantize(Decimal('0.01'))
+            amount = amount.quantize(Decimal('0.01'))
+            
+            if wallet_balance < amount:
+                raise ValidationError(
+                    f"Insufficient balance. Available: ₹{wallet_balance}, Requested: ₹{amount}"
+                )
+            
+            # Create withdrawal transaction
+            transaction_obj = WalletTransaction.objects.create(
+                wallet=wallet,
+                amount=amount,
+                transaction_type='WITHDRAWAL',
+                status='COMPLETED',
+                reason=reason,
+                order=order
+            )
+            
+            # Update wallet balance
+            wallet.balance = (wallet.balance - amount).quantize(Decimal('0.01'))
+            wallet.save(update_fields=['balance'])
+            
+            # Update user's wallet_balance field
+            user = wallet.user
+            if hasattr(user, 'wallet_balance'):
+                user.wallet_balance = wallet.balance
+                user.save(update_fields=['wallet_balance'])
+            
+            return transaction_obj
     
-    def deposit(self, amount, reason="", order=None):
+    def deposit(self, amount, reason="", order=None, transaction_type='DEPOSIT'):
         """Deposit money to wallet"""
         if amount <= 0:
             raise ValidationError("Deposit amount must be positive")
@@ -78,25 +89,24 @@ class Wallet(models.Model):
         transaction = WalletTransaction.objects.create(
             wallet=self,
             amount=amount,
-            transaction_type='DEPOSIT',
-            status='COMPLETED',  # <-- MUST BE COMPLETED
+            transaction_type=transaction_type,
+            status='COMPLETED',
             reason=reason,
             order=order
         )
         
         # Update balance
         self.balance += amount
-        self.save()
+        self.save(update_fields=['balance'])
+        
+        # Update user's wallet_balance field
+        user = self.user
+        if hasattr(user, 'wallet_balance'):
+            user.wallet_balance = self.balance
+            user.save(update_fields=['wallet_balance'])
         
         return transaction
-        
-        # Update balance
-        self.balance -= amount
-        self.save()
-        
-        return transaction   
-         
-    
+
 
 class WalletTransaction(models.Model):
     """Wallet transaction history"""
@@ -130,7 +140,7 @@ class WalletTransaction(models.Model):
     
     # Reference to order (if applicable)
     order = models.ForeignKey(
-        Order,
+        'Order',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -167,22 +177,38 @@ class WalletTransaction(models.Model):
             raise ValidationError("Amount must be positive")
     
     def save(self, *args, **kwargs):
+        # Quantize amount before saving
+        from decimal import Decimal
+        if self.amount:
+            self.amount = Decimal(str(self.amount)).quantize(Decimal('0.01'))
         self.full_clean()
         super().save(*args, **kwargs)
     
     def mark_as_completed(self, approved_by=None):
         """Mark transaction as completed (for refunds)"""
+        # ===== ADD THIS: Prevent double completion =====
+        if self.status == 'COMPLETED':
+            print(f"⚠️ Transaction {self.id} already completed")
+            return True
+        # ===== END ADDITION =====
+        
         if self.status == 'PENDING' and self.transaction_type == 'REFUND':
             self.status = 'COMPLETED'
             self.admin_approved = True
             if approved_by:
                 self.approved_by = approved_by
+            self.save()
             
             # Add amount to wallet balance
             self.wallet.balance += self.amount
-            self.wallet.save()
+            self.wallet.save(update_fields=['balance'])
             
-            self.save()
+            # Update user's wallet_balance field
+            user = self.wallet.user
+            if hasattr(user, 'wallet_balance'):
+                user.wallet_balance = self.wallet.balance
+                user.save(update_fields=['wallet_balance'])
+            
             return True
         return False
     

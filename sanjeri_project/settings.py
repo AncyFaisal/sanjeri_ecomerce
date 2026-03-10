@@ -83,6 +83,8 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'sanjeri_app.context_processors.cart_and_wishlist_context',
+                'sanjeri_app.context_processors.wallet_balance',
+                'sanjeri_app.context_processors.offer_context',
             ],
         },
     },
@@ -120,7 +122,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
 USE_TZ = True
 
@@ -185,6 +187,7 @@ SOCIALACCOUNT_PROVIDERS = {
         'APP': {
             'client_id': os.getenv('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY'),
             'secret': os.getenv('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET', ''),
+            'key': ''
             
         }
     }

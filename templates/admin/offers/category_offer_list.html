@@ -1,0 +1,209 @@
+<!-- templates/admin/offers/category_offer_list.html -->
+
+{% extends "common_admin.html" %}
+{% load static %}
+
+{% block page_title %}Category Offers{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="admin-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">Category Offers</h3>
+            <a href="{% url 'category_offer_create' %}" class="btn btn-success">
+                <i class="fas fa-plus me-2"></i>Add New Offer
+            </a>
+        </div>
+
+        <div class="card-body">
+            <!-- Search and Filter -->
+            <div class="admin-card mb-4">
+                <div class="card-body">
+                    <form method="get" class="mb-0">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Search</label>
+                                <div class="input-group">
+                                    <input type="text" name="search" class="form-control" 
+                                           placeholder="Search by name or category..." 
+                                           value="{{ search_query }}">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Status</label>
+                                <select name="status" class="form-select" onchange="this.form.submit()">
+                                    <option value="">All Status</option>
+                                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <a href="{% url 'category_offer_list' %}" class="btn btn-outline-secondary w-100">
+                                    <i class="fas fa-refresh me-1"></i>Reset
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if offers %}
+            <div class="table-responsive">
+                <table class="table table-hover styled-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Discount</th>
+                            <th>Valid From</th>
+                            <th>Valid To</th>
+                            <th>Status</th>
+                            <th>Used</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for offer in offers %}
+                        <tr>
+                            <td>#{{ offer.id }}</td>
+                            <td>
+                                <div class="fw-semibold">{{ offer.name }}</div>
+                                <small class="text-muted">{{ offer.description|truncatechars:50 }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ offer.category.name }}</span>
+                            </td>
+                            <td>
+                                {% if offer.discount_percentage > 0 %}
+                                    <span class="badge bg-success">{{ offer.discount_percentage }}% OFF</span>
+                                {% endif %}
+                                {% if offer.discount_fixed > 0 %}
+                                    <span class="badge bg-info">₹{{ offer.discount_fixed }} OFF</span>
+                                {% endif %}
+                                {% if offer.max_discount %}
+                                    <br><small class="text-muted">Max: ₹{{ offer.max_discount }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ offer.valid_from|date:"d M Y" }}</td>
+                            <td>{{ offer.valid_to|date:"d M Y" }}</td>
+                            <td>
+                                <span class="badge {% if offer.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {{ offer.is_active|yesno:"Active,Inactive" }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ offer.times_used }}/{{ offer.usage_limit|default:"∞" }}</span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'category_offer_edit' offer.id %}" class="btn btn-outline-primary" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="post" action="{% url 'category_offer_toggle_status' offer.id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-warning" title="Toggle Status">
+                                            <i class="fas {% if offer.is_active %}fa-pause{% else %}fa-play{% endif %}"></i>
+                                        </button>
+                                    </form>
+                                    <button type="button" class="btn btn-outline-danger" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#deleteModal"
+                                            data-offer-id="{{ offer.id }}"
+                                            data-offer-name="{{ offer.name }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.paginator.num_pages > 1 %}
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} offers
+                </div>
+                <nav>
+                    <ul class="pagination">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Previous</a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">{{ num }}</a>
+                        </li>
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Next</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-layer-group fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No Category Offers Found</h4>
+                <p class="text-muted mb-4">Get started by creating your first category offer.</p>
+                <a href="{% url 'category_offer_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Create Offer
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Offer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete "<span id="offerName"></span>"?</p>
+                <p class="text-danger small">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteModal = document.getElementById('deleteModal');
+    if (deleteModal) {
+        deleteModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const offerId = button.getAttribute('data-offer-id');
+            const offerName = button.getAttribute('data-offer-name');
+            
+            document.getElementById('offerName').textContent = offerName;
+            document.getElementById('deleteForm').action = "{% url 'category_offer_delete' 0 %}".replace('0', offerId);
+        });
+    }
+});
+</script>
+{% endblock %}

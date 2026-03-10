@@ -12,6 +12,7 @@ from django.utils.html import format_html
 from .models import Order, OrderItem
 from django.urls import reverse
 from .models.wallet import Wallet, WalletTransaction
+from .models.offer_models import ProductOffer, CategoryOffer, OfferApplication
 
 admin.site.register(CustomUser)
 
@@ -122,7 +123,7 @@ class OrderAdmin(admin.ModelAdmin):
         'cancelled_at',
         'returned_at'
     ]
-    actions = ['approve_selected_returns', 'reject_selected_returns']
+    actions = ['approve_selected_returns', 'reject_selected_returns','recalculate_order_totals']
     
     # FIXED: Removed duplicate 'payment_status' from 'Order Information' fieldset
     fieldsets = (
@@ -149,7 +150,40 @@ class OrderAdmin(admin.ModelAdmin):
             'fields': ('subtotal', 'discount_amount', 'coupon_discount', 'tax_amount')
         }),
     )
+
+    def save_model(self, request, obj, form, change):
+        """
+        Override save_model to recalculate totals when admin edits an order
+        """
+        # Save the order first
+        super().save_model(request, obj, form, change)
+        
+        # If this is an existing order being changed (not a new one)
+        if change:
+            # Recalculate totals after admin edits
+            obj.calculate_totals()
     
+    def recalculate_order_totals(self, request, queryset):
+        """Admin action to recalculate totals for selected orders"""
+        recalculated_count = 0
+        for order in queryset:
+            old_total = order.total_amount
+            order.calculate_totals()
+            new_total = order.total_amount
+            recalculated_count += 1
+            self.message_user(
+                request, 
+                f"Order #{order.order_number}: ₹{old_total} → ₹{new_total}",
+                level='INFO'
+            )
+        
+        self.message_user(
+            request, 
+            f"Recalculated totals for {recalculated_count} order(s)."
+        )
+
+    recalculate_order_totals.short_description = "Recalculate totals for selected orders"
+
     def return_status_display(self, obj):
         colors = {
             'not_requested': 'secondary',
@@ -230,7 +264,7 @@ class OrderAdmin(admin.ModelAdmin):
         else:
             messages.error(request, f"Failed to approve return for order #{order.order_number}.")
         
-        return redirect(reverse('admin:your_app_order_changelist'))
+        return redirect(reverse('admin:sanjeri_app_order_changelist'))
     
     def reject_return_view(self, request, order_id):
         """View to reject a return"""
@@ -245,7 +279,7 @@ class OrderAdmin(admin.ModelAdmin):
         else:
             messages.error(request, f"Failed to reject return for order #{order.order_number}.")
         
-        return redirect(reverse('admin:your_app_order_changelist'))
+        return redirect(reverse('admin:sanjeri_app_order_changelist'))
 
 @admin.register(Wallet)
 class WalletAdmin(admin.ModelAdmin):
@@ -311,6 +345,83 @@ class WalletTransactionAdmin(admin.ModelAdmin):
         self.message_user(request, f"{updated_count} transaction(s) marked as failed.")
     
     mark_as_failed.short_description = "Mark as failed"
+
+
+# admin.py - Add these after your existing imports
+
+
+@admin.register(ProductOffer)
+class ProductOfferAdmin(admin.ModelAdmin):
+    list_display = [
+        'name', 
+        'display_products', 
+        'discount_percentage', 
+        'discount_fixed',  # Changed from discount_amount
+        'valid_from', 
+        'valid_to', 
+        'is_active',       # Changed from active
+        'times_used'
+    ]
+    list_filter = ['is_active', 'valid_from', 'valid_to']  # Removed 'product' from filters
+    search_fields = ['name', 'products__name']  # Changed 'product__name' to 'products__name'
+    filter_horizontal = ['products']  # Add this for better ManyToMany UI
+    
+    def display_products(self, obj):
+        """Display first 3 products in the offer"""
+        products = obj.products.all()[:3]
+        if products:
+            return ", ".join([p.name for p in products]) + ("..." if obj.products.count() > 3 else "")
+        return "-"
+    display_products.short_description = 'Products'
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'description', 'products')  # Changed 'product' to 'products'
+        }),
+        ('Discount Details', {
+            'fields': ('discount_percentage', 'discount_fixed', 'max_discount')
+        }),
+        ('Conditions', {
+            'fields': ('min_purchase_amount', 'min_cart_value', 'usage_limit')
+        }),
+        ('Validity', {
+            'fields': ('valid_from', 'valid_to',  'is_active')
+        }),
+    )
+
+
+@admin.register(CategoryOffer)
+class CategoryOfferAdmin(admin.ModelAdmin):
+    list_display = ['name', 'category', 'discount_percentage', 'discount_fixed',
+                   'valid_from', 'valid_to', 'is_active', 'times_used']  # 'category' is fine (ForeignKey)
+    list_filter = ['is_active', 'category', 'valid_from', 'valid_to']
+    search_fields = ['name', 'category__name']
+    # No filter_horizontal needed for ForeignKey
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'description', 'category')  # 'category' is fine
+        }),
+        ('Discount Details', {
+            'fields': ('discount_percentage', 'discount_fixed',  'max_discount')
+        }),
+        ('Conditions', {
+            'fields': ('min_purchase_amount', 'min_cart_value', 'usage_limit')
+        }),
+        ('Validity', {
+            'fields': ('valid_from', 'valid_to', 'is_active')
+        }),
+    )
+
+@admin.register(OfferApplication)
+class OfferApplicationAdmin(admin.ModelAdmin):
+    list_display = ['id', 'order', 'product', 'offer_type', 'discount_amount']
+    list_filter = ['offer_type']
+    search_fields = ['order__order_number', 'product__name']
+    readonly_fields = ['offer_name', 'original_price', 'discount_amount', 'final_price'] 
+
+
+
 # @admin.register(Wallet)
 # class WalletAdmin(admin.ModelAdmin):
 #     list_display = ['user', 'balance', 'created_at']

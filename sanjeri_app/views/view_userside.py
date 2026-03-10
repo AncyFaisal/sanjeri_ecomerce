@@ -7,6 +7,8 @@ from django.db.models import Q
 from django.db import models 
 from django.db.models.functions import Coalesce
 from ..models import Wishlist,WishlistItem
+from ..models.offer_models import ProductOffer, CategoryOffer
+from django.utils import timezone
 
 def home(request):
     """Home page view showing variants individually"""
@@ -84,6 +86,32 @@ def men_products(request):
             wishlist_product_ids = list(wishlist.products.values_list('id', flat=True))
         except Wishlist.DoesNotExist:
             pass
+
+    # Add this debug code after getting your products
+    # now = timezone.now()
+
+    # Check active product offers
+    # active_product_offers = ProductOffer.objects.filter(
+    #     is_active=True,
+    #     valid_from__lte=now,
+    #     valid_to__gte=now
+    # )
+    # print(f"\n=== OFFER DEBUG ===")
+    # print(f"Active Product Offers: {active_product_offers.count()}")
+    # for offer in active_product_offers:
+    #     print(f"  - {offer.name}: {offer.discount_percentage}% off")
+    #     print(f"    Products: {[p.name for p in offer.products.all()]}")
+    
+    # # Check active category offers
+    # active_category_offers = CategoryOffer.objects.filter(
+    #     is_active=True,
+    #     valid_from__lte=now,
+    #     valid_to__gte=now
+    # )
+    # print(f"Active Category Offers: {active_category_offers.count()}")
+    # for offer in active_category_offers:
+    #     print(f"  - {offer.name}: {offer.discount_percentage}% off on {offer.category.name}")
+
 
     # Start with VARIANTS, not products
     variants = ProductVariant.objects.filter(
@@ -195,7 +223,8 @@ def men_products(request):
             'fragrance_type': fragrance_type,
             'occasion': occasion,
             'volume': volume,
-        }
+        },
+        'now': timezone.now()
     }
     return render(request, 'men.html', context)
 

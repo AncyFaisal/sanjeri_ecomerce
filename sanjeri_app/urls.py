@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
+from django.http import HttpResponse 
+
 from .views.category import category_add, category_manage, category_edit, category_success, category_filter, category_delete
 from .views.product import *  # REMOVED product_delete
 from .views.user_views import *
@@ -11,15 +13,12 @@ from .views.user_userprofile_manage import *
 from .views.user_address_manage import *
 from .views.cart import *
 from .views.checkout import (
-    get_coupon_display_data,
-    get_coupon_description,
     checkout_view,
     place_order,
     order_success,
     verify_payment,
-    order_detail, 
-    payment_failed,
-    test_razorpay_connection,debug_payment,simple_verify_payment
+    payment_failed, 
+    
 )
 from .views.admin_order_management import *
 
@@ -47,6 +46,13 @@ from .views.wallet_views import (
     # verify_payment_simple,
     
     
+)
+from .views.admin_wallet_views import admin_pending_refunds, admin_approve_refund, admin_reject_refund
+from sanjeri_app.views.admin_offer_views import (
+    product_offer_list, product_offer_create, product_offer_edit,
+    product_offer_delete, product_offer_toggle_status,
+    category_offer_list, category_offer_create, category_offer_edit,
+    category_offer_delete, category_offer_toggle_status
 )
 
 # from .views.order_management import order_list, order_detail, cancel_order, cancel_order_item, return_order, download_invoice
@@ -101,8 +107,7 @@ path('products/<int:product_pk>/variants/<int:variant_pk>/restore/', variant_res
     
     # Main website
     path('', homepage, name='homepage'),
-    # path('commonhome/', homeproduct, name='commonhome'),
-    # path('home-product-search',home_product_search,name='home_product_search'), #for search results of home search bar
+   
     
     # Product pages
     path('men/', men_products, name='men'),  
@@ -135,8 +140,7 @@ path('products/<int:product_pk>/variants/<int:variant_pk>/restore/', variant_res
     path('cart/clear/', clear_cart, name='clear_cart'),
     path('cart/count/', get_cart_count, name='get_cart_count'),
 
-    # path('test-cart/', test_cart, name='test_cart'),
-
+    
     # User Profile management from userside URLs
     path('profile/', user_profile, name='user_profile'),
     path('profile/edit/', edit_profile, name='edit_profile'),
@@ -171,32 +175,41 @@ path('products/<int:product_pk>/variants/<int:variant_pk>/restore/', variant_res
     # user order management
     path('orders/order-item/<int:item_id>/cancel/', cancel_order_item, name='cancel_order_item'),
     path('orders/<int:order_id>/request-return/', request_return, name='request_return'),
-   
+     path('order-management/item/<int:item_id>/request-return/', request_item_return, name='request_item_return'),
 
 
     # Keep the profile orders as a redirect to the new system
     path('profile/orders/', order_list, name='order_history'),  # Redirect to new order list
 
-    # Admin Order Management URLs
-    # path('admin/orders/', admin_order_list, name='admin_order_list'),
-    # path('admin/orders/<int:order_id>/', admin_order_detail, name='admin_order_detail'),
-    # path('admin/orders/<int:order_id>/update-status/', update_order_status, name='update_order_status'),
-
-    # Admin Inventory Management URLs
-    # path('admin/inventory/', admin_inventory_management, name='admin_inventory_management'),
-    # path('admin/inventory/<int:variant_id>/update-stock/', update_stock, name='update_stock'),
-
-    path('order-management/', admin_order_list, name='admin_order_list'),
-    path('inventory-management/', admin_inventory_management, name='admin_inventory_management'),
+   
 
     # Order Management URLs
 path('order-management/', admin_order_list, name='admin_order_list'),
 path('order-management/<int:order_id>/', admin_order_detail, name='admin_order_detail'),
 path('order-management/<int:order_id>/update-status/', update_order_status, name='update_order_status'),
 
+ # Admin Return URLs
+    path('order-management/<int:order_id>/approve-return/', approve_return, name='approve_return'),
+    path('order-management/<int:order_id>/reject-return/', reject_return, name='reject_return'),
+  # Item return (use 'item' in the path to distinguish)
+path('order-management/item/<int:item_id>/approve-return/', approve_item_return, name='approve_item_return'),
+path('order-management/item/<int:item_id>/reject-return/', reject_item_return, name='reject_item_return'), # Refund Status
+    path('orders/<int:order_id>/refund-status/', refund_status, name='refund_status'),
+ path('orders/<int:order_id>/check-refund/', check_refund_status, name='check_refund_status'),
+
+
+
+
+# Admin Wallet Management
+path('wallet/pending-refunds/', admin_pending_refunds, name='admin_pending_refunds'),
+path('wallet/refund/<int:refund_id>/approve/', admin_approve_refund, name='admin_approve_refund'),
+path('wallet/refund/<int:refund_id>/reject/', admin_reject_refund, name='admin_reject_refund'),
+
+
 
 # Inventory Management URLs
 path('inventory-management/', admin_inventory_management, name='admin_inventory_management'),
+
 path('inventory-management/<int:variant_id>/update-stock/', update_stock, name='update_stock'),
 
 # Payment URLs
@@ -213,37 +226,15 @@ path('details/<int:order_id>/', payment_details, name='payment_details'),
 # Coupon URLs
     path('coupon/apply/', apply_coupon, name='apply_coupon'),
     path('coupon/remove/', remove_coupon, name='remove_coupon'),
-    # path('coupon/remove/', remove_coupon, name='remove_coupon'),
+   
 
-    # Wallet URLs
-    # path('wallet/', wallet_dashboard, name='wallet_dashboard'),
-    # path('wallet/transactions/', WalletTransactionListView.as_view(), name='wallet_transactions'),
-    # path('order/<int:order_id>/return/', request_return, name='request_return'),
-    # path('order/<int:order_id>/cancel-wallet/', wallet_cancel_order, name='cancel_order_wallet'),
-    # path('wallet/payment/', wallet_payment, name='wallet_payment'),
-
-
-# Wallet URLs with Razorpay integration
+   
 
 
 
-# Wallet URLs (simple version)
-path('wallet/', wallet_dashboard, name='wallet_dashboard'),
 
-# path('wallet/add-balance/', add_wallet_balance, name='add_wallet_balance'),
-# path('wallet/verify-payment/', verify_wallet_payment, name='verify_wallet_payment'),
-# path('wallet/transactions/', wallet_transactions, name='wallet_transactions'),
-# # path('wallet/', wallet_dashboard, name='wallet_dashboard'),
-# path('wallet/transactions/', wallet_transactions, name='wallet_transactions'),
-# path('wallet/add-balance/', add_wallet_balance, name='add_wallet_balance'),
-# path('wallet/verify-payment/', verify_wallet_payment, name='verify_wallet_payment'),
-# path('wallet/direct-add/', direct_add_money, name='direct_add_money'),
-# path('wallet/verify-payment-simple/', verify_payment_simple, name='verify_payment_simple'),
-# path('wallet/test-add/', test_add_money, name='test_add_money'),
-#  path('wallet/add-balance/', add_wallet_balance, name='add_wallet_balance'),
-    # path('wallet/', wallet_balance, name='wallet_balance'),
-    # path('use-wallet-payment/',use_wallet_payment, name='use_wallet_payment'),
-    # path('orders/<int:order_id>/process-return/', process_return_refund, name='process_return_refund'),
+
+
 
 
 # Wallet URLs (simple - no Razorpay integration)
@@ -271,23 +262,23 @@ path('coupons/trash/restore-all/', restore_all_coupons, name='restore_all_coupon
 path('sales-report/', sales_report, name='sales_report'),
 path('sales-report/export/', export_sales_report, name='export_sales_report'),
 
-path('payment/debug/', debug_payment, name='debug_payment'),
+
 
 
 path('payment/test/', lambda request: HttpResponse("Payment test endpoint works!"), name='payment_test'),
 
-# path('wallet/test-payment/', test_wallet_payment, name='test_wallet_payment'),
-# In urls.py
-path('payment/simple-verify/', simple_verify_payment, name='simple_verify_payment'),
+  
+  # Offer Management URLs
+path('offers/products/', product_offer_list, name='product_offer_list'),
+path('offers/products/create/', product_offer_create, name='product_offer_create'),
+path('offers/products/<int:offer_id>/edit/', product_offer_edit, name='product_offer_edit'),
+path('offers/products/<int:offer_id>/delete/', product_offer_delete, name='product_offer_delete'),
+path('offers/products/<int:offer_id>/toggle-status/', product_offer_toggle_status, name='product_offer_toggle_status'),
 
-   # Admin Return URLs
-    path('admin/orders/<int:order_id>/approve-return/', approve_return, name='approve_return'),
-    path('admin/orders/<int:order_id>/reject-return/', reject_return, name='reject_return'),
-    
-    # Refund Status
-    path('orders/<int:order_id>/refund-status/', refund_status, name='refund_status'),
- path('orders/<int:order_id>/check-refund/', check_refund_status, name='check_refund_status'),
-
-
+path('offers/categories/', category_offer_list, name='category_offer_list'),
+path('offers/categories/create/', category_offer_create, name='category_offer_create'),
+path('offers/categories/<int:offer_id>/edit/', category_offer_edit, name='category_offer_edit'),
+path('offers/categories/<int:offer_id>/delete/', category_offer_delete, name='category_offer_delete'),
+path('offers/categories/<int:offer_id>/toggle-status/', category_offer_toggle_status, name='category_offer_toggle_status'),
 
 ]

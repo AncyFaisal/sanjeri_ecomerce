@@ -1,10 +1,16 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load offer_tags %}
 
 {% block title %}Men's Fragrances - Sanjeri{% endblock %}
 
 {% block extra_css %}
 <style>
+  :root {
+    --primary-color: #431405;
+    --background-color: #fff8f5;
+  }
+  
   .banner-section {
     margin-top: 20px;
     border-radius: 8px;
@@ -70,6 +76,7 @@
     margin-bottom: 20px;
     border: 1px solid #f0f0f0;
     height: 100%;
+    position: relative;
   }
 
   .product-item:hover {
@@ -175,6 +182,7 @@
     color: var(--primary-color);
     transition: all 0.3s;
     font-size: 0.8rem;
+    z-index: 5;
   }
 
   .btn-wishlist:hover {
@@ -283,8 +291,8 @@
     z-index: 2;
   }
   
-  /* Discount badge */
-  .discount-badge {
+  /* Offer badge */
+  .offer-badge {
     position: absolute;
     top: 10px;
     right: 10px;
@@ -292,23 +300,54 @@
   }
 
   /* Add to Cart button states */
-.btn-add-cart-sm.btn-loading {
+  .btn-add-cart-sm.btn-loading {
     position: relative;
     color: transparent !important;
-}
+  }
 
-.btn-add-cart-sm.btn-loading i {
+  .btn-add-cart-sm.btn-loading i {
     display: none;
-}
+  }
 
-.btn-success i {
+  .btn-success i {
     display: inline-block !important;
-}
+  }
 
-/* Ensure success button doesn't have loading spinner */
-.btn-success.btn-loading::after {
+  /* Ensure success button doesn't have loading spinner */
+  .btn-success.btn-loading::after {
     display: none;
-}
+  }
+
+  /* Notification styles */
+  .notification {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 5px;
+    color: white;
+    z-index: 9999;
+    max-width: 300px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+  }
+
+  .notification.show {
+    transform: translateX(0);
+  }
+
+  .notification.success {
+    background-color: #28a745;
+  }
+
+  .notification.error {
+    background-color: #dc3545;
+  }
+
+  .notification.info {
+    background-color: #17a2b8;
+  }
 </style>
 {% endblock %}
 
@@ -393,7 +432,7 @@
       </div>
       <div class="col-md-6 text-md-end mt-3 mt-md-0">
         <div class="filter-options">
-          {% if  request.GET.sort or request.GET.price_range or request.GET.fragrance_type or request.GET.occasion or request.GET.volume %}
+          {% if request.GET.sort or request.GET.price_range or request.GET.fragrance_type or request.GET.occasion or request.GET.volume %}
           <button type="button" class="btn btn-outline-secondary me-2" onclick="clearAllFilters()">
             <i class="fas fa-times me-1"></i>Clear All
           </button>
@@ -430,20 +469,20 @@
                 <label class="form-check-label" for="price-under-1000">Under ₹1000</label>
               </div>
               <div class="form-check">
-                <input class="form-check-input" type="radio" name="price_range" id="price-1000-3000" value="1000-2000" {% if request.GET.price_range == '1000-2000' %}checked{% endif %}>
+                <input class="form-check-input" type="radio" name="price_range" id="price-1000-2000" value="1000-2000" {% if request.GET.price_range == '1000-2000' %}checked{% endif %}>
                 <label class="form-check-label" for="price-1000-2000">₹1000 - ₹2000</label>
               </div>
               <div class="form-check">
                 <input class="form-check-input" type="radio" name="price_range" id="price-2000-3000" value="2000-3000" {% if request.GET.price_range == '2000-3000' %}checked{% endif %}>
-                <label class="form-check-label" for="price-3000-5000">₹2000 - ₹3000</label>
+                <label class="form-check-label" for="price-2000-3000">₹2000 - ₹3000</label>
               </div>
               <div class="form-check">
                 <input class="form-check-input" type="radio" name="price_range" id="price-3000-5000" value="3000-5000" {% if request.GET.price_range == '3000-5000' %}checked{% endif %}>
-                <label class="form-check-label" for="price-5000-10000">₹3000 - ₹5000</label>
+                <label class="form-check-label" for="price-3000-5000">₹3000 - ₹5000</label>
               </div>
               <div class="form-check">
                 <input class="form-check-input" type="radio" name="price_range" id="price-above-5000" value="above-5000" {% if request.GET.price_range == 'above-5000' %}checked{% endif %}>
-                <label class="form-check-label" for="price-above-10000">Above ₹5000</label>
+                <label class="form-check-label" for="price-above-5000">Above ₹5000</label>
               </div>
             </div>
 
@@ -554,6 +593,9 @@
 </div>
 {% endif %}
 
+<!-- Notification Container -->
+<div id="notification" class="notification"></div>
+
 <!-- Men's Products Grid Section -->
 <section class="product-section" id="products">
   <div class="container">
@@ -568,33 +610,23 @@
           <span class="badge bg-info variant-badge">
             {{ variant.volume_ml }}ml
           </span>
-          
-          <!-- Discount Badge -->
-          <!-- {% if variant.discount_price and variant.discount_price < variant.price %}
-          <span class="badge bg-success discount-badge">
-            {% with discount=variant.discount_percentage %}
-              {{ discount }}% OFF
-            {% endwith %}
-          </span>
-          {% endif %} -->
 
-          <!-- <button class="btn-wishlist position-absolute top-0 end-0 m-2">
-            <i class="far fa-heart"></i>
-          </button> -->
+          <!-- Wishlist Button -->
           {% include 'includes/wishlist_button.html' with product=variant.product %}
+          
           <figure class="text-center mb-2">
             <a href="{% url 'product_detail' variant.product.id %}" title="{{ variant.product.name }}">
               {% if variant.variant_image %}
-              <img src="{{ variant.variant_image.url }}" class="img-fluid product-img-sm" alt="{{ variant.product.name }} - {{ variant.volume_ml }}ml">
+                <img src="{{ variant.variant_image.url }}" class="img-fluid product-img-sm" alt="{{ variant.product.name }} - {{ variant.volume_ml }}ml">
               {% elif variant.product.main_image %}
-              <img src="{{ variant.product.main_image.url }}" class="img-fluid product-img-sm" alt="{{ variant.product.name }} - {{ variant.volume_ml }}ml">
+                <img src="{{ variant.product.main_image.url }}" class="img-fluid product-img-sm" alt="{{ variant.product.name }} - {{ variant.volume_ml }}ml">
               {% else %}
-              <div class="image-placeholder">
-                <div class="text-center">
-                  <i class="fas fa-perfume-bottle fa-3x text-muted mb-2"></i>
-                  <p class="small text-muted">No Image</p>
+                <div class="image-placeholder">
+                  <div class="text-center">
+                    <i class="fas fa-perfume-bottle fa-3x text-muted mb-2"></i>
+                    <p class="small text-muted">No Image</p>
+                  </div>
                 </div>
-              </div>
               {% endif %}
             </a>
           </figure>
@@ -631,17 +663,31 @@
               <span class="rating-count-sm">({{ variant.product.rating_count|default:"4.2" }})</span>
             </div>
 
-            <div class="price-section-sm mb-1">
-              {% if variant.discount_price and variant.discount_price < variant.price %}
-              <div class="d-flex align-items-center">
-                <span class="current-price-sm fw-bold">₹{{ variant.discount_price }}</span>
-                <small class="text-muted ms-2 text-decoration-line-through">₹{{ variant.price }}</small>
-              </div>
-              {% else %}
-              <span class="current-price-sm fw-bold">₹{{ variant.price }}</span>
-              {% endif %}
-              <small class="text-muted d-block">{{ variant.gender }} • SKU: {{ variant.sku }}</small>
+            <!-- Price Section with Offer - FIXED -->
+            <!-- Price Section with Offer -->
+<div class="price-section-sm mb-1">
+    {% with best_offer=variant.product|get_best_offer %}
+        {% if best_offer %}
+            {% with discount=variant.price|get_offer_discount:variant.product %}
+                {% with offer_price=variant.price|subtract:discount %}
+                    <div class="d-flex align-items-center flex-wrap">
+                        <span class="current-price-sm fw-bold text-danger">₹{{ offer_price|floatformat:0 }}</span>
+                        <small class="text-muted ms-2 text-decoration-line-through">₹{{ variant.price|floatformat:0 }}</small>
+                        <span class="badge bg-danger ms-2">{{ best_offer.discount_percentage }}% OFF</span>
+                    </div>
+                {% endwith %}
+            {% endwith %}
+        {% elif variant.discount_price and variant.discount_price < variant.price %}
+            <div class="d-flex align-items-center flex-wrap">
+                <span class="current-price-sm fw-bold">₹{{ variant.discount_price|floatformat:0 }}</span>
+                <small class="text-muted ms-2 text-decoration-line-through">₹{{ variant.price|floatformat:0 }}</small>
             </div>
+        {% else %}
+            <span class="current-price-sm fw-bold">₹{{ variant.price|floatformat:0 }}</span>
+        {% endif %}
+    {% endwith %}
+    <small class="text-muted d-block">{{ variant.gender }} • SKU: {{ variant.sku }}</small>
+</div>
 
             <div class="stock-status-sm mb-2">
               {% if variant.stock > 10 %}
@@ -655,15 +701,15 @@
 
             <div class="d-flex justify-content-center">
               {% if variant.stock > 0 %}
-              <button class="btn btn-add-cart-sm add-to-cart-btn" 
-                data-variant-id="{{ variant.id }}"
-                data-product-id="{{ variant.product.id }}">
-                <i class="fas fa-shopping-cart me-1"></i> Add to Cart
-              </button>
+                <button class="btn btn-add-cart-sm add-to-cart-btn" 
+                  data-variant-id="{{ variant.id }}"
+                  data-product-id="{{ variant.product.id }}">
+                  <i class="fas fa-shopping-cart me-1"></i> Add to Cart
+                </button>
               {% else %}
-              <button class="btn btn-secondary btn-sm" disabled>
-                <i class="fas fa-times me-1"></i> Out of Stock
-              </button>
+                <button class="btn btn-secondary btn-sm" disabled>
+                  <i class="fas fa-times me-1"></i> Out of Stock
+                </button>
               {% endif %}
             </div>
           </div>
@@ -671,6 +717,7 @@
       </div>
       {% empty %}
       <div class="col-12 text-center py-5">
+        <i class="fas fa-box-open fa-4x text-muted mb-3"></i>
         <p class="text-muted fs-5">No men's products available yet.</p>
         <p class="text-muted">Check back later for new arrivals.</p>
       </div>
@@ -684,43 +731,43 @@
         <nav aria-label="Product pagination">
           <ul class="pagination justify-content-center">
             {% if page_obj.has_previous %}
-            <li class="page-item">
-              <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Previous">
-                <i class="fas fa-chevron-left"></i>
-              </a>
-            </li>
+              <li class="page-item">
+                <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                  <i class="fas fa-chevron-left"></i>
+                </a>
+              </li>
             {% else %}
-            <li class="page-item disabled">
-              <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
-                <i class="fas fa-chevron-left"></i>
-              </a>
-            </li>
+              <li class="page-item disabled">
+                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                  <i class="fas fa-chevron-left"></i>
+                </a>
+              </li>
             {% endif %}
             
             {% for num in page_obj.paginator.page_range %}
               {% if page_obj.number == num %}
-              <li class="page-item active">
-                <span class="page-link">{{ num }}</span>
-              </li>
+                <li class="page-item active">
+                  <span class="page-link">{{ num }}</span>
+                </li>
               {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-              <li class="page-item">
-                <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ num }}">{{ num }}</a>
-              </li>
+                <li class="page-item">
+                  <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ num }}">{{ num }}</a>
+                </li>
               {% endif %}
             {% endfor %}
             
             {% if page_obj.has_next %}
-            <li class="page-item">
-              <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Next">
-                <i class="fas fa-chevron-right"></i>
-              </a>
-            </li>
+              <li class="page-item">
+                <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Next">
+                  <i class="fas fa-chevron-right"></i>
+                </a>
+              </li>
             {% else %}
-            <li class="page-item disabled">
-              <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
-                <i class="fas fa-chevron-right"></i>
-              </a>
-            </li>
+              <li class="page-item disabled">
+                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                  <i class="fas fa-chevron-right"></i>
+                </a>
+              </li>
             {% endif %}
           </ul>
         </nav>
@@ -760,7 +807,7 @@
     const params = new URLSearchParams();
     
     const currentUrl = new URL(window.location.href);
-    const currentParams = ['q', 'sort'];
+    const currentParams = ['q', 'sort', 'gender'];
     
     currentParams.forEach(param => {
       const value = currentUrl.searchParams.get(param);
@@ -782,13 +829,19 @@
   }
 
   function clearAllFilters() {
-    window.location.href = '?';
+    window.location.href = '?gender=Male';
   }
 
   function removeFilter(filterName) {
     const url = new URL(window.location.href);
     url.searchParams.delete(filterName);
     url.searchParams.delete('page');
+    
+    // Preserve gender when removing other filters
+    if (!url.searchParams.has('gender')) {
+      url.searchParams.set('gender', 'Male');
+    }
+    
     window.location.href = url.toString();
   }
 
@@ -838,22 +891,16 @@
   }
 
   function showNotification(message, type = 'info') {
-    // Create notification element if it doesn't exist
-    let notification = document.getElementById('notification');
-    if (!notification) {
-      notification = document.createElement('div');
-      notification.id = 'notification';
-      notification.className = 'notification';
-      document.body.appendChild(notification);
+    const notification = document.getElementById('notification');
+    if (notification) {
+      notification.textContent = message;
+      notification.className = `notification ${type}`;
+      notification.classList.add('show');
+      
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 3000);
     }
-    
-    notification.textContent = message;
-    notification.className = `notification ${type}`;
-    notification.classList.add('show');
-    
-    setTimeout(() => {
-      notification.classList.remove('show');
-    }, 3000);
   }
 
   function updateCartBadge(count) {
@@ -887,19 +934,19 @@
     }
   }
 
-function updateButtonToGoToCart(button) {
+  function updateButtonToGoToCart(button) {
     button.innerHTML = '<i class="fas fa-shopping-cart me-1"></i> Go to Cart';
     button.classList.add('btn-success');
     button.classList.remove('btn-add-cart-sm', 'btn-loading');
     button.disabled = false;
-}
+  }
 
-function updateButtonToAddCart(button) {
+  function updateButtonToAddCart(button) {
     button.innerHTML = '<i class="fas fa-shopping-cart me-1"></i> Add to Cart';
     button.classList.remove('btn-success', 'btn-loading');
     button.classList.add('btn-add-cart-sm');
     button.disabled = false;
-}
+  }
 
   async function addToCart(variantId, productId, button) {
     const originalText = button.innerHTML;
@@ -910,58 +957,58 @@ function updateButtonToAddCart(button) {
     button.disabled = true;
     
     try {
-        const csrfToken = getCookie('csrftoken');
-        
-        const response = await fetch(`/cart/add/${variantId}/`, {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': csrfToken,
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `quantity=1&csrfmiddlewaretoken=${csrfToken}`
-        });
+      const csrfToken = getCookie('csrftoken');
+      
+      const response = await fetch(`/cart/add/${variantId}/`, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': csrfToken,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `quantity=1&csrfmiddlewaretoken=${csrfToken}`
+      });
 
-        const data = await response.json();
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update cart badge
+        updateCartBadge(data.cart_total_items);
         
-        if (data.success) {
-            // Update cart badge
-            updateCartBadge(data.cart_total_items);
-            
-            // Remove disabled state
-            button.disabled = false;
-            
-            // Change button to "Go to Cart" - don't use btn-loading class
-            button.innerHTML = '<i class="fas fa-shopping-cart me-1"></i> Go to Cart';
-            button.classList.add('btn-success');
-            button.classList.remove('btn-add-cart-sm', 'btn-loading');
-            
-            // Store in localStorage
-            localStorage.setItem(`added_${variantId}`, 'true');
-            
-            showNotification('Product added to cart!', 'success');
-            
-        } else {
-            // Restore original state
-            button.innerHTML = originalText;
-            button.className = originalClasses;
-            button.disabled = false;
-            
-            showNotification(data.message || 'Please select a variant first', 'info');
-            setTimeout(() => {
-                window.location.href = `/product/${productId}/`;
-            }, 1500);
-        }
-    } catch (error) {
-        console.error('Add to cart error:', error);
-        showNotification('Error adding to cart. Please try again.', 'error');
+        // Remove disabled state
+        button.disabled = false;
         
-        // Restore original state on error
+        // Change button to "Go to Cart"
+        button.innerHTML = '<i class="fas fa-shopping-cart me-1"></i> Go to Cart';
+        button.classList.add('btn-success');
+        button.classList.remove('btn-add-cart-sm', 'btn-loading');
+        
+        // Store in localStorage
+        localStorage.setItem(`added_${variantId}`, 'true');
+        
+        showNotification('Product added to cart!', 'success');
+        
+      } else {
+        // Restore original state
         button.innerHTML = originalText;
         button.className = originalClasses;
         button.disabled = false;
+        
+        showNotification(data.message || 'Please select a variant first', 'info');
+        setTimeout(() => {
+          window.location.href = `/product/${productId}/`;
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Add to cart error:', error);
+      showNotification('Error adding to cart. Please try again.', 'error');
+      
+      // Restore original state on error
+      button.innerHTML = originalText;
+      button.className = originalClasses;
+      button.disabled = false;
     }
-}
+  }
 
   function initializeCartButtons() {
     // Handle add to cart button clicks

@@ -45,11 +45,30 @@
                     </a>
                 </li>
                 <li class="nav-item">
+    <a href="#" class="nav-link has-submenu {% if 'offer' in request.path %}active{% endif %}">
+        <i class="fas fa-percent"></i>
+        <span>Offer Management</span>
+        <i class="fas fa-chevron-right ms-auto submenu-icon"></i>
+    </a>
+    <ul class="submenu" style="{% if 'offer' in request.path %}display: block;{% endif %}">
+        <li>
+            <a href="{% url 'product_offer_list' %}" class="nav-link {% if 'product' in request.path and 'offer' in request.path %}active{% endif %}">
+                <i class="fas fa-tag"></i> Product Offers
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'category_offer_list' %}" class="nav-link {% if 'category' in request.path and 'offer' in request.path %}active{% endif %}">
+                <i class="fas fa-layer-group"></i> Category Offers
+            </a>
+        </li>
+    </ul>
+</li>
+                <!-- <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="fas fa-chart-line"></i>
                         <span>Analytics</span>
                     </a>
-                </li>
+                </li> -->
                 <li class="nav-item">
     <a class="nav-link" href="{% url 'admin_order_list' %}">
         <i class="fas fa-shopping-bag"></i>

@@ -85,6 +85,21 @@ def admin_order_list(request):
 @admin_required
 def admin_order_detail(request, order_id):
     """Admin order detail view"""
+    print("\n" + "="*50)
+    print(f"🔍 VIEW CALLED with order_id={order_id}")
+    print(f"🔍 URL: {request.build_absolute_uri()}")
+    print(f"🔍 Method: {request.method}")
+
+    try:
+        order = Order.objects.get(id=order_id)
+        print(f"✅ Found order: #{order.order_number}")
+        print(f"✅ Redirecting to template...")
+    except Order.DoesNotExist:
+        print(f"❌ Order with id={order_id} does NOT exist!")
+    except Exception as e:
+        print(f"❌ Error: {e}")
+    print("="*50)
+    
     try:
         # Get order without user restriction (admin can see all orders)
         order = get_object_or_404(Order.objects.select_related(
@@ -274,40 +289,258 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from ..models import Order
 
+
 @staff_member_required
 def approve_return(request, order_id):
-    """Admin approves return and processes wallet refund"""
+    """Admin approves return and processes wallet refund (VIEW)"""
     order = get_object_or_404(Order, id=order_id)
     
+    # Check if already approved
+    if order.return_status == 'approved':
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': False,
+                'message': f'Return for order #{order.order_number} is already approved.'
+            })
+        else:
+            messages.warning(request, f"Return for order #{order.order_number} is already approved.")
+            return redirect('admin_order_detail', order_id=order_id)
+    
+    # Call the model method (this will call the correct one in models/order.py)
     if order.approve_return(request.user):
-        messages.success(request, f"Return approved for order #{order.order_number}. Amount refunded to customer's wallet.")
+        message = f"Return approved for order #{order.order_number}. Amount refunded to customer's wallet."
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'message': message,
+                'new_status': order.status,
+                'new_status_display': order.get_status_display(),
+                'new_payment_status': order.payment_status,
+                'new_payment_status_display': order.get_payment_status_display(),
+                'return_status': order.return_status
+            })
+        else:
+            messages.success(request, message)
     else:
-        messages.error(request, "Cannot approve return. Order may not be in requested state.")
+        message = "Cannot approve return. Order may not be in requested state."
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'message': message})
+        else:
+            messages.error(request, message)
+    
+    return redirect('admin_order_detail', order_id=order_id)
+        
+    
+@staff_member_required
+def reject_return(request, order_id):
+    """Admin rejects return request with reason"""
+    # Check if it's AJAX request
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    
+    # Only allow POST requests
+    if request.method != 'POST':
+        if is_ajax:
+            return JsonResponse({'success': False, 'message': 'Invalid request method.'})
+        messages.error(request, "Invalid request method.")
+        return redirect('admin_order_detail', order_id=order_id)
+    
+    # Get the order
+    try:
+        order = Order.objects.select_related('user').get(id=order_id)
+    except Order.DoesNotExist:
+        if is_ajax:
+            return JsonResponse({'success': False, 'message': 'Order not found.'})
+        messages.error(request, "Order not found.")
+        return redirect('admin_order_list')
+    
+    # Get and validate rejection reason
+    rejection_reason = request.POST.get('rejection_reason', '').strip()
+    
+    if not rejection_reason:
+        if is_ajax:
+            return JsonResponse({'success': False, 'message': 'Please provide a reason for rejection.'})
+        messages.error(request, "Please provide a reason for rejection.")
+        return redirect('admin_order_detail', order_id=order_id)
+    
+    if len(rejection_reason) < 10:
+        if is_ajax:
+            return JsonResponse({'success': False, 'message': 'Please provide a more detailed reason (at least 10 characters).'})
+        messages.error(request, "Please provide a more detailed reason (at least 10 characters).")
+        return redirect('admin_order_detail', order_id=order_id)
+    
+    # Validate order state
+    if order.return_status != 'requested':
+        if is_ajax:
+            return JsonResponse({'success': False, 'message': f"Cannot reject return. Order status is '{order.get_return_status_display()}', not 'Requested'."})
+        messages.error(request, f"Cannot reject return. Order status is '{order.get_return_status_display()}', not 'Requested'.")
+        return redirect('admin_order_detail', order_id=order_id)
+    
+    # Call the model method to reject the return
+    try:
+        if order.reject_return(rejection_reason):
+            message = f"Return rejected for order #{order.order_number}. Reason: {rejection_reason}"
+            
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'message': message,
+                    'new_status': order.status,
+                    'new_status_display': order.get_status_display(),
+                    'new_payment_status': order.payment_status,
+                    'new_payment_status_display': order.get_payment_status_display(),
+                    'return_status': order.return_status,
+                    'redirect_url': reverse('admin_order_detail', args=[order.id])
+                })
+            else:
+                messages.warning(request, message)
+        else:
+            if is_ajax:
+                return JsonResponse({'success': False, 'message': 'Failed to reject return. Please check if order is in correct state.'})
+            messages.error(request, "Failed to reject return. Please check if order is in correct state.")
+            
+    except Exception as e:
+        if is_ajax:
+            return JsonResponse({'success': False, 'message': f'An error occurred: {str(e)}'})
+        messages.error(request, f"An error occurred: {str(e)}")
+        import traceback
+        traceback.print_exc()
+    
+    return redirect('admin_order_detail', order_id=order_id)
+
+@login_required
+@admin_required
+def admin_edit_order_items(request, order_id):
+    """Admin view to add/remove order items"""
+    order = get_object_or_404(Order, id=order_id)
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'add_item':
+            # Get variant and quantity
+            variant_id = request.POST.get('variant_id')
+            quantity = int(request.POST.get('quantity', 1))
+            
+            variant = get_object_or_404(ProductVariant, id=variant_id)
+            
+            # Create order item
+            OrderItem.objects.create(
+                order=order,
+                variant=variant,
+                product_name=variant.product.name,
+                variant_details=f"{variant.volume_ml}ml - {variant.gender}",
+                quantity=quantity,
+                unit_price=variant.display_price,
+                total_price=quantity * variant.display_price,
+            )
+            
+            # IMPORTANT: Recalculate totals after adding item
+            order.calculate_totals()
+            
+            messages.success(request, f"Added {quantity} x {variant.product.name} to order")
+            
+        elif action == 'remove_item':
+            item_id = request.POST.get('item_id')
+            item = get_object_or_404(OrderItem, id=item_id, order=order)
+            item.delete()
+            
+            # IMPORTANT: Recalculate totals after removing item
+            order.calculate_totals()
+            
+            messages.success(request, "Item removed from order")
+        
+        elif action == 'update_quantity':
+            item_id = request.POST.get('item_id')
+            new_quantity = int(request.POST.get('quantity', 1))
+            
+            item = get_object_or_404(OrderItem, id=item_id, order=order)
+            item.quantity = new_quantity
+            item.total_price = new_quantity * item.unit_price
+            item.save()
+            
+            # IMPORTANT: Recalculate totals after updating quantity
+            order.calculate_totals()
+            
+            messages.success(request, f"Quantity updated to {new_quantity}")
     
     return redirect('admin_order_detail', order_id=order_id)
 
 @staff_member_required
-def reject_return(request, order_id):
-    """Admin rejects return request"""
-    order = get_object_or_404(Order, id=order_id)
+def approve_item_return(request, item_id):
+    """Admin approves individual item return"""
+    order_item = get_object_or_404(OrderItem, id=item_id)
     
-    if order.status == 'return_requested':
-        order.status = 'delivered'  # Revert to delivered
-        order.save()
+    # Check if already approved
+    if order_item.return_status == 'approved':
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': False,
+                'message': f'Return for {order_item.product_name} is already approved.'
+            })
+        else:
+            messages.warning(request, f"Return for {order_item.product_name} is already approved.")
+            return redirect('admin_order_detail', order_id=order_item.order.id)
+    
+    if order_item.approve_item_return(request.user):
+        message = f"Return approved for {order_item.product_name}. ₹{order_item.total_price} refunded to wallet."
         
-        # Update or delete pending refund transaction
-        from ..models import WalletTransaction
-        transaction = order.wallettransaction_set.filter(
-            transaction_type='REFUND',
-            status='PENDING'
-        ).first()
-        
-        if transaction:
-            transaction.status = 'CANCELLED'
-            transaction.save()
-        
-        messages.success(request, f"Return rejected for order #{order.order_number}.")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'message': message,
+                'item_id': item_id,
+                'new_status': order_item.return_status,
+                'new_status_display': order_item.get_return_status_display()
+            })
+        else:
+            messages.success(request, message)
     else:
-        messages.error(request, "Cannot reject return.")
+        message = "Cannot approve return for this item."
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'message': message})
+        else:
+            messages.error(request, message)
     
-    return redirect('admin_order_detail', order_id=order_id)
+    return redirect('admin_order_detail', order_id=order_item.order.id)
+
+
+@staff_member_required
+def reject_item_return(request, item_id):
+    """Admin rejects individual item return"""
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    
+    if request.method != 'POST':
+        if is_ajax:
+            return JsonResponse({'success': False, 'message': 'Invalid request method.'})
+        messages.error(request, "Invalid request method.")
+        return redirect('admin_order_detail', order_id=order_item.order.id)
+    
+    order_item = get_object_or_404(OrderItem, id=item_id)
+    rejection_reason = request.POST.get('rejection_reason', '').strip()
+    
+    if not rejection_reason:
+        if is_ajax:
+            return JsonResponse({'success': False, 'message': 'Please provide a reason for rejection.'})
+        messages.error(request, "Please provide a reason for rejection.")
+        return redirect('admin_order_detail', order_id=order_item.order.id)
+    
+    if order_item.reject_item_return(rejection_reason, request.user):
+        message = f"Return rejected for {order_item.product_name}. Reason: {rejection_reason}"
+        
+        if is_ajax:
+            return JsonResponse({
+                'success': True,
+                'message': message,
+                'item_id': item_id,
+                'new_status': order_item.return_status,
+                'new_status_display': order_item.get_return_status_display()
+            })
+        else:
+            messages.warning(request, message)
+    else:
+        if is_ajax:
+            return JsonResponse({'success': False, 'message': 'Failed to reject return.'})
+        messages.error(request, "Failed to reject return.")
+    
+    return redirect('admin_order_detail', order_id=order_item.order.id)

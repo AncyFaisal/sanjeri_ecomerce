@@ -7,6 +7,7 @@ from .product import ProductVariant
 from .user_models import Address
 from decimal import Decimal
 from datetime import timedelta 
+# from .wallet import WalletTransaction,Wallet
 
 class Order(models.Model):
     ORDER_STATUS_CHOICES = [
@@ -49,6 +50,8 @@ class Order(models.Model):
     coupon = models.ForeignKey('Coupon', on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
     coupon_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
+    offer_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    
     # Order status and dates
     status = models.CharField(max_length=20, choices=ORDER_STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -67,7 +70,8 @@ class Order(models.Model):
     
     # Cancellation and Return fields (already present)
     cancellation_reason = models.TextField(blank=True, null=True)
-    return_reason = models.TextField(blank=True, null=True)
+    return_reason = models.TextField(blank=True, null=True) #Stores the customer's reason for requesting a return
+    return_rejection_reason = models.TextField(blank=True, null=True) #Stores the admin's reason for rejecting a return request 
     cancelled_at = models.DateTimeField(null=True, blank=True)
     returned_at = models.DateTimeField(null=True, blank=True)
     delivered_at = models.DateTimeField(null=True, blank=True)
@@ -94,6 +98,7 @@ class Order(models.Model):
     notes = models.TextField(blank=True, null=True)
     tracking_number = models.CharField(max_length=100, blank=True, null=True)
     
+    return_rejected_at = models.DateTimeField(null=True, blank=True)
     return_requested_at = models.DateTimeField(null=True, blank=True)
     return_approved_at = models.DateTimeField(null=True, blank=True)
     return_approved_by = models.ForeignKey(
@@ -118,6 +123,7 @@ class Order(models.Model):
     
     class Meta:
         ordering = ['-created_at']
+        unique_together = ['user', 'created_at'] 
         indexes = [
             models.Index(fields=['order_number']),
             models.Index(fields=['user', 'created_at']),
@@ -303,6 +309,10 @@ class Order(models.Model):
     
     def cancel_order(self, reason=""):
         """Cancel order - only refund if payment was made"""
+        from django.apps import apps
+        Wallet = apps.get_model('sanjeri_app', 'Wallet')
+        WalletTransaction = apps.get_model('sanjeri_app', 'WalletTransaction')
+
         if not self.can_be_cancelled:
             return False
         
@@ -496,8 +506,28 @@ class Order(models.Model):
         if self.return_status != 'requested':
             return False
         
+        # ===== ADD THIS: Prevent double processing =====
+        # Check if already approved
+        if self.return_status == 'approved':
+            print(f"⚠️ Return for order #{self.order_number} already approved")
+            return False
+        
+        # Check if refund already processed
+        from .wallet import WalletTransaction
+        existing_refund = WalletTransaction.objects.filter(
+            order=self,
+            transaction_type='REFUND',
+            status='COMPLETED'
+        ).exists()
+        
+        if existing_refund:
+            print(f"⚠️ Refund already processed for order #{self.order_number}")
+            return False
+        # ===== END ADDITION =====
+
         try:
             # Get user's wallet
+            from .wallet import Wallet
             wallet, created = Wallet.objects.get_or_create(user=self.user)
             
             # Update return status
@@ -588,7 +618,9 @@ class Order(models.Model):
         
         try:
             self.return_status = 'rejected'
-            self.return_reason = f"{self.return_reason} [REJECTED: {rejection_reason}]"
+            self.return_rejection_reason = rejection_reason  # Store reason separately
+            self.return_rejected_at = timezone.now() 
+            self.status = 'delivered'  # Revert to delivered
             self.save()
             
             # Mark pending refund as failed
@@ -600,7 +632,9 @@ class Order(models.Model):
             ).first()
             
             if refund_transaction:
-                refund_transaction.mark_as_failed()
+                refund_transaction.status = 'CANCELLED'
+                refund_transaction.reason = f"Return rejected: {rejection_reason}"
+                refund_transaction.save()
             
             return True
             
@@ -610,41 +644,39 @@ class Order(models.Model):
     
     def calculate_totals(self):
         """
-        Calculate order totals including coupon discount.
-        This should be called after order items are added.
+        Calculate order totals. This should ONLY be called when:
+        1. Order items are added/changed (admin edits)
+        2. After returns/cancellations
+        NOT during normal checkout flow
         """
         from decimal import Decimal
         
         # Calculate subtotal from items
         self.subtotal = sum(item.total_price for item in self.items.all())
         
-        # Apply coupon discount
-        if self.coupon:
+        # ONLY recalculate coupon if it exists and discount is 0
+        if self.coupon and self.coupon_discount == 0:
             self.coupon_discount = self.coupon.calculate_discount(self.subtotal)
             # Don't discount more than subtotal
             if self.coupon_discount > self.subtotal:
                 self.coupon_discount = self.subtotal
-        else:
-            self.coupon_discount = Decimal('0')
         
-        subtotal_after_coupon = self.subtotal - self.coupon_discount
+        # Use existing discount_amount if already set (from checkout)
+        if self.discount_amount == 0:
+            # Calculate total discount from all sources
+            self.discount_amount = self.coupon_discount + (self.offer_discount or 0)
         
-        # Apply other discounts (existing 10% discount)
-        other_discount = Decimal('0')
-        if subtotal_after_coupon > Decimal('1000'):
-            other_discount = subtotal_after_coupon * Decimal('0.10')
+        # Calculate final amounts
+        after_discount = self.subtotal - self.discount_amount
         
-        # Combine all discounts
-        self.discount_amount = self.coupon_discount + other_discount
+        # Shipping (free above ₹500)
+        self.shipping_charge = Decimal('0') if after_discount > Decimal('500') else Decimal('40')
         
-        subtotal_after_all_discounts = self.subtotal - self.discount_amount
+        # Tax (18% GST)
+        self.tax_amount = after_discount * Decimal('0.18')
         
-        # Calculate shipping and tax
-        self.shipping_charge = Decimal('0') if subtotal_after_all_discounts > Decimal('500') else Decimal('40')
-        self.tax_amount = subtotal_after_all_discounts * Decimal('0.18')
-        
-        # Calculate total amount
-        self.total_amount = subtotal_after_all_discounts + self.shipping_charge + self.tax_amount
+        # Total amount
+        self.total_amount = after_discount + self.shipping_charge + self.tax_amount
         
         self.save()
 
@@ -663,6 +695,24 @@ class OrderItem(models.Model):
     is_cancelled = models.BooleanField(default=False)
     cancellation_reason = models.TextField(blank=True, null=True)
     
+    return_requested = models.BooleanField(default=False)
+    return_reason = models.TextField(blank=True, null=True)
+    return_rejection_reason = models.TextField(blank=True, null=True)
+    return_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('not_requested', 'Not Requested'),
+            ('requested', 'Return Requested'),
+            ('approved', 'Return Approved'),
+            ('rejected', 'Return Rejected'),
+            ('completed', 'Return Completed'),
+        ],
+        default='not_requested'
+    )
+    return_requested_at = models.DateTimeField(null=True, blank=True)
+    return_approved_at = models.DateTimeField(null=True, blank=True)
+    return_rejected_at = models.DateTimeField(null=True, blank=True)
+
     # Store image at time of order
     product_image = models.ImageField(upload_to='order_items/', blank=True, null=True)
     
@@ -674,6 +724,117 @@ class OrderItem(models.Model):
     def __str__(self):
         return f"{self.quantity} x {self.product_name} in Order #{self.order.order_number}"
     
+    def request_item_return(self, reason):
+        """Request return for individual item"""
+        if self.is_cancelled:
+            return False, "Item is already cancelled"
+        
+        if self.return_status != 'not_requested':
+            return False, f"Return already {self.get_return_status_display()}"
+        
+        try:
+            self.return_requested = True
+            self.return_reason = reason
+            self.return_status = 'requested'
+            self.return_requested_at = timezone.now()
+            self.save()
+            
+            # Create PENDING refund transaction for this item
+            from .wallet import WalletTransaction
+            WalletTransaction.objects.create(
+                wallet=self.order.user.wallet,
+                amount=self.total_price,
+                transaction_type='REFUND',
+                status='PENDING',
+                reason=f"Return request for item: {self.product_name} (Order #{self.order.order_number})",
+                order=self.order,
+                admin_approved=False
+            )
+            
+            print(f"✅ Item return requested: {self.product_name} - ₹{self.total_price} PENDING")
+            return True, "Return request submitted successfully"
+            
+        except Exception as e:
+            print(f"Error requesting item return: {e}")
+            return False, str(e)
+    
+    def approve_item_return(self, approved_by):
+        """Admin approves individual item return"""
+        if self.return_status != 'requested':
+            return False
+        
+        try:
+            self.return_status = 'approved'
+            self.return_approved_at = timezone.now()
+            self.save()
+            
+            # Find and approve the pending refund transaction for this item
+            from .wallet import WalletTransaction
+            refund = WalletTransaction.objects.filter(
+                order=self.order,
+                transaction_type='REFUND',
+                status='PENDING',
+                reason__contains=f"item: {self.product_name}"
+            ).first()
+            
+            if refund:
+                refund.status = 'COMPLETED'
+                refund.admin_approved = True
+                refund.approved_by = approved_by
+                refund.save()
+                
+                # Update wallet balance
+                wallet = self.order.user.wallet
+                wallet.balance += self.total_price
+                wallet.save()
+                
+                # Update user's wallet_balance field
+                self.order.user.wallet_balance = wallet.balance
+                self.order.user.save(update_fields=['wallet_balance'])
+            
+            # Restore stock
+            self.variant.stock += self.quantity
+            self.variant.save()
+            
+            print(f"✅ Item return approved: {self.product_name} - ₹{self.total_price} refunded")
+            return True
+            
+        except Exception as e:
+            print(f"Error approving item return: {e}")
+            return False
+    
+    def reject_item_return(self, rejection_reason, rejected_by):
+        """Admin rejects individual item return"""
+        if self.return_status != 'requested':
+            return False
+        
+        try:
+            self.return_status = 'rejected'
+            self.return_rejected_at = timezone.now()
+            self.return_rejection_reason = rejection_reason
+            self.save()
+            
+            # Cancel pending refund
+            from .wallet import WalletTransaction
+            refund = WalletTransaction.objects.filter(
+                order=self.order,
+                transaction_type='REFUND',
+                status='PENDING',
+                reason__contains=f"item: {self.product_name}"
+            ).first()
+            
+            if refund:
+                refund.status = 'CANCELLED'
+                refund.reason = f"Item return rejected: {rejection_reason}"
+                refund.save()
+            
+            print(f"❌ Item return rejected: {self.product_name} - Reason: {rejection_reason}")
+            return True
+            
+        except Exception as e:
+            print(f"Error rejecting item return: {e}")
+            return False
+        
     def save(self, *args, **kwargs):
         # Set default values if not provided
         if not self.product_name and self.variant and self.variant.product:

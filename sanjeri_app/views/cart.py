@@ -9,7 +9,7 @@ from ..models import Cart, CartItem, ProductVariant, Wishlist, WishlistItem
 
 @login_required
 def cart_view(request):
-    """Display the user's cart"""
+    """Display the user's cart with offer calculations"""
     try:
         # Get cart
         cart, created = Cart.objects.get_or_create(user=request.user)
@@ -26,22 +26,67 @@ def cart_view(request):
         print(f"Cart ID: {cart.id}")
         print(f"Cart items count: {cart_items.count()}")
         
-        # Create enhanced items list for template
+        # Create enhanced items list with offer calculations
         enhanced_items = []
         subtotal = 0
+        original_subtotal = 0
+        total_discount = 0
         
         for item in cart_items:
             product = item.variant.product
             variant = item.variant
-            item_total = item.total_price
-            subtotal += item_total
+            
+            # Get best offer for this product
+            best_offer = get_best_offer_for_product(product)
+            
+            # Calculate prices
+            original_price = variant.price
+            base_price = variant.display_price  # This might already have variant discount
+            
+            if best_offer:
+                # Calculate offer discount
+                if best_offer.discount_percentage > 0:
+                    discount_amount = (base_price * best_offer.discount_percentage) / 100
+                    if best_offer.max_discount and discount_amount > best_offer.max_discount:
+                        discount_amount = best_offer.max_discount
+                elif best_offer.discount_fixed > 0:
+                    discount_amount = best_offer.discount_fixed
+                    if discount_amount > base_price:
+                        discount_amount = base_price
+                else:
+                    discount_amount = 0
+                
+                final_price = base_price - discount_amount
+                offer_applied = True
+                offer_name = best_offer.name
+                offer_discount = discount_amount
+            else:
+                final_price = base_price
+                offer_applied = False
+                offer_name = None
+                offer_discount = 0
+            
+            # Calculate item totals
+            original_item_total = original_price * item.quantity
+            base_item_total = base_price * item.quantity
+            final_item_total = final_price * item.quantity
+            item_discount = original_item_total - final_item_total
             
             enhanced_item = {
                 'item': item,
                 'product': product,
                 'variant': variant,
                 'quantity': item.quantity,
-                'total_price': item_total,
+                'original_price': original_price,
+                'base_price': base_price,
+                'final_price': final_price,
+                'original_item_total': original_item_total,
+                'base_item_total': base_item_total,
+                'final_item_total': final_item_total,
+                'item_discount': item_discount,
+                'offer_applied': offer_applied,
+                'offer_name': offer_name,
+                'offer_discount': offer_discount,
                 'is_available': item.is_available,
                 'is_out_of_stock': item.is_out_of_stock,
                 'has_low_stock': item.has_low_stock,
@@ -51,19 +96,31 @@ def cart_view(request):
             }
             enhanced_items.append(enhanced_item)
             
+            # Accumulate totals
+            original_subtotal += original_item_total
+            subtotal += final_item_total
+            total_discount += item_discount
+            
             # Debug print
-            print(f"Item {item.id}: {product.name} - {variant.volume_ml}ml - Qty: {item.quantity}")
+            print(f"Item {item.id}: {product.name}")
+            print(f"  Original: ₹{original_price} × {item.quantity} = ₹{original_item_total}")
+            print(f"  Final: ₹{final_price} × {item.quantity} = ₹{final_item_total}")
+            print(f"  Discount: ₹{item_discount}")
         
         context = {
             'cart': cart,
-            'cart_items': enhanced_items,  # This should be passed to template
+            'cart_items': enhanced_items,
             'cart_total_items': len(enhanced_items),
             'cart_subtotal': subtotal,
+            'cart_original_subtotal': original_subtotal,
+            'total_discount': total_discount,
             'can_checkout': cart.can_checkout,
         }
         
         print(f"Context cart_items length: {len(enhanced_items)}")
         print(f"Context subtotal: {subtotal}")
+        print(f"Context original_subtotal: {original_subtotal}")
+        print(f"Total discount: {total_discount}")
         
         return render(request, 'cart.html', context)
         
@@ -72,55 +129,54 @@ def cart_view(request):
         import traceback
         traceback.print_exc()
         
-        return render(request, 'cart/cart.html', {
+        return render(request, 'cart.html', {
             'error': str(e),
             'cart_items': [],
             'cart_total_items': 0,
             'cart_subtotal': 0,
+            'cart_original_subtotal': 0,
+            'total_discount': 0,
             'can_checkout': False,
         })
-# @login_required
-# def cart_view(request):
-#     """Display the user's cart with enhanced availability info"""
-#     try:
-#         cart, created = Cart.objects.get_or_create(user=request.user)
-#         cart_items = cart.items.select_related(
-#             'variant', 
-#             'variant__product', 
-#             'variant__product__category'
-#         ).all()
+
+def get_best_offer_for_product(product):
+    """Helper function to get the best offer for a product"""
+    from django.utils import timezone
+    from ..models import ProductOffer, CategoryOffer
+    
+    now = timezone.now()
+    best_offer = None
+    best_discount = 0
+    
+    # Check product offers
+    product_offers = ProductOffer.objects.filter(
+        products=product,
+        is_active=True,
+        valid_from__lte=now,
+        valid_to__gte=now
+    )
+    
+    for offer in product_offers:
+        if offer.discount_percentage > best_discount:
+            best_discount = offer.discount_percentage
+            best_offer = offer
+    
+    # Check category offers
+    if product.category:
+        category_offers = CategoryOffer.objects.filter(
+            category=product.category,
+            is_active=True,
+            valid_from__lte=now,
+            valid_to__gte=now
+        )
         
-#         # Enhanced availability info for template
-#         for item in cart_items:
-#             item.availability_info = {
-#                 'is_available': item.is_available,
-#                 'is_out_of_stock': item.is_out_of_stock,
-#                 'has_low_stock': item.has_low_stock,
-#                 'can_increment': item.can_increment,
-#                 'can_decrement': item.can_decrement,
-#                 'max_allowed_quantity': item.max_allowed_quantity,
-#                 'current_stock': item.variant.stock,
-#                 'is_product_blocked': not item.product.is_active or item.product.is_deleted,
-#                 'is_category_blocked': not item.product.category.is_active or item.product.category.is_deleted,
-#                 'is_variant_blocked': not item.variant.is_active,
-#             }
+        for offer in category_offers:
+            if offer.discount_percentage > best_discount:
+                best_discount = offer.discount_percentage
+                best_offer = offer
+    
+    return best_offer
         
-#         context = {
-#             'cart': cart,
-#             'cart_items': cart_items,
-#             'can_checkout': cart.can_checkout,
-#             'MAX_QUANTITY': CartItem.MAX_QUANTITY,
-#         }
-#         return render(request, 'cart.html', context)
-        
-    except Exception as e:
-        messages.error(request, f"Error loading cart: {str(e)}")
-        return render(request, 'cart.html', {
-            'cart': None,
-            'cart_items': [],
-            'can_checkout': False,
-            'MAX_QUANTITY': CartItem.MAX_QUANTITY,
-        })
 
 @login_required
 @require_POST

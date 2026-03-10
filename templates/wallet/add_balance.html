@@ -1,170 +1,311 @@
+<!-- templates/wallet/add_balance.html -->
 {% extends 'base.html' %}
 {% load static %}
 
 {% block title %}Add Money to Wallet - Sanjeri{% endblock %}
 
+{% block extra_css %}
+<style>
+    .add-money-container {
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    .amount-options {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin: 20px 0;
+    }
+    .amount-option {
+        border: 2px solid #dee2e6;
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .amount-option:hover {
+        border-color: #431405;
+        background-color: #fff7ed;
+    }
+    .amount-option.selected {
+        border-color: #431405;
+        background-color: #ffedd5;
+    }
+    .amount-option .amount {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #431405;
+    }
+    .custom-amount-input {
+        font-size: 1.2rem;
+        text-align: center;
+        font-weight: bold;
+    }
+    .payment-status {
+        text-align: center;
+        padding: 30px;
+        display: none;
+    }
+    .success-icon {
+        color: #28a745;
+        font-size: 48px;
+        margin-bottom: 15px;
+    }
+    .error-icon {
+        color: #dc3545;
+        font-size: 48px;
+        margin-bottom: 15px;
+    }
+    .loading-spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #431405;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-6">
-            <div class="card shadow-lg border-0">
-                <div class="card-header bg-amber-900 text-white py-3">
-                    <h4 class="mb-0">
-                        <i class="fas fa-wallet me-2"></i>Add Money to Wallet
-                    </h4>
+    <div class="add-money-container">
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-amber-900 text-white py-3">
+                <h4 class="mb-0">
+                    <i class="fas fa-wallet me-2"></i>Add Money to Wallet
+                </h4>
+            </div>
+            <div class="card-body p-4">
+                <!-- Current Balance -->
+                <div class="alert alert-info">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Current Balance:</span>
+                        <span class="fw-bold fs-5" id="currentBalance">₹{{ wallet.balance|floatformat:2 }}</span>
+                    </div>
                 </div>
-                <div class="card-body p-4">
-                    <!-- Current Balance -->
-                    <div class="alert alert-info mb-4">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-1">Current Balance</h6>
-                                <h3 class="mb-0 fw-bold">₹{{ wallet.balance|floatformat:2 }}</h3>
-                            </div>
-                            <i class="fas fa-wallet fa-2x"></i>
+
+                <!-- Amount Selection -->
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Select Amount</label>
+                    <div class="amount-options" id="amountOptions">
+                        <div class="amount-option" data-amount="100">
+                            <div class="amount">₹100</div>
+                        </div>
+                        <div class="amount-option" data-amount="500">
+                            <div class="amount">₹500</div>
+                        </div>
+                        <div class="amount-option" data-amount="1000">
+                            <div class="amount">₹1000</div>
+                        </div>
+                        <div class="amount-option" data-amount="2000">
+                            <div class="amount">₹2000</div>
+                        </div>
+                        <div class="amount-option" data-amount="5000">
+                            <div class="amount">₹5000</div>
+                        </div>
+                        <div class="amount-option" data-custom="true">
+                            <div class="amount">Custom</div>
                         </div>
                     </div>
                     
-                    <!-- Add Money Form -->
-                    <form method="POST" id="addMoneyForm">
-                        {% csrf_token %}
-                        
-                        <!-- Amount Selection -->
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">Select Amount</label>
-                            <div class="row g-2">
-                                {% for amount in quick_amounts %}
-                                <div class="col-4">
-                                    <input type="radio" name="amount_radio" id="amount{{ amount }}" value="{{ amount }}" 
-                                           class="btn-check" {% if forloop.first %}checked{% endif %}>
-                                    <label for="amount{{ amount }}" class="btn btn-outline-amber-900 w-100 amount-option">
-                                        ₹{{ amount }}
-                                    </label>
-                                </div>
-                                {% endfor %}
-                            </div>
+                    <!-- Custom Amount Input -->
+                    <div class="mt-3" id="customAmountSection" style="display: none;">
+                        <div class="input-group">
+                            <span class="input-group-text">₹</span>
+                            <input type="number" 
+                                   class="form-control form-control-lg custom-amount-input" 
+                                   id="customAmount" 
+                                   placeholder="Enter amount" 
+                                   min="10" 
+                                   max="10000"
+                                   step="1">
                         </div>
-                        
-                        <!-- Custom Amount -->
-                        <div class="mb-4">
-                            <label for="custom_amount" class="form-label">Or Enter Custom Amount (₹)</label>
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text">₹</span>
-                                <input type="number" name="amount" id="custom_amount" 
-                                       class="form-control" min="10" max="10000" 
-                                       placeholder="Enter amount" required>
-                            </div>
-                            <small class="text-muted">Minimum: ₹10 | Maximum: ₹10,000</small>
-                        </div>
-                        
-                        <!-- Payment Method -->
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">Payment Method</label>
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="radio" name="payment_method" 
-                                       id="razorpay" value="razorpay" checked>
-                                <label class="form-check-label" for="razorpay">
-                                    <i class="fas fa-credit-card me-2"></i> Credit/Debit Card, UPI, Net Banking
-                                </label>
-                            </div>
-                            <!-- Add more payment methods if needed -->
-                        </div>
-                        
-                        <button type="submit" class="btn btn-amber-900 btn-lg w-100 py-3" id="submitBtn">
-                            <i class="fas fa-credit-card me-2"></i>Proceed to Payment
-                        </button>
-                    </form>
-                    
-                    <!-- Test Info (for development) -->
-                    {% if debug %}
-                    <div class="alert alert-warning mt-4">
-                        <h6><i class="fas fa-vial me-2"></i>Test Mode Active</h6>
-                        <p class="mb-1">Use test card: <strong>4111 1111 1111 1111</strong></p>
-                        <p class="mb-0">Expiry: Any future date | CVV: Any 3 digits</p>
+                        <small class="text-muted">Enter amount between ₹10 and ₹10,000</small>
                     </div>
-                    {% endif %}
                 </div>
+
+                <!-- Selected Amount Display -->
+                <div class="alert alert-success mb-4" id="selectedAmountDisplay" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Amount to add:</span>
+                        <span class="fw-bold fs-4" id="displayAmount">₹0</span>
+                    </div>
+                </div>
+
+                <!-- Add Money Button -->
+                <button class="btn btn-amber-900 btn-lg w-100 py-3" id="addMoneyBtn" disabled>
+                    <i class="fas fa-plus me-2"></i>Add <span id="btnAmount">0</span> to Wallet
+                </button>
+
+                <!-- Payment Processing -->
+                <div id="paymentProcessing" style="display: none;" class="text-center py-4">
+                    <div class="loading-spinner"></div>
+                    <p class="mt-3">Processing payment...</p>
+                </div>
+
+                <!-- Payment Success -->
+                <div id="paymentSuccess" style="display: none;" class="text-center py-4">
+                    <div class="success-icon">✓</div>
+                    <h4 class="text-success">Payment Successful!</h4>
+                    <p id="successMessage"></p>
+                    <p class="mt-3">Redirecting to wallet...</p>
+                </div>
+
+                <!-- Payment Error -->
+                <div id="paymentError" style="display: none;" class="text-center py-4">
+                    <div class="error-icon">✗</div>
+                    <h4 class="text-danger">Payment Failed</h4>
+                    <p id="errorMessage"></p>
+                    <button class="btn btn-amber-900 mt-3" onclick="location.reload()">
+                        Try Again
+                    </button>
+                </div>
+
+                <!-- Info -->
+                <div class="alert alert-light mt-4">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Money added to wallet can be used for purchases on Sanjeri. Refunds from cancelled/returned orders are processed to wallet balance.
+                    </small>
+                </div>
+                
+                {% if debug %}
+                <!-- Test Mode - Direct Add -->
+                <div class="card border-warning mt-4">
+                    <div class="card-header bg-warning text-white">
+                        <h6 class="mb-0">Test Mode Only</h6>
+                    </div>
+                    <div class="card-body">
+                        <form id="directAddForm">
+                            {% csrf_token %}
+                            <div class="input-group">
+                                <input type="number" name="amount" class="form-control" value="100" min="10" max="10000">
+                                <button type="submit" class="btn btn-warning">Add Directly (No Payment)</button>
+                            </div>
+                            <small class="text-muted">For testing only - bypasses payment</small>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('addMoneyForm');
-        const customAmount = document.getElementById('custom_amount');
-        const amountRadios = document.querySelectorAll('input[name="amount_radio"]');
-        const submitBtn = document.getElementById('submitBtn');
+        let selectedAmount = 0;
+        let isCustomAmount = false;
+        let currentTransaction = null;
         
-        // Update custom amount when radio button is selected
-        amountRadios.forEach(radio => {
-            radio.addEventListener('change', function() {
-                if (this.checked) {
-                    customAmount.value = this.value;
+        // Amount option selection
+        document.querySelectorAll('.amount-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.amount-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                
+                this.classList.add('selected');
+                
+                if (this.getAttribute('data-custom') === 'true') {
+                    isCustomAmount = true;
+                    document.getElementById('customAmountSection').style.display = 'block';
+                    document.getElementById('customAmount').focus();
+                } else {
+                    isCustomAmount = false;
+                    selectedAmount = parseFloat(this.getAttribute('data-amount'));
+                    document.getElementById('customAmountSection').style.display = 'none';
+                    updateSelectedAmount();
                 }
             });
         });
         
-        // Update radio when custom amount is entered
-        customAmount.addEventListener('input', function() {
-            // Uncheck all radio buttons
-            amountRadios.forEach(radio => {
-                radio.checked = false;
+        // Custom amount input
+        const customAmountInput = document.getElementById('customAmount');
+        if (customAmountInput) {
+            customAmountInput.addEventListener('input', function() {
+                selectedAmount = parseFloat(this.value) || 0;
+                updateSelectedAmount();
             });
-        });
+        }
         
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const amount = customAmount.value;
-            if (!amount || amount < 10) {
-                alert('Please enter a valid amount (minimum ₹10)');
+        function updateSelectedAmount() {
+            if (selectedAmount >= 10 && selectedAmount <= 10000) {
+                document.getElementById('selectedAmountDisplay').style.display = 'block';
+                document.getElementById('displayAmount').textContent = '₹' + selectedAmount.toFixed(2);
+                document.getElementById('btnAmount').textContent = '₹' + selectedAmount.toFixed(2);
+                document.getElementById('addMoneyBtn').disabled = false;
+            } else {
+                document.getElementById('selectedAmountDisplay').style.display = 'none';
+                document.getElementById('addMoneyBtn').disabled = true;
+            }
+        }
+        
+        // Add money button click
+        document.getElementById('addMoneyBtn').addEventListener('click', async function() {
+            if (selectedAmount < 10 || selectedAmount > 10000) {
+                alert('Please enter a valid amount between ₹10 and ₹10,000');
                 return;
             }
             
-            // Show loading
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+            // Show processing
+            document.getElementById('addMoneyBtn').style.display = 'none';
+            document.getElementById('selectedAmountDisplay').style.display = 'none';
+            document.getElementById('paymentProcessing').style.display = 'block';
             
-            // Create Razorpay order
-            fetch('{% url "add_wallet_balance" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: `amount=${amount}&payment_method=razorpay`
-            })
-            .then(response => response.json())
-            .then(data => {
+            try {
+                const response = await fetch('{% url "add_wallet_balance" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: `amount=${selectedAmount}`
+                });
+                
+                const data = await response.json();
+                
                 if (data.success) {
-                    // Open Razorpay checkout
+                    currentTransaction = {
+                        id: data.transaction_id,
+                        amount: selectedAmount
+                    };
+                    
                     const options = {
-                        "key": data.razorpay_key,
-                        "amount": data.amount,
-                        "currency": data.currency,
-                        "name": "Sanjeri Perfumes",
-                        "description": "Wallet Top-up",
-                        "order_id": data.razorpay_order_id,
-                        "handler": function(response) {
-                            verifyPayment(response, data.transaction_id);
+                        key: data.key,
+                        amount: data.amount,
+                        currency: data.currency,
+                        name: 'Sanjeri Wallet Top-up',
+                        description: `Add ₹${selectedAmount} to wallet`,
+                        order_id: data.order_id,
+                        handler: function(response) {
+                            verifyPayment(response);
                         },
-                        "prefill": {
-                            "name": "{{ request.user.get_full_name|default:request.user.username }}",
-                            "email": "{{ request.user.email }}"
+                        prefill: {
+                            name: data.customer_name,
+                            email: data.customer_email,
+                            contact: data.customer_phone
                         },
-                        "theme": {
-                            "color": "#431405"
+                        theme: {
+                            color: '#431405'
                         },
-                        "modal": {
-                            "ondismiss": function() {
-                                submitBtn.disabled = false;
-                                submitBtn.innerHTML = '<i class="fas fa-credit-card me-2"></i>Proceed to Payment';
+                        modal: {
+                            ondismiss: function() {
+                                // Payment cancelled
+                                document.getElementById('paymentProcessing').style.display = 'none';
+                                document.getElementById('addMoneyBtn').style.display = 'block';
+                                document.getElementById('selectedAmountDisplay').style.display = 'block';
                             }
                         }
                     };
@@ -173,59 +314,91 @@
                     rzp.open();
                     
                 } else {
-                    alert('Error: ' + data.message);
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-credit-card me-2"></i>Proceed to Payment';
+                    showError(data.message);
                 }
-            })
-            .catch(error => {
+                
+            } catch (error) {
                 console.error('Error:', error);
-                alert('Network error. Please try again.');
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-credit-card me-2"></i>Proceed to Payment';
-            });
+                showError('Error processing request. Please try again.');
+            }
         });
         
-        function verifyPayment(response, transactionId) {
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Verifying Payment...';
+        async function verifyPayment(response) {
+            document.getElementById('paymentProcessing').style.display = 'block';
             
-            fetch('{% url "verify_wallet_payment" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: `razorpay_payment_id=${response.razorpay_payment_id}&razorpay_order_id=${response.razorpay_order_id}&razorpay_signature=${response.razorpay_signature}&transaction_id=${transactionId}`
-            })
-            .then(response => response.json())
-            .then(data => {
+            try {
+                const verifyResponse = await fetch('{% url "verify_wallet_payment" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_order_id: response.razorpay_order_id,
+                        razorpay_signature: response.razorpay_signature,
+                        transaction_id: currentTransaction.id
+                    })
+                });
+                
+                const data = await verifyResponse.json();
+                
                 if (data.success) {
-                    // Show success and redirect
-                    alert('Payment successful! ₹' + data.amount + ' added to your wallet.');
+                    document.getElementById('paymentProcessing').style.display = 'none';
+                    document.getElementById('paymentSuccess').style.display = 'block';
+                    document.getElementById('successMessage').textContent = data.message;
+                    document.getElementById('currentBalance').textContent = '₹' + data.new_balance;
+                    
+                    setTimeout(() => {
+                        window.location.href = '{% url "wallet_dashboard" %}';
+                    }, 2000);
+                } else {
+                    showError(data.message);
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error verifying payment. Please check your wallet balance.');
+            }
+        }
+        
+        function showError(message) {
+            document.getElementById('paymentProcessing').style.display = 'none';
+            document.getElementById('paymentError').style.display = 'block';
+            document.getElementById('errorMessage').textContent = message;
+        }
+        
+        {% if debug %}
+        // Direct add for testing
+        document.getElementById('directAddForm')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            try {
+                const response = await fetch('{% url "direct_add_money" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
                     window.location.href = '{% url "wallet_dashboard" %}';
                 } else {
-                    alert('Payment verification failed: ' + data.message);
-                    window.location.reload();
+                    alert(data.message);
                 }
-            })
-            .catch(error => {
+                
+            } catch (error) {
                 console.error('Error:', error);
-                alert('Error verifying payment.');
-                window.location.reload();
-            });
-        }
+                alert('Error adding money');
+            }
+        });
+        {% endif %}
     });
 </script>
-
-<style>
-    .amount-option:hover {
-        background-color: #431405;
-        color: white;
-    }
-    .btn-check:checked + .amount-option {
-        background-color: #431405 !important;
-        color: white !important;
-        border-color: #431405 !important;
-    }
-</style>
 {% endblock %}

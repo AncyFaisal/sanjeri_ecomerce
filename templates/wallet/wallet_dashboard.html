@@ -13,7 +13,7 @@
                 <div class="card-body text-center py-5">
                     <i class="fas fa-wallet fa-4x text-amber-900 mb-4"></i>
                     <h1 class="display-4 fw-bold text-amber-900 mb-3">
-                        ₹{{ expected_balance|floatformat:2 }}
+                        ₹{{ wallet.balance|floatformat:2 }}
                     </h1>
                     <p class="text-muted mb-4">Available Balance</p>
                     
@@ -58,58 +58,72 @@
             </div> -->
 
             <!-- Recent Transactions -->
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Transactions</h5>
-                </div>
-                <div class="card-body">
-                    {% if recent_transactions %}
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Type</th>
-                                        <th>Description</th>
-                                        <th class="text-end">Amount</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for transaction in recent_transactions %}
-                                    <tr>
-                                        <td>{{ transaction.created_at|date:"d M Y" }}</td>
-                                        <td>
-                                            <span class="badge {% if transaction.transaction_type == 'REFUND' %}bg-success{% else %}bg-info{% endif %}">
-                                                {{ transaction.get_transaction_type_display }}
-                                            </span>
-                                        </td>
-                                        <td>{{ transaction.reason|truncatechars:40 }}</td>
-                                        <td class="text-end fw-bold {% if transaction.transaction_type == 'REFUND' %}text-success{% else %}text-info{% endif %}">
-                                            {{ transaction.display_amount }}
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-success">Completed</span>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="text-center mt-3">
-                            <a href="{% url 'wallet_transactions' %}" class="btn btn-outline-amber-900">
-                                View All Transactions
-                            </a>
-                        </div>
-                    {% else %}
-                        <div class="text-center py-4">
-                            <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
-                            <p class="text-muted">No transactions yet</p>
-                            <p class="text-muted small">Your refunds from cancelled/returned orders will appear here.</p>
-                        </div>
-                    {% endif %}
-                </div>
+            <!-- Recent Transactions - FIXED: Only show COMPLETED transactions -->
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Transactions</h5>
+    </div>
+    <div class="card-body">
+        {% if recent_transactions %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th class="text-end">Amount</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in recent_transactions %}
+                        <tr>
+                            <td>{{ transaction.created_at|date:"d M Y" }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if transaction.transaction_type == 'REFUND' %}bg-success
+                                    {% elif transaction.transaction_type == 'DEPOSIT' %}bg-primary
+                                    {% elif transaction.transaction_type == 'WITHDRAWAL' %}bg-danger
+                                    {% else %}bg-info{% endif %}">
+                                    {{ transaction.get_transaction_type_display }}
+                                </span>
+                            </td>
+                            <td>{{ transaction.reason|truncatechars:40 }}</td>
+                            <td class="text-end fw-bold 
+                                {% if transaction.transaction_type == 'REFUND' or transaction.transaction_type == 'DEPOSIT' %}text-success
+                                {% else %}text-danger{% endif %}">
+                                {{ transaction.display_amount }}
+                            </td>
+                            <td>
+                                <!-- ===== FIX: Show status badge with appropriate color ===== -->
+                                <span class="badge 
+                                    {% if transaction.status == 'COMPLETED' %}bg-success
+                                    {% elif transaction.status == 'PENDING' %}bg-warning text-dark
+                                    {% elif transaction.status == 'CANCELLED' %}bg-secondary
+                                    {% else %}bg-danger{% endif %}">
+                                    {{ transaction.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
+            <div class="text-center mt-3">
+                <a href="{% url 'wallet_transactions' %}" class="btn btn-outline-amber-900">
+                    View All Transactions
+                </a>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No transactions yet</p>
+                <p class="text-muted small">Your refunds from cancelled/returned orders will appear here.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
         </div>
     </div>
 </div>

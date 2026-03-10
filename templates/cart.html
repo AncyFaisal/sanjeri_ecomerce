@@ -1,16 +1,11 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load offer_tags %}
 
 {% block title %}Shopping Cart - Sanjeri{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <!-- Debug banner (remove after fixing) -->
-    <!-- <div class="alert alert-info mb-4">
-        <small>Cart has {{ cart_items|length }} items | Total: {{ cart.total_items|default:0 }} items</small> -->
-        
-    <!-- </div> -->
-    
     <h1 class="mb-4">Shopping Cart</h1>
     
     <!-- CSRF token for AJAX -->
@@ -19,62 +14,72 @@
     {% if cart_items %}
         <div class="row">
             <div class="col-lg-8">
-                {% for cart_item in cart_items %}
-                <div class="card mb-3 cart-item {% if not cart_item.is_available %}border-danger{% endif %}" 
-     id="cart-item-{{ cart_item.item.id }}" 
-     data-variant-id="{{ cart_item.variant.id }}">
+                {% for item in cart_items %}
+                <div class="card mb-3 cart-item {% if not item.is_available %}border-danger{% endif %}" 
+                     id="cart-item-{{ item.item.id }}" 
+                     data-variant-id="{{ item.variant.id }}">
                     <div class="card-body">
                         <div class="row align-items-center">
                             <div class="col-md-2">
-                                {% with product=cart_item.product %}
-                                <img src="{% if product.main_image %}{{ product.main_image.url }}{% else %}{% static 'images/placeholder.jpg' %}{% endif %}" 
-                                     alt="{{ product.name }}" 
+                                <img src="{% if item.product.main_image %}{{ item.product.main_image.url }}{% else %}{% static 'images/placeholder.jpg' %}{% endif %}" 
+                                     alt="{{ item.product.name }}" 
                                      class="img-fluid rounded" style="height: 80px; object-fit: cover;">
                             </div>
                             
                             <div class="col-md-3">
-                                <h5 class="card-title">{{ product.name }}</h5>
+                                <h5 class="card-title">{{ item.product.name }}</h5>
                                 <p class="text-muted mb-1">
-                                    {{ cart_item.variant.volume_ml }}ml • {{ cart_item.variant.gender }}
+                                    {{ item.variant.volume_ml }}ml • {{ item.variant.gender }}
                                 </p>
-                                <p class="h5 text-primary mb-0">
-                                    ₹{{ cart_item.variant.display_price }}
-                                </p>
+                                
+                                <!-- Price display with offer -->
+                                <div class="price-display">
+                                    {% if item.offer_applied %}
+                                        <span class="h5 text-danger mb-0">₹{{ item.final_price|floatformat:0 }}</span>
+                                        <small class="text-muted text-decoration-line-through ms-2">₹{{ item.original_price|floatformat:0 }}</small>
+                                        <span class="badge bg-danger ms-2">{{ item.offer_name }}</span>
+                                    {% elif item.variant.discount_price and item.variant.discount_price < item.variant.price %}
+                                        <span class="h5 text-primary mb-0">₹{{ item.base_price|floatformat:0 }}</span>
+                                        <small class="text-muted text-decoration-line-through ms-2">₹{{ item.original_price|floatformat:0 }}</small>
+                                    {% else %}
+                                        <span class="h5 text-primary mb-0">₹{{ item.base_price|floatformat:0 }}</span>
+                                    {% endif %}
+                                </div>
                             </div>
                             
                             <div class="col-md-3">
                                 <div class="quantity-controls d-flex align-items-center justify-content-center">
-                                    <button class="btn btn-outline-secondary btn-sm decrement-btn {% if not cart_item.can_decrement %}disabled{% endif %}" 
-                                            data-item-id="{{ cart_item.item.id }}">
+                                    <button class="btn btn-outline-secondary btn-sm decrement-btn {% if not item.can_decrement %}disabled{% endif %}" 
+                                            data-item-id="{{ item.item.id }}">
                                         <i class="fas fa-minus"></i>
                                     </button>
                                     
-                                    <span class="mx-3 quantity-display" id="quantity-{{ cart_item.item.id }}">
-                                        {{ cart_item.quantity }}
+                                    <span class="mx-3 quantity-display" id="quantity-{{ item.item.id }}">
+                                        {{ item.quantity }}
                                     </span>
                                     
-                                    <button class="btn btn-outline-secondary btn-sm increment-btn {% if not cart_item.can_increment %}disabled{% endif %}" 
-                                            data-item-id="{{ cart_item.item.id }}">
+                                    <button class="btn btn-outline-secondary btn-sm increment-btn {% if not item.can_increment %}disabled{% endif %}" 
+                                            data-item-id="{{ item.item.id }}">
                                         <i class="fas fa-plus"></i>
                                     </button>
                                 </div>
                                 
-                                {% if cart_item.max_allowed_quantity %}
+                                {% if item.max_allowed_quantity %}
                                 <small class="text-muted d-block mt-1 text-center">
-                                    Max: {{ cart_item.max_allowed_quantity }}
+                                    Max: {{ item.max_allowed_quantity }}
                                 </small>
                                 {% endif %}
                             </div>
                             
                             <div class="col-md-2 text-center">
-                                <strong class="h5" id="item-total-{{ cart_item.item.id }}">
-                                    ₹{{ cart_item.total_price }}
+                                <strong class="h5" id="item-total-{{ item.item.id }}">
+                                    ₹{{ item.final_item_total|floatformat:0 }}
                                 </strong>
                             </div>
                             
                             <div class="col-md-2 text-end">
                                 <button class="btn btn-outline-danger btn-sm remove-btn" 
-                                        data-item-id="{{ cart_item.item.id }}"
+                                        data-item-id="{{ item.item.id }}"
                                         title="Remove from cart">
                                     <i class="fas fa-times me-1"></i> Remove
                                 </button>
@@ -82,23 +87,22 @@
                         </div>
                         
                         <!-- Availability warnings -->
-                        {% if not cart_item.is_available %}
+                        {% if not item.is_available %}
                         <div class="row mt-2">
                             <div class="col-12">
                                 <div class="alert alert-warning py-2 mb-0">
                                     <small>
                                         <i class="fas fa-exclamation-triangle"></i>
-                                        {% if cart_item.is_out_of_stock %}
+                                        {% if item.is_out_of_stock %}
                                         This item is out of stock
-                                        {% elif cart_item.has_low_stock %}
-                                        Only {{ cart_item.variant.stock }} left in stock (you have {{ cart_item.quantity }})
+                                        {% elif item.has_low_stock %}
+                                        Only {{ item.variant.stock }} left in stock (you have {{ item.quantity }})
                                         {% endif %}
                                     </small>
                                 </div>
                             </div>
                         </div>
                         {% endif %}
-                        {% endwith %}
                     </div>
                 </div>
                 {% endfor %}
@@ -119,18 +123,39 @@
                         <h5 class="mb-0">Order Summary</h5>
                     </div>
                     <div class="card-body">
+                        <!-- Show subtotal after offers -->
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal:</span>
+                            <span class="fw-bold" id="cart-subtotal">₹{{ cart_subtotal|floatformat:2 }}</span>
+                        </div>
+                        
+                        <!-- Show original price and savings -->
+                        {% if cart_original_subtotal and cart_original_subtotal > cart_subtotal %}
+                        <div class="d-flex justify-content-between mb-2 text-muted">
+                            <span><small>Original Price:</small></span>
+                            <span><small>₹{{ cart_original_subtotal|floatformat:2 }}</small></span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2 text-success">
+                            <span>You Save:</span>
+                            <span>₹{{ total_discount|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
+                        
                         <div class="d-flex justify-content-between mb-2">
                             <span>Items (<span id="cart-items-count">{{ cart_total_items }}</span>):</span>
-                            <span id="cart-subtotal">₹{{ cart_subtotal }}</span>
+                            <span>{{ cart_total_items }}</span>
                         </div>
+                        
                         <div class="d-flex justify-content-between mb-2">
                             <span>Shipping:</span>
                             <span>Calculated at checkout</span>
                         </div>
+                        
                         <hr>
+                        
                         <div class="d-flex justify-content-between mb-3">
                             <strong>Total:</strong>
-                            <strong class="h5 text-primary" id="cart-total">₹{{ cart_subtotal }}</strong>
+                            <strong class="h5 text-primary" id="cart-total">₹{{ cart_subtotal|floatformat:2 }}</strong>
                         </div>
                         
                         <button class="btn btn-primary btn-lg w-100 {% if not can_checkout %}disabled{% endif %}" 
@@ -166,6 +191,8 @@
 <!-- Hidden notification container -->
 <div id="notification-container" class="position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
 {% endblock %}
+
+
 
 {% block extra_js %}
 <script>
@@ -328,10 +355,8 @@ async function updateQuantity(itemId, action) {
     }
 }
 
-// Helper to get variant ID from cart item (you might need to adjust this)
+// Helper to get variant ID from cart item
 function getVariantIdFromItem(itemId) {
-    // This is a placeholder - you'll need to get the actual variant ID
-    // Could be stored in a data attribute on the cart item element
     const itemElement = document.getElementById(`cart-item-${itemId}`);
     if (itemElement) {
         return itemElement.dataset.variantId;
@@ -423,7 +448,7 @@ async function removeFromCart(itemId) {
     }
 }
 
-// Clear cart - UPDATED VERSION
+// Clear cart
 async function clearCart() {
     if (!confirm('Are you sure you want to clear your entire cart? This action cannot be undone.')) {
         return;

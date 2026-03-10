@@ -142,18 +142,7 @@ def return_order(request, order_id):
             messages.error(request, "Please provide a reason for return.")
             return redirect('order_detail', order_id=order_id)
         
-        if order.request_return(reason):
-            # Create a pending refund transaction
-            wallet, _ = Wallet.objects.get_or_create(user=request.user)
-            WalletTransaction.objects.create(
-                wallet=wallet,
-                amount=order.total_amount,
-                transaction_type='REFUND',
-                status='PENDING',
-                reason=f"Return request for order #{order.order_number}: {reason}",
-                order=order
-            )
-            
+        if order.request_return(reason):        
             messages.success(request, "Return request submitted successfully. Please wait for admin approval. Refund will be processed to your wallet after approval.")
         else:
             messages.error(request, "Cannot return this order. It may be outside the return period.")
@@ -171,13 +160,17 @@ def cancel_order(request, order_id):
     """Cancel entire order - only refund if payment was made"""
     order = get_object_or_404(Order, id=order_id, user=request.user)
     
+    # Get reason if provided (from form), but since we removed the form,
+    # reason will always be empty - that's fine
+    reason = request.POST.get('reason', '').strip()
+
     # Get or create user's wallet
     wallet, _ = Wallet.objects.get_or_create(user=request.user)
     
     # Check if order was paid
     user_paid = order.payment_status in ['completed', 'success', 'partially_paid']
     
-    if order.cancel_order():
+    if order.cancel_order(reason):
         # Only show refund message if user actually paid
         if user_paid:
             messages.success(request, f"Order cancelled successfully. ₹{order.refund_amount} refunded to your wallet.")
@@ -557,24 +550,29 @@ def check_refund_status(request, order_id):
 
 
 
-# @login_required
-# def request_return(request, order_id):
-#     """Request return for delivered order"""
-#     order = get_object_or_404(Order, id=order_id, user=request.user)
+@login_required
+def request_item_return(request, item_id):
+    """Request return for individual item"""
+    order_item = get_object_or_404(OrderItem, id=item_id, order__user=request.user)
     
-#     if request.method == 'POST':
-#         return_reason = request.POST.get('return_reason', '')
+    if request.method == 'POST':
+        reason = request.POST.get('return_reason', '').strip()
         
-#         if not return_reason.strip():
-#             messages.error(request, "Please provide a reason for return.")
-#             return redirect('order_detail', order_id=order_id)
+        if not reason:
+            messages.error(request, "Please provide a reason for return.")
+            return redirect('order_detail', order_id=order_item.order.id)
         
-#         if order.request_return(reason=return_reason):
-#             messages.success(request, "Return request submitted. Refund will be processed after admin approval.")
-#             return redirect('order_detail', order_id=order_id)
-#         else:
-#             messages.error(request, "Cannot return this order.")
-#             return redirect('order_detail', order_id=order_id)
+        success, message = order_item.request_item_return(reason)
+        
+        if success:
+            messages.success(request, "Return request submitted for this item. Awaiting admin approval.")
+        else:
+            messages.error(request, message)
+        
+        return redirect('order_detail', order_id=order_item.order.id)
     
-#     # If GET request, show the return form
-#     return render(request, 'orders/request_return.html', {'order': order})
+    context = {
+        'item': order_item,
+        'order': order_item.order,
+    }
+    return render(request, 'orders/request_item_return.html', context)

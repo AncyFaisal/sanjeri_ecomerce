@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load offer_tags %} 
 
 {% block title %}Unisex Fragrances - Sanjeri{% endblock %}
 
@@ -657,17 +658,35 @@
               <span class="rating-count-sm">({{ variant.product.rating_count|default:"4.2" }})</span>
             </div>
 
-            <div class="price-section-sm mb-1">
-              {% if variant.discount_price and variant.discount_price < variant.price %}
-              <div class="d-flex align-items-center">
-                <span class="current-price-sm fw-bold">₹{{ variant.discount_price }}</span>
-                <small class="text-muted ms-2 text-decoration-line-through">₹{{ variant.price }}</small>
-              </div>
-              {% else %}
-              <span class="current-price-sm fw-bold">₹{{ variant.price }}</span>
-              {% endif %}
-              <small class="text-muted d-block">{{ variant.gender }} • SKU: {{ variant.sku }}</small>
-            </div>
+            <!-- Price Section - paste the working code here -->
+<div class="price-section-sm mb-1">
+  {% with best_offer=variant.product|get_best_offer %}
+    {% if best_offer %}
+      {% with discount=variant.price|get_offer_discount:variant.product %}
+        {% with discounted_price=variant.price|subtract:discount %}
+          <div class="d-flex align-items-center flex-wrap">
+            <span class="current-price-sm fw-bold text-danger">₹{{ discounted_price|floatformat:0 }}</span>
+            <small class="text-muted ms-2 text-decoration-line-through">₹{{ variant.price|floatformat:0 }}</small>
+            <span class="badge bg-danger ms-2">{{ best_offer.discount_percentage }}% OFF</span>
+          </div>
+        {% endwith %}
+      {% endwith %}
+    {% elif variant.discount_price and variant.discount_price < variant.price %}
+      <div class="d-flex align-items-center flex-wrap">
+        <span class="current-price-sm fw-bold">₹{{ variant.discount_price|floatformat:0 }}</span>
+        <small class="text-muted ms-2 text-decoration-line-through">₹{{ variant.price|floatformat:0 }}</small>
+        {% with discount_amount=variant.price|subtract:variant.discount_price %}
+          {% with discount_percent=discount_amount|divide:variant.price|multiply:100 %}
+            <span class="badge bg-success ms-2">{{ discount_percent|floatformat:0 }}% OFF</span>
+          {% endwith %}
+        {% endwith %}
+      </div>
+    {% else %}
+      <span class="current-price-sm fw-bold">₹{{ variant.price|floatformat:0 }}</span>
+    {% endif %}
+  {% endwith %}
+  <small class="text-muted d-block">{{ variant.gender }} • SKU: {{ variant.sku }}</small>
+</div>
 
             <div class="stock-status-sm mb-2">
               {% if variant.stock > 10 %}

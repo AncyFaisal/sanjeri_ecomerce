@@ -1,0 +1,193 @@
+<!-- templates/admin/offers/product_offer_form.html -->
+
+{% extends "common_admin.html" %}
+{% load static %}
+
+{% block page_title %}{% if offer %}Edit{% else %}Create{% endif %} Product Offer{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="admin-card">
+        <div class="card-header">
+            <h3 class="mb-0">{% if offer %}Edit{% else %}Create New{% endif %} Product Offer</h3>
+        </div>
+
+        <div class="card-body">
+            <form method="post" class="needs-validation" novalidate>
+                {% csrf_token %}
+                
+                <!-- Basic Information -->
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <h5 class="border-bottom pb-2">Basic Information</h5>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Offer Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" value="{{ offer.name|default:'' }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Status</label>
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="isActive" {% if offer.is_active or not offer %}checked{% endif %}>
+                            <label class="form-check-label" for="isActive">Active</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label class="form-label fw-semibold">Description</label>
+                        <textarea name="description" class="form-control" rows="3">{{ offer.description|default:'' }}</textarea>
+                    </div>
+                </div>
+                
+                <!-- Discount Details -->
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <h5 class="border-bottom pb-2">Discount Details</h5>
+                        <p class="text-muted small mb-3">Choose either percentage OR fixed discount (not both)</p>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Discount Percentage (%)</label>
+                        <input type="number" name="discount_percentage" class="form-control" 
+                               value="{{ offer.discount_percentage|default:'0' }}" min="0" max="100" step="0.01">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Fixed Discount (₹)</label>
+                        <input type="number" name="discount_fixed" class="form-control" 
+                               value="{{ offer.discount_fixed|default:'0' }}" min="0" step="0.01">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Max Discount (₹) <small class="text-muted">(Optional)</small></label>
+                        <input type="number" name="max_discount" class="form-control" 
+                               value="{{ offer.max_discount|default:'' }}" min="0" step="0.01">
+                    </div>
+                </div>
+                
+                <!-- Products Selection -->
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <h5 class="border-bottom pb-2">Select Products</h5>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="border p-3" style="max-height: 300px; overflow-y: auto;">
+                            {% for product in products %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="products" 
+                                       value="{{ product.id }}" id="product{{ product.id }}"
+                                       {% if product.id in selected_products %}checked{% endif %}>
+                                <label class="form-check-label" for="product{{ product.id }}">
+                                    <strong>{{ product.name }}</strong> 
+                                    <small class="text-muted">(SKU: {{ product.sku }})</small>
+                                </label>
+                            </div>
+                            {% empty %}
+                            <p class="text-muted mb-0">No products available. <a href="{% url 'product_add' %}">Create a product first</a>.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Conditions -->
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <h5 class="border-bottom pb-2">Conditions</h5>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Minimum Purchase Amount (₹)</label>
+                        <input type="number" name="min_purchase_amount" class="form-control" 
+                               value="{{ offer.min_purchase_amount|default:'0' }}" min="0" step="0.01">
+                        <small class="text-muted">Minimum order value required for this offer</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Usage Limit</label>
+                        <input type="number" name="usage_limit" class="form-control" 
+                               value="{{ offer.usage_limit|default:'0' }}" min="0">
+                        <small class="text-muted">0 = unlimited</small>
+                    </div>
+                </div>
+                
+                <!-- Validity -->
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <h5 class="border-bottom pb-2">Validity Period</h5>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Valid From <span class="text-danger">*</span></label>
+                        <input type="datetime-local" name="valid_from" class="form-control" 
+                               value="{{ offer.valid_from|date:'Y-m-d\TH:i'|default:'' }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Valid To <span class="text-danger">*</span></label>
+                        <input type="datetime-local" name="valid_to" class="form-control" 
+                               value="{{ offer.valid_to|date:'Y-m-d\TH:i'|default:'' }}" required>
+                    </div>
+                </div>
+                
+                <!-- Form Actions -->
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save Offer
+                        </button>
+                        <a href="{% url 'product_offer_list' %}" class="btn btn-secondary ms-2">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form validation
+(function() {
+    'use strict';
+    
+    const forms = document.querySelectorAll('.needs-validation');
+    
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            // Check discount type
+            const percentage = parseFloat(form.discount_percentage.value) || 0;
+            const fixed = parseFloat(form.discount_fixed.value) || 0;
+            
+            if (percentage > 0 && fixed > 0) {
+                event.preventDefault();
+                alert('Cannot use both percentage and fixed discount. Please choose one.');
+                return false;
+            }
+            
+            if (percentage === 0 && fixed === 0) {
+                event.preventDefault();
+                alert('Please provide either percentage or fixed discount.');
+                return false;
+            }
+            
+            form.classList.add('was-validated');
+        }, false);
+    });
+})();
+</script>
+{% endblock %}

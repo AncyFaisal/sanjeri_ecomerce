@@ -1,3 +1,5 @@
+{% load offer_tags %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -375,12 +377,22 @@
                                 <div>
                                     <strong>{{ variant.volume_ml }}ml - {{ variant.gender }}</strong>
                                     <div class="small">
-                                        {% if variant.discount_price %}
-                                            <span class="text-danger fw-bold">₹{{ variant.discount_price }}</span>
-                                            <span class="original-price ms-2">₹{{ variant.price }}</span>
-                                        {% else %}
-                                            <span class="fw-bold">₹{{ variant.price }}</span>
-                                        {% endif %}
+                                        {% with best_offer=product|get_best_offer %}
+                    {% if best_offer %}
+                        {% with discount=variant.price|get_offer_discount:product %}
+                            {% with discounted_price=variant.price|subtract:discount %}
+                                <span class="text-danger fw-bold">₹{{ discounted_price|floatformat:0 }}</span>
+                                <span class="original-price ms-2">₹{{ variant.price|floatformat:0 }}</span>
+                                <span class="badge bg-danger ms-2">{{ best_offer.discount_percentage }}% OFF</span>
+                            {% endwith %}
+                        {% endwith %}
+                    {% elif variant.discount_price %}
+                        <span class="text-danger fw-bold">₹{{ variant.discount_price }}</span>
+                        <span class="original-price ms-2">₹{{ variant.price }}</span>
+                    {% else %}
+                        <span class="fw-bold">₹{{ variant.price }}</span>
+                    {% endif %}
+                {% endwith %}
                                     </div>
                                 </div>
                                 <div class="text-end">

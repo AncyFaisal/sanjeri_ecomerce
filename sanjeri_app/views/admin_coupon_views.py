@@ -10,6 +10,12 @@ from ..models import Coupon
 from django.db import transaction
 import json
 from datetime import timedelta
+from django.utils.dateparse import parse_datetime
+import pytz
+
+
+# Get user's timezone (assuming IST)
+user_timezone = pytz.timezone('Asia/Kolkata')
 
 
 def is_admin(user):
@@ -83,7 +89,31 @@ def create_coupon(request):
                 if discount_type == 'percentage' and Decimal(discount_value) > 100:
                     raise ValidationError("Percentage discount cannot exceed 100%")
                 
-                if valid_from and valid_to and valid_from >= valid_to:
+                # Convert to datetime
+                
+                valid_from_dt = parse_datetime(valid_from)
+                valid_to_dt = parse_datetime(valid_to)
+                
+                if not valid_from_dt or not valid_to_dt:
+                    raise ValidationError("Invalid date format")
+                
+                # Assume the input dates are in user's local time (IST)
+                # First, make them naive if they have timezone
+                if timezone.is_aware(valid_from_dt):
+                    valid_from_dt = valid_from_dt.replace(tzinfo=None)
+                if timezone.is_aware(valid_to_dt):
+                    valid_to_dt = valid_to_dt.replace(tzinfo=None)
+
+                # Localize to user's timezone (IST)
+                valid_from_dt = user_timezone.localize(valid_from_dt)
+                valid_to_dt = user_timezone.localize(valid_to_dt)
+
+                # Convert to UTC for storage - FIXED
+                valid_from_dt = valid_from_dt.astimezone(pytz.UTC)
+                valid_to_dt = valid_to_dt.astimezone(pytz.UTC)
+                 
+                # NOW validate the dates (after conversion)
+                if valid_from_dt >= valid_to_dt:
                     raise ValidationError("Valid 'From' date must be before 'To' date")
                 
                 # Create coupon
@@ -94,12 +124,11 @@ def create_coupon(request):
                     min_order_amount=min_order_amount,
                     max_discount_amount=max_discount_amount,
                     usage_limit=usage_limit,
-                    valid_from=valid_from,
-                    valid_to=valid_to,
+                    valid_from=valid_from_dt,  # Start from now if past date provided
+                    valid_to=valid_to_dt,
                     active=active,
                     single_use_per_user=single_use_per_user,
                 )
-                coupon.full_clean()
                 coupon.save()
                 
                 messages.success(request, f'Coupon "{code}" created successfully!')
@@ -111,6 +140,7 @@ def create_coupon(request):
             messages.error(request, f'Error creating coupon: {str(e)}')
     
     return render(request, 'admin/coupon/create.html')
+
 @login_required
 @user_passes_test(is_admin)
 @require_POST

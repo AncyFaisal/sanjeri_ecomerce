@@ -1,0 +1,259 @@
+<!-- templates/admin/wallet/pending_refunds.html -->
+{% extends 'common_admin.html' %}
+{% load static %}
+
+{% block title %}Pending Refunds - Admin{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    <div class="top-nav mb-4">
+        <div class="nav-left">
+            <h2 class="page-title">
+                <i class="fas fa-clock me-2"></i>Pending Refund Approvals
+            </h2>
+        </div>
+        <div class="nav-right">
+            <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Card -->
+    <div class="admin-card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-warning text-white rounded-circle p-3 me-3">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0">{{ pending_refunds.count }}</h3>
+                            <p class="text-muted mb-0">Pending Refunds</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-success text-white rounded-circle p-3 me-3">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0">{{ total_approved }}</h3>
+                            <p class="text-muted mb-0">Approved Today</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-info text-white rounded-circle p-3 me-3">
+                            <i class="fas fa-rupee-sign fa-2x"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0">₹{{ total_pending_amount|floatformat:2 }}</h3>
+                            <p class="text-muted mb-0">Total Pending Amount</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Refunds Table -->
+    <div class="admin-card">
+        <div class="card-body">
+            {% if pending_refunds %}
+            <div class="table-responsive">
+                <table class="table styled-table">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Customer</th>
+                            <th>Request Date</th>
+                            <th>Amount</th>
+                            <th>Reason</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for refund in pending_refunds %}
+                        <tr>
+                            <td>
+                                <strong>#{{ refund.order.order_number }}</strong>
+                            </td>
+                            <td>
+                                <div>
+                                    <strong>{{ refund.wallet.user.get_full_name|default:refund.wallet.user.username }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ refund.wallet.user.email }}</small>
+                                </div>
+                            </td>
+                            <td>{{ refund.created_at|date:"d M Y, h:i A" }}</td>
+                            <td class="fw-bold text-danger">₹{{ refund.amount|floatformat:2 }}</td>
+                            <td>
+                                <small>{{ refund.reason|truncatechars:50 }}</small>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button type="button" class="action-btn success" 
+                                            onclick="approveRefund({{ refund.id }})"
+                                            title="Approve Refund">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    <button type="button" class="action-btn delete" 
+                                            onclick="showRejectModal({{ refund.id }})"
+                                            title="Reject Refund">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    <a href="{% url 'admin_order_detail' refund.order.id %}" 
+                                       class="action-btn view" title="View Order">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                <h4>No Pending Refunds</h4>
+                <p class="text-muted">All refund requests have been processed.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reject Refund Request</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="rejectForm">
+                {% csrf_token %}
+                <input type="hidden" name="refund_id" id="rejectRefundId">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="rejectionReason" class="form-label">Reason for rejection:</label>
+                        <textarea class="form-control" id="rejectionReason" name="rejection_reason" 
+                                  rows="3" required placeholder="Please specify reason for rejecting this refund..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reject Refund</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function approveRefund(refundId) {
+    if (!confirm('Are you sure you want to approve this refund? Amount will be credited to customer\'s wallet.')) {
+        return;
+    }
+    
+    fetch(`/admin/wallet/refund/${refundId}/approve/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error processing request');
+    });
+}
+
+function showRejectModal(refundId) {
+    document.getElementById('rejectRefundId').value = refundId;
+    new bootstrap.Modal(document.getElementById('rejectModal')).show();
+}
+
+document.getElementById('rejectForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const refundId = document.getElementById('rejectRefundId').value;
+    const reason = document.getElementById('rejectionReason').value;
+    
+    fetch(`/admin/wallet/refund/${refundId}/reject/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: `rejection_reason=${encodeURIComponent(reason)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error processing request');
+    });
+});
+</script>
+
+<style>
+.action-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+    font-size: 14px;
+}
+
+.action-btn.success {
+    background-color: #27ae60;
+}
+
+.action-btn.delete {
+    background-color: #e74c3c;
+}
+
+.action-btn.view {
+    background-color: #3498db;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}

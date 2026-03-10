@@ -80,6 +80,7 @@
                 <table class="styled-table">
                     <thead>
                         <tr>
+                            
                             <th>Order ID</th>
                             <th>Date</th>
                             <th>Customer</th>
@@ -93,7 +94,11 @@
                     </thead>
                     <tbody>
                         {% for order in page_obj %}
+
+
                         <tr>
+
+
                             <td>
                                 <strong>#{{ order.order_number }}</strong>
                             </td>

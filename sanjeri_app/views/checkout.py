@@ -1,5 +1,3 @@
-# views/checkout.py
-# views/checkout.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -13,90 +11,38 @@ from django.utils import timezone
 import razorpay
 import json
 from django.conf import settings
-
-from sanjeri_app.models import order
-from ..models import Cart, CartItem, Address, Order, OrderItem, Coupon
-from ..models import Wallet, WalletTransaction, CustomUser
-
-# Initialize Razorpay client
-# In place_order function, you have:
-# razorpay_client = razorpay.Client(
-#     auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
-# )
+from datetime import timedelta
+import hashlib
+from decimal import Decimal, ROUND_DOWN
+from ..models import Cart, Address, Order, OrderItem, Coupon, Wallet
+from ..models.offer_models import ProductOffer, CategoryOffer, OfferApplication
+from ..utils.offer_utils import apply_offers_to_cart, get_best_offer_for_product, calculate_seasonal_discount
 
 # Initialize Razorpay client
 client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
-# Add these helper functions at the top of the file
-def get_coupon_display_data(cart, coupon_data):
-    """Helper function to get coupon display data"""
-    if not coupon_data:
-        return None
-    
-    try:
-        coupon = Coupon.objects.get(id=coupon_data['coupon_id'])
-        discount_amount = coupon.calculate_discount(cart.subtotal)
-        
-        return {
-            'code': coupon.code,
-            'discount_type': coupon.discount_type,
-            'discount_value': coupon.discount_value,
-            'discount_amount': discount_amount,
-            'display_text': f'{coupon.discount_value}{"%" if coupon.discount_type == "percentage" else "₹"} OFF',
-            'description': get_coupon_description(coupon)
-        }
-    except Coupon.DoesNotExist:
-        return None
 
-def get_coupon_description(coupon):
-    """Generate coupon description"""
-    description = []
+def cleanup_old_tokens(request):
+    """Clean up tokens older than 1 hour"""
+    one_hour_ago = timezone.now() - timedelta(hours=1)
+    tokens_to_delete = []
     
-    if coupon.discount_type == 'percentage':
-        description.append(f'{coupon.discount_value}% discount')
-    else:
-        description.append(f'₹{coupon.discount_value} off')
+    for key in list(request.session.keys()):
+        if key.startswith(f'order_token_{request.user.id}_'):
+            try:
+                token_time = timezone.datetime.fromisoformat(request.session[key])
+                if token_time < one_hour_ago:
+                    tokens_to_delete.append(key)
+            except:
+                tokens_to_delete.append(key)
     
-    if coupon.min_order_amount > 0:
-        description.append(f'on orders above ₹{coupon.min_order_amount}')
-    
-    if coupon.max_discount_amount:
-        description.append(f'(max ₹{coupon.max_discount_amount})')
-    
-    return ' '.join(description)
-
-def clear_user_cart(user):
-    """Safely clear user's cart and return success status"""
-    try:
-        cart = Cart.objects.filter(user=user).first()
-        if cart:
-            item_count = cart.items.count()
-            if item_count > 0:
-                # Debug information
-                print(f"📦 Found cart #{cart.id} with {item_count} items for user {user.username}")
-                for item in cart.items.all():
-                    print(f"  - Item: {item.id}, Product: {item.variant.product.name if item.variant else 'N/A'}, Qty: {item.quantity}")
-                
-                # Clear the cart
-                deleted_count, _ = cart.items.all().delete()
-                print(f"✅ Cleared {deleted_count} items from cart #{cart.id}")
-                return True, item_count
-            else:
-                print(f"⚠️ Cart #{cart.id} already empty for user {user.username}")
-                return True, 0
-        else:
-            print(f"❌ No cart found for user {user.username}")
-            return False, 0
-    except Exception as e:
-        print(f"❌ Error clearing cart for user {user.username}: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return False, 0
+    for key in tokens_to_delete:
+        del request.session[key]
 
 
 @login_required
 def checkout_view(request):
-    """Checkout page view - FIXED"""
+    """Checkout page view - WITH PROPER OFFER CALCULATIONS"""
     cart = Cart.objects.filter(user=request.user).first()
     
     if not cart or cart.items.count() == 0:
@@ -104,1093 +50,689 @@ def checkout_view(request):
         return redirect('cart')
     
     addresses = Address.objects.filter(user=request.user)
-    wallet, _ = Wallet.objects.get_or_create(user=request.user)
     
-    # Calculate prices
-    subtotal = cart.subtotal
-    seasonal_discount_percentage = Decimal('0.10')
-    additional_discount = subtotal * seasonal_discount_percentage
-    subtotal_after_seasonal = subtotal - additional_discount
+    # ==========  GET WALLET PROPERLY ==========
+    try:
+        wallet = Wallet.objects.get(user=request.user)
+    except Wallet.DoesNotExist:
+        # Create wallet if it doesn't exist
+        wallet = Wallet.objects.create(user=request.user, balance=Decimal('0.00'))
     
-    # Apply coupon discount if any
-    coupon_discount = Decimal('0.00')
+    # Ensure wallet balance is a Decimal
+    wallet_balance = wallet.balance if wallet.balance is not None else Decimal('0.00')
+    
+    # ========== 1. CALCULATE OFFER DISCOUNTS ==========
+    offer_info = apply_offers_to_cart(cart)
+    offer_discount = offer_info['total_discount']
+    price_after_offers = offer_info['subtotal_after_discount']
+    
+    # ========== 2. CREATE ENHANCED CART ITEMS WITH OFFER INFO ==========
+    enhanced_cart_items = []
+    for item in cart.items.all():
+        if item.id in offer_info['item_offers']:
+            # Item has an offer
+            offer_data = offer_info['item_offers'][item.id]
+            enhanced_cart_items.append({
+                'item': item,
+                'product': item.variant.product,
+                'variant': item.variant,
+                'quantity': item.quantity,
+                'original_price': float(item.variant.display_price),
+                'offer_applied': True,
+                'offer_name': offer_data['offer_name'],
+                'offer_type': offer_data['offer_type'],
+                'discount_per_item': float(offer_data['discount_per_unit']),
+                'final_price_per_item': float(offer_data['final_price_per_unit']),
+                'total_original': float(offer_data['total_original']),
+                'total_discount': float(offer_data['total_discount']),
+                'total_final': float(offer_data['total_final']),
+            })
+        else:
+            # No offer applied
+            enhanced_cart_items.append({
+                'item': item,
+                'product': item.variant.product,
+                'variant': item.variant,
+                'quantity': item.quantity,
+                'original_price': float(item.variant.display_price),
+                'offer_applied': False,
+                'offer_name': None,
+                'discount_per_item': 0,
+                'final_price_per_item': float(item.variant.display_price),
+                'total_original': float(item.total_price),
+                'total_discount': 0,
+                'total_final': float(item.total_price),
+            })
+    
+    # ========== 3. CALCULATE SEASONAL DISCOUNT ==========
+    seasonal_discount = calculate_seasonal_discount(price_after_offers)
+    price_after_seasonal = price_after_offers - seasonal_discount
+    
+    # ========== 4. APPLY COUPON DISCOUNT ==========
+    coupon_discount = Decimal('0')
     applied_coupon = None
+    applied_coupon_data = None
+    
     if 'applied_coupon' in request.session:
-        coupon_code = request.session['applied_coupon']
+        coupon_data = request.session['applied_coupon']
         try:
-            coupon = Coupon.objects.get(code=coupon_code, active=True)
-            coupon_discount = coupon.calculate_discount(subtotal_after_seasonal)
-            applied_coupon = coupon
-        except Coupon.DoesNotExist:
-            pass
+            coupon = Coupon.objects.get(id=coupon_data['coupon_id'], active=True)
+            # Check validity
+            is_valid, message = coupon.is_valid(request.user, price_after_seasonal)
+            if is_valid:
+                coupon_discount = coupon.calculate_discount(price_after_seasonal)
+                applied_coupon = coupon
+                applied_coupon_data = {
+                    'code': coupon.code,
+                    'discount_type': coupon.discount_type,
+                    'discount_value': float(coupon.discount_value),
+                    'discount_amount': float(coupon_discount),
+                }
+            else:
+                # Invalid coupon - remove from session
+                del request.session['applied_coupon']
+                messages.warning(request, message)
+        except (Coupon.DoesNotExist, KeyError):
+            if 'applied_coupon' in request.session:
+                del request.session['applied_coupon']
     
-    # Calculate shipping
-    shipping_charge = Decimal('0.00')
-    if subtotal_after_seasonal < Decimal('500.00'):
-        shipping_charge = Decimal('50.00')
+    # ========== 5. FINAL PRICE AFTER ALL DISCOUNTS ==========
+    price_after_coupon = price_after_seasonal - coupon_discount
     
-    # Calculate tax
-    taxable_amount = subtotal_after_seasonal - coupon_discount
-    tax_percentage = Decimal('0.18')
-    tax_amount = taxable_amount * tax_percentage
+    # ========== 6. CALCULATE SHIPPING ==========
+    shipping_charge = Decimal('50.00')  # Default shipping
+    if price_after_coupon >= Decimal('500.00'):
+        shipping_charge = Decimal('0.00')  # Free shipping
     
-    # Calculate total before wallet
-    total_before_wallet = taxable_amount + shipping_charge + tax_amount
+    # ========== 7. CALCULATE TAX ==========
+    tax_amount = price_after_coupon * Decimal('0.18')  # 18% GST
     
-    # Initialize wallet discount
-    wallet_discount = Decimal('0.00')
+    # ========== 8. CALCULATE TOTAL BEFORE WALLET ==========
+    total_before_wallet = price_after_coupon + shipping_charge + tax_amount
     
-    # Check if wallet is being used (from POST or session)
-    if request.method == 'POST':
-        use_wallet = request.POST.get('use_wallet') == 'true'
-        wallet_amount = Decimal(request.POST.get('wallet_amount', '0.00'))
-        
-        if use_wallet and wallet_amount > 0:
-            wallet_discount = min(wallet_amount, wallet.balance, total_before_wallet)
-    else:
-        # Default - no wallet usage
-        wallet_discount = Decimal('0.00')
+    # ========== 9. HANDLE WALLET PAYMENT ==========
+    wallet_discount = Decimal('0')
+    if request.method == 'POST' and request.POST.get('use_wallet') == 'true':
+        wallet_amount = Decimal(request.POST.get('wallet_amount', '0'))
+        wallet_discount = min(wallet_amount, wallet.balance, total_before_wallet)
     
-    # Calculate final total
+    # ========== 10. CALCULATE FINAL TOTAL ==========
     total_amount = total_before_wallet - wallet_discount
     
-    # Determine if payment is required
-    payment_required = total_amount > 0
-
-    # Calculate max wallet amount that can be used
-    max_wallet_amount = min(wallet.balance, total_before_wallet)
+    # ========== 11. STORE ALL CALCULATIONS IN SESSION (CONVERT DECIMALS TO FLOAT) ==========
+    request.session['checkout_calculations'] = {
+        'offer_discount': float(offer_discount),
+        'seasonal_discount': float(seasonal_discount),
+        'coupon_discount': float(coupon_discount),
+        'total_discount': float(offer_discount + seasonal_discount + coupon_discount),
+        'price_after_offers': float(price_after_offers),
+        'price_after_seasonal': float(price_after_seasonal),
+        'price_after_coupon': float(price_after_coupon),
+        'shipping_charge': float(shipping_charge),
+        'tax_amount': float(tax_amount),
+        'total_before_wallet': float(total_before_wallet),
+        'wallet_discount': float(wallet_discount),
+        'total_amount': float(total_amount),
+        'item_offers': {
+            str(k): {
+                'offer_id': v.get('offer_id'),
+                'offer_name': v.get('offer_name'),
+                'offer_type': v.get('offer_type'),
+                'discount_per_unit': float(v.get('discount_per_unit', 0)),
+                'final_price_per_unit': float(v.get('final_price_per_unit', 0)),
+                'total_original': float(v.get('total_original', 0)),
+                'total_discount': float(v.get('total_discount', 0)),
+                'total_final': float(v.get('total_final', 0)),
+            } for k, v in offer_info['item_offers'].items()
+        },
+    }
     
+    # ========== 12. PREPARE CONTEXT FOR TEMPLATE ==========
     context = {
         'cart': cart,
-        'cart_items': cart.items.all(),
+        'cart_items': enhanced_cart_items,
         'addresses': addresses,
-        'wallet_balance': wallet.balance,
-        'subtotal': subtotal,
-        'additional_discount': additional_discount,
-        'coupon_discount': coupon_discount,
+        'wallet_balance': float(wallet_balance),  # Convert to float
+        
+        # Price breakdown - all converted to float for template
+        'subtotal': float(cart.subtotal),
+        'offer_discount': float(offer_discount),
+        'seasonal_discount': float(seasonal_discount),
+        'coupon_discount': float(coupon_discount),
+        'total_discount': float(offer_discount + seasonal_discount + coupon_discount),
+        'shipping_charge': float(shipping_charge),
+        'tax_amount': float(tax_amount),
+        'wallet_discount': float(wallet_discount),
+        'total_amount': float(total_amount),
+        
+        # Applied items
         'applied_coupon': applied_coupon,
-        'available_coupons': Coupon.objects.filter(active=True, valid_from__lte=timezone.now(), valid_to__gte=timezone.now())[:5],
-        'shipping_charge': shipping_charge,
-        'tax_amount': tax_amount,
-        'wallet_discount': wallet_discount,
-        'total_amount': total_amount,
-        'max_wallet_amount': max_wallet_amount,
-        'payment_required': payment_required,  # Add this for template
+        'applied_coupon_data': applied_coupon_data,
+        'available_coupons': Coupon.objects.filter(
+            active=True, 
+            valid_from__lte=timezone.now(), 
+            valid_to__gte=timezone.now()
+        )[:5],
+        
+        # Wallet
+        'max_wallet_amount': float(min(wallet_balance, total_before_wallet)),
+        'payment_required': total_amount > 0,
+        
+        # For debugging
+        'price_after_offers': float(price_after_offers),
+        'price_after_coupon': float(price_after_coupon),
+        
         'title': 'Checkout - Sanjeri'
     }
     
     return render(request, 'checkout/checkout.html', context)
 
 @login_required
-def apply_wallet_payment(request):
-    """Apply wallet payment to checkout (AJAX)"""
-    if request.method == 'POST':
-        try:
-            use_wallet = request.POST.get('use_wallet') == 'true'
-            wallet_amount = Decimal(request.POST.get('wallet_amount', '0.00'))
-            
-            # Get user's wallet
-            wallet, _ = Wallet.objects.get_or_create(user=request.user)
-            
-            # Get cart total
-            cart = Cart.objects.filter(user=request.user).first()
-            if not cart:
-                return JsonResponse({'success': False, 'message': 'Cart is empty'})
-            
-            subtotal = cart.subtotal
-            seasonal_discount = subtotal * Decimal('0.10')
-            subtotal_after_seasonal = subtotal - seasonal_discount
-            shipping = Decimal('50.00') if subtotal_after_seasonal < Decimal('500.00') else Decimal('0.00')
-            tax = (subtotal_after_seasonal * Decimal('0.18'))
-            total_before_wallet = subtotal_after_seasonal + shipping + tax
-            
-            wallet_discount = Decimal('0.00')
-            if use_wallet and wallet_amount > 0:
-                # Ensure wallet amount doesn't exceed wallet balance
-                wallet_amount_used = min(wallet_amount, wallet.balance)
-                # Ensure wallet amount doesn't exceed total
-                wallet_amount_used = min(wallet_amount_used, total_before_wallet)
-                wallet_discount = wallet_amount_used
-            
-            total_amount = total_before_wallet - wallet_discount
-            
-            return JsonResponse({
-                'success': True,
-                'wallet_used': float(wallet_discount),
-                'remaining_amount': float(total_amount),
-                'wallet_balance': float(wallet.balance)
-            })
-            
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)})
-    
-    return JsonResponse({'success': False, 'message': 'Invalid request'})
-
-@login_required
 @transaction.atomic
 def place_order(request):
-    """Place order view - FIXED to not clear cart prematurely"""
+    """Place order view - USING PRE-CALCULATED VALUES"""
     print("\n=== PLACE ORDER CALLED ===")
+
     
-    if request.method == 'POST':
-        try:
-            # Get user's cart - DON'T DELETE YET
-            cart = Cart.objects.filter(user=request.user).first()
-            if not cart or cart.items.count() == 0:
-                return JsonResponse({'success': False, 'message': 'Your cart is empty!'})
-            
-            # Store cart items in session for potential restoration
-            cart_items_backup = []
-            for item in cart.items.all():
-                # Get variant display name (combination of volume and gender)
-                variant_display = f"{item.variant.volume_ml}ml ({item.variant.gender})"
+    # ===== ADD THIS DEBUG CODE =====
+    print(f"Request method: {request.method}")
+    print(f"POST data: {request.POST}")
+    print(f"User authenticated: {request.user.is_authenticated}")
+    print(f"Session keys: {list(request.session.keys())}")
+    # ===== END DEBUG CODE =====
+
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+    # Check for duplicate submission token
+    checkout_token = request.POST.get('checkout_token', '')
+
+    # Clean up old tokens (older than 1 hour)
+    cleanup_old_tokens(request)
+
+    # Check if this token was already used (in last 5 minutes)
+    if checkout_token:
+        token_key = f'order_token_{request.user.id}_{checkout_token}'
+        if request.session.get(token_key):
+            print(f"⚠️ Duplicate submission detected with token: {checkout_token}")
+            return JsonResponse({
+                'success': False,
+                'message': 'Duplicate order submission detected. Please check your orders.'
+            })
+        request.session[token_key] = timezone.now().isoformat()
+
+    # Check for recent order
+    recent_order = Order.objects.filter(
+        user=request.user,
+        created_at__gte=timezone.now() - timedelta(seconds=30)
+    ).first()
+    
+    if recent_order:
+        print(f"⚠️ Recent order detected: {recent_order.order_number}")
+        cart = Cart.objects.filter(user=request.user).first()
+        if cart and cart.subtotal == recent_order.subtotal:
+            return JsonResponse({
+                'success': True,
+                'payment_required': False,
+                'redirect_url': reverse('order_success', args=[recent_order.id]),
+                'order_id': recent_order.id,
+                'order_number': recent_order.order_number,
+                'message': 'Order already placed'
+            })
+
+    try:
+        # Get user's cart
+        cart = Cart.objects.filter(user=request.user).first()
+        if not cart or cart.items.count() == 0:
+            return JsonResponse({'success': False, 'message': 'Your cart is empty!'})
+        
+        # Get calculations from session
+        calculations = request.session.get('checkout_calculations')
+        if calculations:
+            # Convert floats back to Decimal for calculations
+            for key in calculations:
+                if isinstance(calculations[key], (int, float)):
+                    calculations[key] = Decimal(str(calculations[key]))
+        # if not calculations:
+        #     return JsonResponse({
+        #         'success': False, 
+        #         'message': 'Checkout session expired. Please go back to checkout.'
+        #     })
+
+        # Add this to ensure all decimal values are properly formatted
+        from decimal import Decimal
+        for key in ['total_before_wallet', 'offer_discount', 'seasonal_discount', 
+                    'coupon_discount', 'total_discount', 'shipping_charge', 
+                    'tax_amount']:
+            if key in calculations:
+                calculations[key] = float(Decimal(str(calculations[key])).quantize(Decimal('0.01')))
                 
-                cart_items_backup.append({
-                    'variant_id': item.variant.id,
-                    'quantity': item.quantity,
-                    'variant_display': variant_display,
-                    'product_name': item.variant.product.name if item.variant.product else ""
+        # Get form data
+        address_id = request.POST.get('address_id')
+        payment_method = request.POST.get('payment_method', 'cod')
+        
+        # Validate address
+        address = Address.objects.filter(id=address_id, user=request.user).first()
+        if not address:
+            return JsonResponse({'success': False, 'message': 'Please select a valid address!'})
+        
+        # Get coupon from session
+        coupon = None
+        if 'applied_coupon' in request.session:
+            try:
+                coupon_data = request.session['applied_coupon']
+                coupon = Coupon.objects.get(id=coupon_data['coupon_id'])
+            except (Coupon.DoesNotExist, KeyError):
+                pass
+        
+        # Get wallet
+        wallet = None
+        wallet_amount_used = Decimal('0')
+        wallet_payment_only = False
+        actual_payment_method = payment_method
+        
+        # Handle wallet payment
+        if payment_method == 'wallet':
+            try:
+                wallet = Wallet.objects.get(user=request.user)
+                total_before_wallet = Decimal(calculations['total_before_wallet'])
+                
+                # Check if wallet has sufficient balance
+                if wallet.balance < total_before_wallet:
+                    return JsonResponse({
+                        'success': False,
+                        'message': f'Insufficient wallet balance. Need ₹{total_before_wallet - wallet.balance} more.'
+                    })
+                
+                wallet_amount_used = total_before_wallet
+                wallet_payment_only = True
+                actual_payment_method = 'wallet'
+                
+            except Wallet.DoesNotExist:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Wallet not found. Please add money to your wallet first.'
                 })
-            
-            # Store backup in session
-            request.session['cart_backup'] = cart_items_backup
-            print(f"📦 Cart backup stored: {len(cart_items_backup)} items")
-            
-            # Get form data
-            address_id = request.POST.get('address_id')
-            payment_method = request.POST.get('payment_method', 'cod')
-            coupon_code = request.POST.get('coupon_code', '')
+        else:
+            # For other payment methods, handle wallet usage if checked
             use_wallet = request.POST.get('use_wallet') == 'true'
-            wallet_amount = Decimal(request.POST.get('wallet_amount', '0.00'))
-            
-            print(f"Payment method selected: {payment_method}")
-            print(f"Use wallet: {use_wallet}, Wallet amount: {wallet_amount}")
-            
-            # Get address
-            address = Address.objects.filter(id=address_id, user=request.user).first()
-            if not address:
-                return JsonResponse({'success': False, 'message': 'Please select a valid address!'})
-            
-            # Calculate order amounts
-            subtotal = cart.subtotal
-            
-            # Apply seasonal discount
-            seasonal_discount_percentage = Decimal('0.10')
-            additional_discount = subtotal * seasonal_discount_percentage
-            subtotal_after_seasonal = subtotal - additional_discount
-            
-            # Apply coupon discount
-            coupon_discount = Decimal('0.00')
-            coupon = None
-            if coupon_code:
-                try:
-                    coupon = Coupon.objects.get(code=coupon_code, active=True)
-                    coupon_discount = coupon.calculate_discount(subtotal_after_seasonal)
-                except Coupon.DoesNotExist:
-                    pass
-            
-            # Calculate shipping
-            shipping_charge = Decimal('0.00')
-            if subtotal_after_seasonal < Decimal('500.00'):
-                shipping_charge = Decimal('50.00')
-            
-            # Calculate tax
-            taxable_amount = subtotal_after_seasonal - coupon_discount
-            tax_percentage = Decimal('0.18')
-            tax_amount = taxable_amount * tax_percentage
-            
-            # Calculate total before wallet
-            total_before_wallet = taxable_amount + shipping_charge + tax_amount
-            
-            # Handle wallet payment
-            wallet_amount_used = Decimal('0.00')
-            wallet_payment = Decimal('0.00')
-            
-            if use_wallet and wallet_amount > 0:
-                wallet, _ = Wallet.objects.get_or_create(user=request.user)
-                wallet_amount_used = min(wallet_amount, wallet.balance)
-                wallet_amount_used = min(wallet_amount_used, total_before_wallet)
-                wallet_payment = wallet_amount_used
-                print(f"Wallet payment: ₹{wallet_amount_used}")
-            
-            # Calculate final total
-            total_amount = total_before_wallet - wallet_payment
-            print(f"Total before wallet: ₹{total_before_wallet}")
-            print(f"Total after wallet: ₹{total_amount}")
-            
-            # ========== DETERMINE PAYMENT METHOD ==========
-            actual_payment_method = payment_method
-            
-            if use_wallet and wallet_amount_used > 0:
-                if wallet_amount_used >= total_before_wallet:
-                    # Full wallet payment
-                    actual_payment_method = 'wallet'
-                    print("Full wallet payment")
+            if use_wallet:
+                wallet_amount = Decimal(request.POST.get('wallet_amount', '0'))
+                if wallet_amount > 0:
+                    try:
+                        wallet = Wallet.objects.get(user=request.user)
+                        wallet_amount_used = min(wallet_amount, wallet.balance, Decimal(calculations['total_before_wallet']))
+                        
+                        if wallet_amount_used >= Decimal(calculations['total_before_wallet']):
+                            wallet_payment_only = True
+                            actual_payment_method = 'wallet'
+                        else:
+                            actual_payment_method = 'mixed'
+                            
+                    except Wallet.DoesNotExist:
+                        wallet_amount_used = Decimal('0')
+                        actual_payment_method = payment_method
                 else:
-                    # Mixed payment
-                    actual_payment_method = 'mixed'
-                    print("Mixed payment (wallet + online)")
+                    actual_payment_method = payment_method
+            else:
+                actual_payment_method = payment_method
+
+        # Calculate final total
+        # When you calculate amounts, quantize them to 2 decimal places:
+        total_before_wallet = Decimal(calculations['total_before_wallet']).quantize(Decimal('0.01'))
+        wallet_amount_used = Decimal(wallet_amount_used).quantize(Decimal('0.01'))
+        total_amount = (total_before_wallet - wallet_amount_used).quantize(Decimal('0.01'))
+        
+        # ========== CREATE ORDER ==========
+        order = Order.objects.create(
+            user=request.user,
+            shipping_address=address,
             
-            # ========== CREATE ORDER ==========
-            order = Order.objects.create(
-                user=request.user,
-                shipping_address=address,
-                subtotal=subtotal,
-                discount_amount=additional_discount + coupon_discount,
-                shipping_charge=shipping_charge,
-                tax_amount=tax_amount,
-                total_amount=total_amount,
-                payment_method=actual_payment_method,
-                payment_status='pending',
-                status='pending_payment',  # Changed from 'confirmed'
-                wallet_amount_used=wallet_amount_used,
-                coupon=coupon if coupon else None,
-                coupon_discount=coupon_discount
-            )
+            # Order totals (using pre-calculated values)
+            subtotal=cart.subtotal,
+            offer_discount=Decimal(calculations['offer_discount']).quantize(Decimal('0.01')),
+            coupon=coupon,
+            coupon_discount=Decimal(calculations['coupon_discount']).quantize(Decimal('0.01')),
+            discount_amount=Decimal(calculations['total_discount']).quantize(Decimal('0.01')),
+            shipping_charge=Decimal(calculations['shipping_charge']).quantize(Decimal('0.01')),
+            tax_amount=Decimal(calculations['tax_amount']).quantize(Decimal('0.01')),
+            total_amount=total_amount,
             
-            # Create order items
-            for cart_item in cart.items.all():
-                unit_price = cart_item.variant.display_price
-                item_total = unit_price * cart_item.quantity
-                product = cart_item.variant.product
+            # Payment info
+            payment_method=actual_payment_method,
+            payment_status='completed' if wallet_payment_only else 'pending',
+            status='confirmed' if wallet_payment_only else 'pending_payment',
+            wallet_amount_used=wallet_amount_used,
+        )
+
+        # ========== CREATE ORDER ITEMS ==========
+        item_offers = calculations.get('item_offers', {})
+        
+        for cart_item in cart.items.select_related('variant__product').all():
+            product = cart_item.variant.product
+            variant_display = f"{cart_item.variant.volume_ml}ml ({cart_item.variant.gender})"
+            unit_price = cart_item.variant.display_price
+            
+            cart_item_id_str = str(cart_item.id)
+            if cart_item_id_str in item_offers:
+                offer_data = item_offers[cart_item_id_str]
+                final_price_per_unit = Decimal(offer_data['final_price_per_unit'])
+                item_total = final_price_per_unit * cart_item.quantity
                 
-                # Create variant display string
-                variant_display = f"{cart_item.variant.volume_ml}ml ({cart_item.variant.gender})"
-                
-                OrderItem.objects.create(
+                order_item = OrderItem.objects.create(
                     order=order,
                     variant=cart_item.variant,
-                    product_name=product.name if product else "",
-                    variant_details=variant_display,  # Use the display string
+                    product_name=product.name,
+                    variant_details=variant_display,
                     quantity=cart_item.quantity,
                     unit_price=unit_price,
                     total_price=item_total,
-                    product_image=product.main_image if product and product.main_image else None
+                    product_image=product.main_image if product.main_image else None
                 )
-            
-            # Handle wallet payment if used
-            if wallet_amount_used > 0:
-                try:
-                    wallet, _ = Wallet.objects.get_or_create(user=request.user)
-                    
-                    # Deduct from wallet
-                    wallet.withdraw(
-                        amount=wallet_amount_used,
-                        reason=f"Payment for order #{order.order_number}",
-                        order=order
+                
+                if offer_data.get('offer_id'):
+                    OfferApplication.objects.create(
+                        offer_type=offer_data['offer_type'],
+                        product_offer=ProductOffer.objects.get(id=offer_data['offer_id']) 
+                                    if offer_data['offer_type'] == 'product' else None,
+                        category_offer=CategoryOffer.objects.get(id=offer_data['offer_id'])
+                                      if offer_data['offer_type'] == 'category' else None,
+                        order=order,
+                        order_item=order_item,
+                        product=product,
+                        original_price=unit_price * cart_item.quantity,
+                        discount_amount=offer_data['total_discount'],
+                        final_price=item_total,
+                        offer_name=offer_data['offer_name']
                     )
                     
-                    # Update user's wallet_balance field
-                    request.user.wallet_balance -= wallet_amount_used
-                    request.user.save()
-                    
-                    print(f"✅ Wallet deduction: ₹{wallet_amount_used}")
-                    
-                except Exception as e:
-                    order.delete()
-                    return JsonResponse({
-                        'success': False, 
-                        'message': f'Wallet payment failed: {str(e)}'
-                    })
-            
-            # ========== IMPORTANT: Only clear cart for COD or full wallet ==========
-            if actual_payment_method == 'cod' or (actual_payment_method == 'wallet' and total_amount <= 0):
-                # ✅ For COD or full wallet payment, clear cart immediately
-                cart.items.all().delete()
-                print(f"✅ Cart cleared for {actual_payment_method} payment")
-                # Clear backup since we don't need it
-                if 'cart_backup' in request.session:
-                    del request.session['cart_backup']
+                    if offer_data['offer_type'] == 'product':
+                        offer = ProductOffer.objects.get(id=offer_data['offer_id'])
+                        offer.increment_usage()
+                    elif offer_data['offer_type'] == 'category':
+                        offer = CategoryOffer.objects.get(id=offer_data['offer_id'])
+                        offer.increment_usage()
             else:
-                # ❌ For online/mixed payment, keep cart until payment success
-                print(f"⚠️ Cart NOT cleared for {actual_payment_method} - waiting for payment verification")
+                order_item = OrderItem.objects.create(
+                    order=order,
+                    variant=cart_item.variant,
+                    product_name=product.name,
+                    variant_details=variant_display,
+                    quantity=cart_item.quantity,
+                    unit_price=unit_price,
+                    total_price=unit_price * cart_item.quantity,
+                    product_image=product.main_image if product.main_image else None
+                )
+
+        # ========== HANDLE WALLET WITHDRAWAL ==========
+        if wallet_amount_used > 0 and wallet:
+            try:
+                print(f"Processing wallet withdrawal: {wallet_amount_used}")
+                # Add this line to quantize the amount
+                from decimal import Decimal
+                wallet_amount_used = Decimal(str(wallet_amount_used)).quantize(Decimal('0.01'))
+                
+                wallet.withdraw(
+                    amount=wallet_amount_used,
+                    reason=f"Payment for order #{order.order_number}",
+                    order=order
+                )
+                print("Wallet withdrawal successful")
+            except Exception as e:
+                print(f"Wallet withdrawal failed: {str(e)}")
+                order.delete()
+                return JsonResponse({
+                    'success': False, 
+                    'message': f'Wallet payment failed: {str(e)}'
+                })
+
+        # ========== INCREMENT COUPON USAGE ==========
+        if coupon:
+            coupon.increment_usage()
+
+        # ========== HANDLE DIFFERENT PAYMENT SCENARIOS ==========
+        
+        # Case 1: Wallet only (full payment)
+        if wallet_payment_only:
+            order.payment_status = 'completed'
+            order.status = 'confirmed'
+            order.save()
             
-            # Clear coupon from session
+            # Clear cart
+            cart.items.all().delete()
+            
+            # Clear session data
+            if 'checkout_calculations' in request.session:
+                del request.session['checkout_calculations']
             if 'applied_coupon' in request.session:
                 del request.session['applied_coupon']
+                
+            return JsonResponse({
+                'success': True,
+                'payment_required': False,
+                'redirect_url': reverse('order_success', args=[order.id]),
+                'order_id': order.id,
+                'order_number': order.order_number
+            })
+        
+        # Case 2: Mixed payment or online payment
+        elif actual_payment_method in ['mixed', 'online'] and total_amount > 0:
+            order.payment_status = 'partially_paid' if actual_payment_method == 'mixed' else 'pending'
+            order.status = 'pending_payment'
+            order.save()
             
-            # ========== HANDLE PAYMENT SCENARIOS ==========
-            print(f"Processing payment scenario: {actual_payment_method}")
-            print(f"Total amount: ₹{total_amount}")
-            
-            if actual_payment_method == 'wallet' and total_amount <= 0:
-                # Full wallet payment - order is fully paid
-                order.payment_status = 'completed'
-                order.status = 'confirmed'
-                order.save()
-                print("✅ Full wallet payment - marking as completed")
-                
-                return JsonResponse({
-                    'success': True,
-                    'payment_required': False,
-                    'redirect_url': f'/order-success/{order.id}/',
-                    'order_id': order.id,
-                    'order_number': order.order_number
-                })
-            
-            elif actual_payment_method == 'mixed' and total_amount > 0:
-                # Mixed payment - wallet + online
-                order.payment_status = 'partially_paid'
-                order.status = 'pending_payment'
-                order.save()
-                print(f"✅ Mixed payment - {wallet_amount_used} from wallet, {total_amount} remaining")
-                
-                # Create Razorpay order for remaining amount
-                client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-                amount_in_paise = int(total_amount * 100)
-                
-                razorpay_order = client.order.create({
-                    'amount': amount_in_paise,
-                    'currency': 'INR',
-                    'payment_capture': '1',
-                    'receipt': order.order_number,
-                    'notes': {
-                        'order_id': str(order.id),
-                        'user_id': str(request.user.id),
-                        'cart_backup': json.dumps(cart_items_backup)  # Store backup
-                    }
-                })
-                
-                order.razorpay_order_id = razorpay_order['id']
-                order.save()
-                
-                return JsonResponse({
-                    'success': True,
-                    'payment_required': True,
-                    'order_id': order.id,
+            # Create Razorpay order for remaining amount
+            amount_in_paise = int(total_amount * 100)
+            razorpay_order = client.order.create({
+                'amount': amount_in_paise,
+                'currency': 'INR',
+                'payment_capture': '1',
+                'receipt': order.order_number,
+                'notes': {
+                    'order_id': str(order.id),
                     'order_number': order.order_number,
-                    'key': settings.RAZORPAY_KEY_ID,
-                    'amount': amount_in_paise,
-                    'currency': 'INR',
-                    'razorpay_order_id': razorpay_order['id'],
-                    'customer_name': request.user.get_full_name() or request.user.username,
-                    'customer_email': request.user.email,
-                    'customer_phone': address.phone,
-                    'preferred_method': request.POST.get('preferred_method', 'card')
-                })
+                    'user_id': str(request.user.id)
+                }
+            })
             
-            elif actual_payment_method == 'cod':
-                # COD - keep as pending
-                order.payment_status = 'pending'
-                order.status = 'confirmed'
-                order.save()
-                print("✅ COD order created")
-                
-                return JsonResponse({
-                    'success': True,
-                    'payment_required': False,
-                    'redirect_url': f'/order-success/{order.id}/',
-                    'order_id': order.id,
-                    'order_number': order.order_number
-                })
+            order.razorpay_order_id = razorpay_order['id']
+            order.save()
             
-            elif actual_payment_method == 'online':
-                # Online payment - create Razorpay order
-                order.payment_status = 'pending'
-                order.status = 'pending_payment'
-                order.save()
-                print(f"✅ Online payment order created - total: ₹{total_amount}")
-                
-                client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-                amount_in_paise = int(total_amount * 100)
-                
-                razorpay_order = client.order.create({
-                    'amount': amount_in_paise,
-                    'currency': 'INR',
-                    'payment_capture': '1',
-                    'receipt': order.order_number,
-                    'notes': {
-                        'order_id': str(order.id),
-                        'user_id': str(request.user.id),
-                        'cart_backup': json.dumps(cart_items_backup)  # Store backup
-                    }
-                })
-                
-                order.razorpay_order_id = razorpay_order['id']
-                order.save()
-                
-                return JsonResponse({
-                    'success': True,
-                    'payment_required': True,
-                    'order_id': order.id,
-                    'order_number': order.order_number,
-                    'key': settings.RAZORPAY_KEY_ID,
-                    'amount': amount_in_paise,
-                    'currency': 'INR',
-                    'razorpay_order_id': razorpay_order['id'],
-                    'customer_name': request.user.get_full_name() or request.user.username,
-                    'customer_email': request.user.email,
-                    'customer_phone': address.phone,
-                    'preferred_method': request.POST.get('preferred_method', 'card')
-                })
+            return JsonResponse({
+                'success': True,
+                'payment_required': True,
+                'order_id': order.id,
+                'order_number': order.order_number,
+                'key': settings.RAZORPAY_KEY_ID,
+                'amount': amount_in_paise,
+                'currency': 'INR',
+                'razorpay_order_id': razorpay_order['id'],
+                'customer_name': request.user.get_full_name() or request.user.username,
+                'customer_email': request.user.email,
+                'customer_phone': address.phone,
+            })
+        
+        # Case 3: Cash on Delivery
+        elif actual_payment_method == 'cod':
+            order.payment_status = 'pending'
+            order.status = 'confirmed'
+            order.save()
             
-            else:
-                # Default fallback
-                return JsonResponse({
-                    'success': True,
-                    'payment_required': False,
-                    'redirect_url': f'/order-success/{order.id}/',
-                    'order_id': order.id,
-                    'order_number': order.order_number
-                })
+            # Clear cart
+            cart.items.all().delete()
             
-        except Exception as e:
-            print(f"❌ Error placing order: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return JsonResponse({'success': False, 'message': f'Error placing order: {str(e)}'})
-    
-    return JsonResponse({'success': False, 'message': 'Invalid request'})
+            # Clear session data
+            if 'checkout_calculations' in request.session:
+                del request.session['checkout_calculations']
+            if 'applied_coupon' in request.session:
+                del request.session['applied_coupon']
+
+            return JsonResponse({
+                'success': True,
+                'payment_required': False,
+                'redirect_url': reverse('order_success', args=[order.id]),
+                'order_id': order.id,
+                'order_number': order.order_number
+            })
+        
+        # Case 4: Should not happen, but handle gracefully
+        else:
+            order.payment_status = 'pending'
+            order.status = 'pending_payment'
+            order.save()
+            
+            return JsonResponse({
+                'success': True,
+                'payment_required': False,
+                'redirect_url': reverse('order_success', args=[order.id]),
+                'order_id': order.id,
+                'order_number': order.order_number
+            })
+        
+    except Exception as e:
+        print(f"❌ Error placing order: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'message': f'Error placing order: {str(e)}'})
+
+
+@login_required
+def _clear_checkout_session(request):
+    """Helper to clear checkout session data"""
+    if 'checkout_calculations' in request.session:
+        del request.session['checkout_calculations']
+    if 'applied_coupon' in request.session:
+        del request.session['applied_coupon']
+
 
 @csrf_exempt
 def verify_payment(request):
-    """
-    Payment verification endpoint with full UPI and test mode support
-    """
-    print("\n" + "="*60)
-    print("=== PAYMENT VERIFICATION STARTED ===")
-    print(f"Time: {timezone.now()}")
-    print(f"Method: {request.method}")
-    print(f"Content-Type: {request.content_type}")
-    print(f"Headers: {dict(request.headers)}")
+    """Verify Razorpay payment and clear cart"""
+    print("\n=== PAYMENT VERIFICATION ===")
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid method'})
     
     try:
-        # ==================== 1. PARSE REQUEST DATA ====================
-        data = {}
-        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        # Parse request data
+        data = json.loads(request.body) if request.content_type == 'application/json' else request.POST.dict()
         
-        if request.content_type == 'application/json':
-            try:
-                if request.body:
-                    data = json.loads(request.body)
-                    print("✓ JSON data parsed successfully")
-            except json.JSONDecodeError as e:
-                print(f"❌ JSON decode error: {e}")
-                return JsonResponse({
-                    'success': False,
-                    'message': 'Invalid JSON data'
-                }, status=400)
-        elif request.method == 'POST':
-            data = request.POST.dict()
-            print("✓ POST form data parsed")
-        else:
-            data = request.GET.dict()
-            print("✓ GET data parsed")
-        
-        print(f"Raw data received: {data}")
-        
-        # ==================== 2. EXTRACT PAYMENT DATA ====================
         razorpay_payment_id = data.get('razorpay_payment_id')
         razorpay_order_id = data.get('razorpay_order_id')
         razorpay_signature = data.get('razorpay_signature')
         order_id = data.get('order_id')
-        payment_method = data.get('payment_method', 'unknown')
-        test_mode = data.get('test_mode', False)
         
-        # Check if this is a test mode request
-        is_test_mode = test_mode or settings.DEBUG or 'test' in str(razorpay_payment_id or '')
+        # Get the order
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Order not found'})
         
-        print(f"📦 Extracted Data:")
-        print(f"  Payment ID: {razorpay_payment_id}")
-        print(f"  Order ID (Razorpay): {razorpay_order_id}")
-        print(f"  Order ID (Internal): {order_id}")
-        print(f"  Payment Method: {payment_method}")
-        print(f"  Test Mode: {is_test_mode}")
-        print(f"  Signature Present: {'Yes' if razorpay_signature else 'No'}")
-        
-        # ==================== 3. FIND THE ORDER ====================
-        order = None
-        
-        # Try to find order by internal ID first
-        if order_id:
-            try:
-                order = Order.objects.get(id=order_id)
-                print(f"✓ Found order by internal ID: #{order.order_number}")
-            except Order.DoesNotExist:
-                print(f"⚠️ Order not found by internal ID: {order_id}")
-                order = None
-        
-        # If not found, try by Razorpay order ID
-        if not order and razorpay_order_id:
-            try:
-                order = Order.objects.get(razorpay_order_id=razorpay_order_id)
-                print(f"✓ Found order by Razorpay order ID: #{order.order_number}")
-            except Order.DoesNotExist:
-                print(f"⚠️ Order not found by Razorpay order ID: {razorpay_order_id}")
-        
-        # If still not found, check if this is a test payment
-        if not order:
-            if is_test_mode:
-                print("⚠️ Order not found, but test mode - creating dummy response")
-                return JsonResponse({
-                    'success': True,
-                    'message': 'Test payment accepted (order not found)',
-                    'redirect_url': '/orders/',
-                    'test_mode': True
-                })
-            else:
-                print("❌ Order not found and not test mode")
-                return JsonResponse({
-                    'success': False,
-                    'message': 'Order not found'
-                }, status=404)
-        
-        print(f"🎯 Processing order: #{order.order_number}")
-        print(f"  Current Status: {order.status}")
-        print(f"  Payment Status: {order.payment_status}")
-        print(f"  Total Amount: ₹{order.total_amount}")
-        
-        # ==================== 4. TEST MODE HANDLING ====================
-        if is_test_mode:
-            print("🧪 TEST MODE DETECTED - Processing without signature verification")
-            
-            # For UPI test payments
-            if payment_method == 'upi' or 'upi' in str(razorpay_payment_id or '').lower():
-                print("  UPI test payment detected")
-                
-                # Generate test payment ID if not provided
-                if not razorpay_payment_id:
-                    razorpay_payment_id = f'test_upi_{timezone.now().strftime("%Y%m%d_%H%M%S")}'
-                    print(f"  Generated test UPI payment ID: {razorpay_payment_id}")
-            
-            # Update order for successful test payment
-            order.payment_status = 'completed'
-            order.status = 'confirmed'
-            
-            if razorpay_payment_id:
-                order.razorpay_payment_id = razorpay_payment_id
-            else:
-                order.razorpay_payment_id = f'test_payment_{timezone.now().timestamp()}'
-            
-            if razorpay_signature:
-                order.razorpay_signature = razorpay_signature
-            else:
-                order.razorpay_signature = f'test_sig_{timezone.now().timestamp()}'
-            
-            # Update payment method if provided
-            if payment_method and payment_method != 'unknown':
-                if payment_method == 'upi':
-                    order.payment_method = 'upi'
-                elif payment_method == 'card':
-                    order.payment_method = 'card'
-            
-            order.paid_at = timezone.now()
-            order.save()
-            
-            print(f"✅ TEST: Order #{order.order_number} marked as PAID")
-            print(f"  Assigned Payment ID: {order.razorpay_payment_id}")
-            print(f"  Payment Method: {order.get_payment_method_display()}")
-            
+        # Check if order is already paid
+        if order.payment_status == 'completed':
             return JsonResponse({
                 'success': True,
-                'message': 'Test payment accepted successfully',
-                'order_id': order.id,
-                'order_number': order.order_number,
-                'redirect_url': f'/order-success/{order.id}/',
-                'test_mode': True
+                'message': 'Payment already verified',
+                'redirect_url': reverse('order_success', args=[order.id])
             })
         
-        # ==================== 5. PRODUCTION MODE - VERIFY SIGNATURE ====================
-        print("🔒 PRODUCTION MODE - Verifying payment signature")
-        
-        signature_verified = False
-        
-        if razorpay_payment_id and razorpay_order_id and razorpay_signature:
-            try:
-                client = razorpay.Client(
-                    auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
-                )
-                
-                params_dict = {
-                    "razorpay_order_id": razorpay_order_id,
-                    "razorpay_payment_id": razorpay_payment_id,
-                    "razorpay_signature": razorpay_signature,
-                }
-                
-                print(f"  Verifying signature for:")
-                print(f"    Order ID: {razorpay_order_id}")
-                print(f"    Payment ID: {razorpay_payment_id}")
-                
-                client.utility.verify_payment_signature(params_dict)
-                signature_verified = True
-                print("✅ Signature verified successfully")
-                
-            except razorpay.errors.SignatureVerificationError as e:
-                print(f"❌ Signature verification failed: {str(e)}")
-                print(f"  Error details: {e.__dict__}")
-                
-                # Log failed verification attempt
-                order.razorpay_signature = f'FAILED_VERIFICATION_{timezone.now().timestamp()}'
-                order.payment_status = 'failed'
-                order.save()
-                
-                return JsonResponse({
-                    'success': False,
-                    'message': f'Payment verification failed: Invalid signature',
-                    'redirect_url': f'/payment/failed/{order.id}/',
-                    'error_type': 'signature_verification'
-                })
-                
-            except Exception as e:
-                print(f"❌ Error during signature verification: {str(e)}")
-                import traceback
-                traceback.print_exc()
-                
-                # For other errors, we might still accept the payment
-                # depending on your business logic
-                print("⚠️ Accepting payment despite verification error")
-                signature_verified = True
-        else:
-            print("⚠️ Missing payment data for signature verification")
-            print(f"  Has payment_id: {'Yes' if razorpay_payment_id else 'No'}")
-            print(f"  Has order_id: {'Yes' if razorpay_order_id else 'No'}")
-            print(f"  Has signature: {'Yes' if razorpay_signature else 'No'}")
-        
-       # ==================== 6. UPDATE ORDER FOR SUCCESSFUL PAYMENT ====================
-        if signature_verified:
-            print("💰 Payment successful - Updating order and clearing cart")
+        # Verify signature
+        try:
+            client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+            params_dict = {
+                'razorpay_order_id': razorpay_order_id,
+                'razorpay_payment_id': razorpay_payment_id,
+                'razorpay_signature': razorpay_signature,
+            }
+            client.utility.verify_payment_signature(params_dict)
             
-            # Check if order is already paid (avoid duplicate processing)
-            if order.payment_status == 'completed':
-                print("⚠️ Order already marked as paid - clearing cart anyway")
-                success, count = clear_user_cart(order.user)
-                return JsonResponse({
-                    'success': True,
-                    'message': 'Payment already processed',
-                    'order_id': order.id,
-                    'order_number': order.order_number,
-                    'redirect_url': f'/order-success/{order.id}/',
-                    'cart_cleared': success,
-                    'items_cleared': count
-                })
-            
-            # Update order for successful payment
+            # Update order
             order.payment_status = 'completed'
             order.status = 'confirmed'
             order.razorpay_payment_id = razorpay_payment_id
             order.razorpay_signature = razorpay_signature
-            order.paid_at = timezone.now()
             order.save()
             
-            print(f"✅ Order #{order.order_number} marked as PAID")
-            
-            # ========== DEBUG: CHECK CART STATUS BEFORE CLEARING ==========
-            print(f"🔍 Checking cart status for user {order.user.username}")
+            # Clear cart
             cart = Cart.objects.filter(user=order.user).first()
-            
             if cart:
-                print(f"📦 Cart found: ID={cart.id}, Items={cart.items.count()}")
-                # List all cart items for debugging
-                for item in cart.items.all():
-                    print(f"  - CartItem ID: {item.id}, Variant: {item.variant.id if item.variant else 'None'}, "
-                        f"Product: {item.variant.product.name if item.variant and item.variant.product else 'None'}, "
-                        f"Qty: {item.quantity}")
-            else:
-                print("❌ No cart found!")
-                # Try to create one if doesn't exist
-                cart = Cart.objects.create(user=order.user)
-                print(f"🆕 Created new cart: ID={cart.id}")
+                cart.items.all().delete()
             
-            # ========== CLEAR CART ==========
-            success, count = clear_user_cart(order.user)
-            
-            if success:
-                print(f"✅ Successfully cleared {count} items from cart")
-                # Store in session to show message on success page
-                try:
-                    request.session['cart_cleared'] = True
-                    request.session['items_cleared'] = count
-                    request.session['order_number'] = order.order_number
-                except:
-                    pass
-            else:
-                print(f"❌ Failed to clear cart")
+            # Clear session
+            if request.user.is_authenticated:
+                if 'checkout_calculations' in request.session:
+                    del request.session['checkout_calculations']
+                if 'applied_coupon' in request.session:
+                    del request.session['applied_coupon']
             
             return JsonResponse({
                 'success': True,
                 'message': 'Payment verified successfully',
-                'order_id': order.id,
-                'order_number': order.order_number,
-                'redirect_url': f'/order-success/{order.id}/',
-                'cart_cleared': success,
-                'items_cleared': count
+                'redirect_url': reverse('order_success', args=[order.id])
             })
-        else:
-            # Mark payment as failed
+            
+        except razorpay.errors.SignatureVerificationError:
             order.payment_status = 'failed'
             order.save()
-            
-            # ❌ DON'T clear cart on payment failure
-            print(f"❌ Payment failed for order #{order.order_number} - cart NOT cleared")
-            
             return JsonResponse({
                 'success': False,
-                'message': 'Payment verification failed',
-                'redirect_url': f'/payment/failed/{order.id}/'
+                'message': 'Payment signature verification failed'
             })
-        
+            
     except Exception as e:
-        print(f"❌ Error in verify_payment: {e}")
-        import traceback
-        traceback.print_exc()
-        
-        return JsonResponse({
-            'success': False,
-            'message': f'Error: {str(e)}'
-        })
+        print(f"Error in verify_payment: {e}")
+        return JsonResponse({'success': False, 'message': str(e)})
 
 
 @login_required
 def order_success(request, order_id):
-    """Order success page - with cart clearing and confirmation"""
-    print(f"\n=== ORDER SUCCESS VIEW - Order ID: {order_id} ===")
-    
+    """Order success page"""
     try:
-        # Get the order
         order = Order.objects.get(id=order_id, user=request.user)
-        print(f"✅ Found order #{order.order_number}")
-        print(f"Order status: {order.status}")
-        print(f"Payment status: {order.payment_status}")
         
-        # ========== FINAL CART CLEARING ==========
-        # Clear cart as final safety measure
-        success, items_cleared = clear_user_cart(request.user)
-        
-        if success and items_cleared > 0:
-            print(f"✅ Final cart clearing: {items_cleared} items removed")
-            
-            # Show message to user if cart was just cleared
-            if items_cleared > 0:
-                messages.success(request, f"Order #{order.order_number} confirmed! Your cart has been cleared.")
+        # Check if this is a page refresh
+        if request.session.get('last_viewed_order') == order_id:
+            messages.info(request, "This order has already been confirmed.")
         else:
-            print(f"ℹ️ Cart already empty or not found")
-            
-            # If no items were cleared but order is paid, still show success message
-            if order.payment_status == 'completed':
-                messages.success(request, f"Order #{order.order_number} confirmed! Thank you for your purchase.")
+            request.session['last_viewed_order'] = order_id
+
+        # Get offer applications for display
+        offer_applications = OfferApplication.objects.filter(order=order).select_related(
+            'product_offer', 'category_offer', 'order_item'
+        )
         
-        # ========== GET CART STATUS FOR CONTEXT ==========
-        cart = Cart.objects.filter(user=request.user).first()
-        cart_items_count = cart.items.count() if cart else 0
+        # Group offers by order item
+        item_offers = {}
+        for app in offer_applications:
+            item_offers[app.order_item.id] = {
+                'offer_name': app.offer_name,
+                'offer_type': app.offer_type,
+                'discount_amount': app.discount_amount,
+            }
         
-        # Debug info
-        if cart_items_count > 0:
-            print(f"⚠️ WARNING: Cart still has {cart_items_count} items after order success!")
-            print("  Items still in cart:")
-            for item in cart.items.all():
-                print(f"    - {item.variant.product.name if item.variant.product else 'Unknown'} ({item.variant.volume_ml}ml) x {item.quantity}")
-        else:
-            print(f"✅ Cart is empty - all good!")
+        # Enhance order items with offer info
+        enhanced_items = []
+        for item in order.items.all():
+            item_data = {
+                'item': item,
+                'has_offer': item.id in item_offers,
+                'offer_info': item_offers.get(item.id),
+            }
+            enhanced_items.append(item_data)
         
-        # ========== PREPARE CONTEXT ==========
         context = {
             'order': order,
-            'order_items': order.items.all(),
-            'cart_items_count': cart_items_count,
-            'order_cleared_cart': items_cleared > 0,
+            'order_items': enhanced_items,
+            'offer_applications': offer_applications,
             'title': f'Order Confirmed - #{order.order_number}',
         }
         
         return render(request, 'checkout/order_success.html', context)
         
     except Order.DoesNotExist:
-        print(f"❌ Order not found: {order_id}")
         messages.error(request, "Order not found!")
         return redirect('order_list')
-        
-    # """Payment verification endpoint - UPDATED FOR TEST MODE"""
-    # print("\n" + "="*50)
-    # print("=== PAYMENT VERIFICATION ===")
     
-    # # DEBUG: Log all headers
-    # print("Headers:", dict(request.headers))
-    # print("Method:", request.method)
-    # print("Content-Type:", request.content_type)
-    
-    # try:
-    #     # Get data
-    #     if request.content_type == 'application/json':
-    #         data = json.loads(request.body)
-    #     elif request.method == 'POST':
-    #         data = request.POST.dict()
-    #     else:
-    #         data = request.GET.dict()
-        
-    #     print("Received data:", data)
-        
-    #     # Extract payment data
-    #     razorpay_payment_id = data.get('razorpay_payment_id')
-    #     razorpay_order_id = data.get('razorpay_order_id')
-    #     razorpay_signature = data.get('razorpay_signature')
-    #     order_id = data.get('order_id')
-    #     test_mode = data.get('test_mode', False)
-        
-    #     print(f"Payment ID: {razorpay_payment_id}")
-    #     print(f"Razorpay Order ID: {razorpay_order_id}")
-    #     print(f"Order ID: {order_id}")
-    #     print(f"Test mode: {test_mode}")
-        
-    #     # If no order_id in data, find by razorpay_order_id
-    #     if not order_id and razorpay_order_id:
-    #         try:
-    #             order = Order.objects.get(razorpay_order_id=razorpay_order_id)
-    #             order_id = order.id
-    #             print(f"Found order by razorpay_order_id: #{order.order_number}")
-    #         except Order.DoesNotExist:
-    #             pass
-        
-    #     if not order_id:
-    #         print("❌ No order ID found")
-    #         return JsonResponse({
-    #             'success': False,
-    #             'message': 'No order ID provided'
-    #         })
-        
-    #     # Get the order
-    #     try:
-    #         order = Order.objects.get(id=order_id)
-    #         print(f"✅ Found order #{order.order_number}")
-    #     except Order.DoesNotExist:
-    #         print(f"❌ Order {order_id} not found")
-    #         return JsonResponse({
-    #             'success': False,
-    #             'message': f'Order {order_id} not found'
-    #         })
-        
-    #     # ========== TEST MODE HANDLING ==========
-    #     if settings.DEBUG or test_mode:
-    #         print("⚠️ TEST MODE - Accepting payment without verification")
-            
-    #         # Update order for successful payment
-    #         order.payment_status = 'completed'
-    #         order.status = 'confirmed'
-            
-    #         if razorpay_payment_id:
-    #             order.razorpay_payment_id = razorpay_payment_id
-    #         else:
-    #             # Generate a test payment ID
-    #             order.razorpay_payment_id = f'test_payment_{timezone.now().timestamp()}'
-            
-    #         if razorpay_signature:
-    #             order.razorpay_signature = razorpay_signature
-    #         else:
-    #             order.razorpay_signature = f'test_signature_{timezone.now().timestamp()}'
-            
-    #         order.paid_at = timezone.now()
-    #         order.save()
-            
-    #         print(f"✅ TEST: Order #{order.order_number} marked as PAID")
-            
-    #         return JsonResponse({
-    #             'success': True,
-    #             'message': 'Test payment accepted',
-    #             'order_id': order.id,
-    #             'order_number': order.order_number,
-    #             'redirect_url': f'/order-success/{order.id}/'
-    #         })
-        
-    #     # ========== PRODUCTION MODE ==========
-    #     signature_verified = False
-        
-    #     if razorpay_payment_id and razorpay_order_id and razorpay_signature:
-    #         try:
-    #             client = razorpay.Client(
-    #                 auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
-    #             )
-    #             params_dict = {
-    #                 "razorpay_order_id": razorpay_order_id,
-    #                 "razorpay_payment_id": razorpay_payment_id,
-    #                 "razorpay_signature": razorpay_signature,
-    #             }
-    #             client.utility.verify_payment_signature(params_dict)
-    #             signature_verified = True
-    #             print("✅ Signature verified")
-                
-    #         except Exception as e:
-    #             print(f"⚠️ Signature verification failed: {e}")
-    #             return JsonResponse({
-    #                 'success': False,
-    #                 'message': f'Payment verification failed: {str(e)}'
-    #             })
-        
-    #     if signature_verified:
-    #         # Update order for successful payment
-    #         order.payment_status = 'completed'
-    #         order.status = 'confirmed'
-    #         order.razorpay_payment_id = razorpay_payment_id
-    #         order.razorpay_signature = razorpay_signature
-    #         order.paid_at = timezone.now()
-    #         order.save()
-            
-    #         print(f"✅ Order #{order.order_number} marked as PAID")
-            
-    #         return JsonResponse({
-    #             'success': True,
-    #             'message': 'Payment verified successfully',
-    #             'order_id': order.id,
-    #             'order_number': order.order_number,
-    #             'redirect_url': f'/order-success/{order.id}/'
-    #         })
-    #     else:
-    #         # Mark payment as failed
-    #         order.payment_status = 'failed'
-    #         order.save()
-            
-    #         print(f"❌ Payment failed for order #{order.order_number}")
-            
-    #         return JsonResponse({
-    #             'success': False,
-    #             'message': 'Payment verification failed',
-    #             'redirect_url': f'/payment/failed/{order.id}/'
-    #         })
-        
-    # except Exception as e:
-    #     print(f"❌ Error in verify_payment: {e}")
-    #     import traceback
-    #     traceback.print_exc()
-        
-    #     return JsonResponse({
-    #         'success': False,
-    #         'message': f'Error: {str(e)}'
-    #     })
-
-@login_required
-def order_detail(request, order_id):
-    """Order detail page"""
-    order = get_object_or_404(Order, id=order_id, user=request.user)
-    
-    context = {
-        'order': order,
-        'order_items': order.items.all(),
-    }
-    return render(request, 'checkout/order_detail.html', context)
-
-def test_razorpay_connection(request):
-    """Test if Razorpay connection works"""
-    try:
-        # Check if keys exist in settings
-        key_id = settings.RAZORPAY_KEY_ID
-        key_secret = settings.RAZORPAY_KEY_SECRET
-        
-        context = {
-            'key_id_exists': bool(key_id),
-            'key_secret_exists': bool(key_secret),
-            'key_id_preview': key_id[:10] + '...' if key_id else 'None',
-        }
-        
-        if not key_id or not key_secret:
-            context['error'] = 'Razorpay keys missing in settings'
-            return render(request, 'payment/test_connection.html', context)
-        
-        # Test connection to Razorpay
-        client = razorpay.Client(auth=(key_id, key_secret))
-        
-        # Try to fetch account details
-        account = client.account.fetch()
-        
-        context.update({
-            'success': True,
-            'account_email': account.get('email', 'N/A'),
-            'account_name': account.get('name', 'N/A'),
-            'account_status': account.get('status', 'N/A'),
-        })
-        
-    except razorpay.errors.AuthenticationError as e:
-        context['error'] = f'Authentication failed: {str(e)}'
-        context['details'] = 'Your API keys are invalid. Please check your Razorpay dashboard.'
-        
-    except Exception as e:
-        context['error'] = f'Error: {str(e)}'
-        context['error_type'] = type(e).__name__
-    
-    return render(request, 'payment/test_connection.html', context)
-
-from django.views.decorators.csrf import csrf_exempt
-import json
-
-@csrf_exempt
-def debug_payment(request):
-    """Debug payment endpoint"""
-    print("\n=== DEBUG PAYMENT ===")
-    
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            print("Received data:", data)
-            return JsonResponse({'success': True, 'data': data})
-        except Exception as e:
-            print("Error:", str(e))
-            return JsonResponse({'success': False, 'error': str(e)})
-    
-    return JsonResponse({'success': False, 'message': 'Invalid method'})
-
-
-
-@csrf_exempt
-def simple_verify_payment(request):
-    """Simple payment verification that always works"""
-    print("\n" + "="*50)
-    print("=== SIMPLE VERIFY PAYMENT ===")
-    
-    try:
-        # Parse data
-        data = json.loads(request.body)
-        print("Received data:", data)
-        
-        payment_id = data.get('payment_id')
-        order_id = data.get('order_id')
-        signature = data.get('signature')
-        
-        print(f"Payment ID: {payment_id}")
-        print(f"Order ID: {order_id}")
-        
-        if not order_id or order_id == 'undefined':
-            return JsonResponse({
-                'success': False,
-                'message': 'No order ID provided'
-            })
-        
-        # Try to get the order
-        try:
-            order = Order.objects.get(id=order_id)
-            print(f"✅ Found order #{order.order_number}")
-        except Order.DoesNotExist:
-            print(f"❌ Order {order_id} not found")
-            # Create a dummy success response anyway
-            return JsonResponse({
-                'success': True,
-                'redirect_url': f'/orders/{order_id}/',
-                'message': 'Order not found but payment successful'
-            })
-        
-        # MARK ORDER AS PAID
-        order.payment_status = 'paid'
-        order.status = 'confirmed'
-        order.razorpay_payment_id = payment_id or 'test_' + str(timezone.now().timestamp())
-        order.razorpay_signature = signature or 'test_signature'
-        order.paid_at = timezone.now()
-        order.save()
-        
-        print(f"✅ Order #{order.order_number} marked as PAID")
-        
-        return JsonResponse({
-            'success': True,
-            'redirect_url': f'/orders/{order.id}/',
-            'message': 'Payment verified successfully',
-            'order_number': order.order_number
-        })
-        
-    except Exception as e:
-        print(f"❌ Error in simple_verify: {e}")
-        import traceback
-        traceback.print_exc()
-        
-        # Even on error, return success to avoid infinite loop
-        return JsonResponse({
-            'success': True,
-            'redirect_url': '/orders/',
-            'message': f'Error but continuing: {str(e)}'
-        })
 
 @login_required
 def payment_failed(request, order_id):
@@ -1209,6 +751,7 @@ def payment_failed(request, order_id):
         
         for order_item in order.items.all():
             if order_item.variant and order_item.variant.stock_quantity > 0:
+                from ..models import CartItem
                 cart_item, item_created = CartItem.objects.get_or_create(
                     cart=cart,
                     variant=order_item.variant,

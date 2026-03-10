@@ -7,6 +7,7 @@ from django.views.decorators.http import require_POST
 from django.db import transaction
 from decimal import Decimal
 from ..models import Cart, Coupon
+from django.utils import timezone
 
 @login_required
 @require_POST
@@ -33,6 +34,49 @@ def apply_coupon(request):
                 'message': 'Invalid coupon code'
             })
         
+        # DEBUG: Print coupon details to console
+        print(f"\n=== COUPON VALIDATION DEBUG ===")
+        print(f"Coupon: {coupon.code}")
+        print(f"Active: {coupon.active}")
+        print(f"Valid From: {coupon.valid_from}")
+        print(f"Valid To: {coupon.valid_to}")
+        print(f"Current Time: {timezone.now()}")
+        print(f"Valid From Check: {coupon.valid_from <= timezone.now()}")
+        print(f"Valid To Check: {timezone.now() <= coupon.valid_to}")
+        
+        # MANUAL DATE CHECK (more detailed error messages)
+        now = timezone.now()
+        
+        if coupon.valid_from > now:
+            # Coupon starts in the future
+            time_diff = coupon.valid_from - now
+            hours = int(time_diff.total_seconds() / 3600)
+            minutes = int((time_diff.total_seconds() % 3600) / 60)
+            
+            if hours > 24:
+                days = hours // 24
+                return JsonResponse({
+                    'success': False,
+                    'message': f'This coupon will be valid in {days} day(s) (from {coupon.valid_from.strftime("%d %b %Y, %H:%M")})'
+                })
+            elif hours > 0:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'This coupon will be valid in {hours} hour(s) and {minutes} minute(s) (from {coupon.valid_from.strftime("%H:%M today")})'
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'This coupon will be valid in {minutes} minute(s) (from {coupon.valid_from.strftime("%H:%M today")})'
+                })
+        
+        if coupon.valid_to < now:
+            # Coupon has expired
+            return JsonResponse({
+                'success': False,
+                'message': f'This coupon expired on {coupon.valid_to.strftime("%d %b %Y, %H:%M")}'
+            })
+        
         # Check if user has already used this coupon (for single-use coupons)
         if coupon.single_use_per_user:
             # Check if user has already placed orders with this coupon
@@ -48,8 +92,8 @@ def apply_coupon(request):
                     'success': False,
                     'message': f'You have already used coupon "{coupon.code}"'
                 })
-            
-        # Validate coupon
+        
+        # Validate coupon (this will still run, but we've already checked dates)
         is_valid, message = coupon.is_valid(
             user=request.user,
             order_amount=cart.subtotal
