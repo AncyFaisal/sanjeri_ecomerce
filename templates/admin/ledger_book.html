@@ -1,0 +1,408 @@
+{% extends 'common_admin.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}Ledger Book{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    <!-- Header -->
+    <div class="top-nav mb-4">
+        <div class="nav-left">
+            <h2 class="page-title">
+                <i class="fas fa-book me-2"></i>Ledger Book
+            </h2>
+        </div>
+        <div class="nav-right">
+            <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Info Card -->
+    <div class="admin-card mb-4">
+        <div class="card-body">
+            <div class="alert alert-info">
+                <div class="d-flex">
+                    <div class="me-3">
+                        <i class="fas fa-info-circle fa-2x"></i>
+                    </div>
+                    <div>
+                        <h5 class="alert-heading">About Ledger Book</h5>
+                        <p class="mb-0">The ledger book contains all financial transactions including completed orders (sales), wallet refunds, and wallet deposits. Download as Excel or CSV for your accounting records.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="admin-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary text-white rounded-circle p-3 me-3">
+                            <i class="fas fa-exchange-alt fa-2x"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0" id="totalTransactions">{{ total_transactions }}</h3>
+                            <p class="text-muted mb-0">Total Transactions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="admin-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-success text-white rounded-circle p-3 me-3">
+                            <i class="fas fa-shopping-cart fa-2x"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0" id="ordersCount">{{ orders_count }}</h3>
+                            <p class="text-muted mb-0">Orders</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="admin-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-warning text-white rounded-circle p-3 me-3">
+                            <i class="fas fa-wallet fa-2x"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0" id="walletCount">{{ wallet_count }}</h3>
+                            <p class="text-muted mb-0">Wallet Txns</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="admin-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-info text-white rounded-circle p-3 me-3">
+                            <i class="fas fa-calendar fa-2x"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0" id="dateRange">{{ start_date|date:"d M" }} - {{ end_date|date:"d M" }}</h3>
+                            <p class="text-muted mb-0">Selected Period</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="admin-card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-filter me-2"></i>Generate Ledger Report
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <form method="GET" action="{% url 'download_ledger_book' %}" id="ledgerForm" class="mt-3">
+                        <div class="row">
+                            <div class="col-md-5 mb-3">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-calendar-plus me-1 text-primary"></i> Start Date
+                                </label>
+                                <input type="date" name="start_date" class="form-control" 
+                                       value="{{ start_date|date:'Y-m-d' }}" required id="startDate">
+                            </div>
+                            <div class="col-md-5 mb-3">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-calendar-check me-1 text-success"></i> End Date
+                                </label>
+                                <input type="date" name="end_date" class="form-control" 
+                                       value="{{ end_date|date:'Y-m-d' }}" required id="endDate">
+                            </div>
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-file me-1 text-info"></i> Format
+                                </label>
+                                <select name="format" class="form-select" id="format">
+                                    <option value="excel">Excel</option>
+                                    <option value="csv">CSV</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Quick Date Presets -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <label class="form-label text-muted small">Quick Select:</label>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="setLast30Days()">
+                                        <i class="fas fa-calendar-alt me-1"></i>Last 30 Days
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="setThisMonth()">
+                                        <i class="fas fa-calendar-alt me-1"></i>This Month
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="setLastMonth()">
+                                        <i class="fas fa-calendar-alt me-1"></i>Last Month
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-info" onclick="setThisYear()">
+                                        <i class="fas fa-calendar-alt me-1"></i>This Year
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preview Section -->
+                        <div class="row mb-4" id="previewSection" style="display: none;">
+                            <div class="col-12">
+                                <div class="bg-light p-3 rounded">
+                                    <h6 class="mb-3"><i class="fas fa-chart-pie me-2"></i>Preview for Selected Period</h6>
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <span class="text-muted small">Transactions</span>
+                                                <h5 id="previewTransactions">0</h5>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <span class="text-muted small">Revenue</span>
+                                                <h5 id="previewRevenue">₹0</h5>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <span class="text-muted small">Refunds</span>
+                                                <h5 id="previewRefunds">₹0</h5>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <span class="text-muted small">Net Flow</span>
+                                                <h5 id="previewNetFlow">₹0</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-download me-2"></i>Download Ledger Book
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-lg ms-2" id="previewBtn">
+                                    <i class="fas fa-eye me-2"></i>Preview
+                                </button>
+                                <button type="button" class="btn btn-outline-info btn-lg ms-2" id="resetBtn">
+                                    <i class="fas fa-redo me-2"></i>Reset
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Features List -->
+                    <div class="row mt-5">
+                        <div class="col-12">
+                            <h6 class="fw-bold mb-3"><i class="fas fa-list-check me-2"></i>What's included:</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="bg-success text-white rounded-circle p-2 me-3" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-shopping-cart"></i>
+                                        </div>
+                                        <div>
+                                            <strong>Sales Transactions</strong>
+                                            <br>
+                                            <small class="text-muted">All completed orders (debits)</small>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="bg-info text-white rounded-circle p-2 me-3" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-undo-alt"></i>
+                                        </div>
+                                        <div>
+                                            <strong>Wallet Refunds</strong>
+                                            <br>
+                                            <small class="text-muted">Returns and cancellations (credits)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="bg-primary text-white rounded-circle p-2 me-3" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-arrow-down"></i>
+                                        </div>
+                                        <div>
+                                            <strong>Wallet Deposits</strong>
+                                            <br>
+                                            <small class="text-muted">Manual top-ups (debits)</small>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="bg-warning text-white rounded-circle p-2 me-3" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-calculator"></i>
+                                        </div>
+                                        <div>
+                                            <strong>Running Balance</strong>
+                                            <br>
+                                            <small class="text-muted">Real-time balance calculation</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const startDate = document.getElementById('startDate');
+    const endDate = document.getElementById('endDate');
+    const previewBtn = document.getElementById('previewBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const previewSection = document.getElementById('previewSection');
+    
+    // Preview button click
+    previewBtn.addEventListener('click', function() {
+        if (!startDate.value || !endDate.value) {
+            alert('Please select both start and end dates');
+            return;
+        }
+        
+        fetch(`/ledger-book/preview/?start_date=${startDate.value}&end_date=${endDate.value}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('previewTransactions').textContent = data.data.total_transactions;
+                    document.getElementById('previewRevenue').textContent = '₹' + data.data.total_revenue.toFixed(2);
+                    document.getElementById('previewRefunds').textContent = '₹' + data.data.total_refunds.toFixed(2);
+                    document.getElementById('previewNetFlow').textContent = '₹' + data.data.net_flow.toFixed(2);
+                    
+                    document.getElementById('totalTransactions').textContent = data.data.total_transactions;
+                    document.getElementById('ordersCount').textContent = data.data.orders_count;
+                    document.getElementById('walletCount').textContent = data.data.wallet_count;
+                    
+                    previewSection.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error fetching preview data');
+            });
+    });
+    
+    // Reset button
+    resetBtn.addEventListener('click', function() {
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        
+        startDate.value = formatDate(thirtyDaysAgo);
+        endDate.value = formatDate(today);
+        previewSection.style.display = 'none';
+        
+        // Update stats
+        document.getElementById('totalTransactions').textContent = '{{ total_transactions }}';
+        document.getElementById('ordersCount').textContent = '{{ orders_count }}';
+        document.getElementById('walletCount').textContent = '{{ wallet_count }}';
+    });
+    
+    // Form validation
+    document.getElementById('ledgerForm').addEventListener('submit', function(e) {
+        if (!startDate.value || !endDate.value) {
+            e.preventDefault();
+            alert('Please select both start and end dates');
+        }
+        
+        if (new Date(startDate.value) > new Date(endDate.value)) {
+            e.preventDefault();
+            alert('Start date cannot be after end date');
+        }
+    });
+});
+
+// Date preset functions
+function setLast30Days() {
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    
+    document.getElementById('startDate').value = formatDate(thirtyDaysAgo);
+    document.getElementById('endDate').value = formatDate(today);
+    document.getElementById('previewSection').style.display = 'none';
+}
+
+function setThisMonth() {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    document.getElementById('startDate').value = formatDate(firstDay);
+    document.getElementById('endDate').value = formatDate(today);
+    document.getElementById('previewSection').style.display = 'none';
+}
+
+function setLastMonth() {
+    const today = new Date();
+    const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const lastDayLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+    
+    document.getElementById('startDate').value = formatDate(firstDayLastMonth);
+    document.getElementById('endDate').value = formatDate(lastDayLastMonth);
+    document.getElementById('previewSection').style.display = 'none';
+}
+
+function setThisYear() {
+    const today = new Date();
+    const firstDayYear = new Date(today.getFullYear(), 0, 1);
+    
+    document.getElementById('startDate').value = formatDate(firstDayYear);
+    document.getElementById('endDate').value = formatDate(today);
+    document.getElementById('previewSection').style.display = 'none';
+}
+
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+</script>
+
+<style>
+.rounded-circle {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.btn-group .btn {
+    transition: all 0.3s ease;
+}
+.btn-group .btn:hover {
+    transform: translateY(-2px);
+}
+#previewSection {
+    animation: fadeIn 0.5s ease;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+{% endblock %}

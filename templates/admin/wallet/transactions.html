@@ -1,0 +1,361 @@
+<!-- templates/admin/wallet/transactions.html -->
+{% extends 'common_admin.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    <div class="top-nav mb-4">
+        <div class="nav-left">
+            <h2 class="page-title">
+                <i class="fas fa-wallet me-2"></i>Wallet Transactions
+            </h2>
+        </div>
+        <div class="nav-right">
+            <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="admin-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary text-white rounded-circle p-3 me-3">
+                            <i class="fas fa-exchange-alt fa-2x"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0">{{ total_transactions }}</h3>
+                            <p class="text-muted mb-0">Total Transactions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="admin-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-success text-white rounded-circle p-3 me-3">
+                            <i class="fas fa-rupee-sign fa-2x"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0">₹{{ total_amount|floatformat:2 }}</h3>
+                            <p class="text-muted mb-0">Total Amount</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="admin-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-info text-white rounded-circle p-3 me-3">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0">{{ completed_count }}</h3>
+                            <p class="text-muted mb-0">Completed</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="admin-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-warning text-white rounded-circle p-3 me-3">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0">{{ pending_count }}</h3>
+                            <p class="text-muted mb-0">Pending</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter Card -->
+    <div class="admin-card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Search</label>
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Transaction ID, User, Order..." 
+                           value="{{ search_query }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Transaction Type</label>
+                    <select name="type" class="form-select">
+                        <option value="">All Types</option>
+                        {% for type_code, type_name in transaction_types %}
+                        <option value="{{ type_code }}" {% if selected_type == type_code %}selected{% endif %}>
+                            {{ type_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All Status</option>
+                        {% for status_code, status_name in status_choices %}
+                        <option value="{{ status_code }}" {% if selected_status == status_code %}selected{% endif %}>
+                            {{ status_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">From Date</label>
+                    <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">To Date</label>
+                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="admin-card">
+        <div class="card-body">
+            {% if transactions %}
+            <div class="table-responsive">
+                <table class="table styled-table">
+                    <thead>
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>Date</th>
+                            <th>User</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Order #</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td>
+                                <strong>#{{ transaction.id }}</strong>
+                            </td>
+                            <td>{{ transaction.created_at|date:"d M Y" }}<br>
+                                <small class="text-muted">{{ transaction.created_at|time:"h:i A" }}</small>
+                            </td>
+                            <!-- In templates/admin/wallet/transactions.html - Update the User column -->
+<td>
+    <div class="d-flex align-items-center">
+        {% if transaction.wallet.user.profile_image %}
+        <img src="{{ transaction.wallet.user.profile_image.url }}" 
+             class="user-avatar-sm me-2" 
+             alt="{{ transaction.wallet.user.username }}">
+        {% else %}
+        <div class="user-avatar-sm bg-secondary text-white d-flex align-items-center justify-content-center me-2">
+            {{ transaction.wallet.user.username|first|upper }}
+        </div>
+        {% endif %}
+        <div>
+            <a href="{% url 'user_detail' transaction.wallet.user.id %}" 
+               class="text-decoration-none fw-bold text-primary">
+                <strong>{{ transaction.wallet.user.get_full_name|default:transaction.wallet.user.username }}</strong>
+            </a>
+            <br>
+            <small class="text-muted">{{ transaction.wallet.user.email }}</small>
+        </div>
+    </div>
+</td>
+                            <td>
+                                <span class="badge 
+                                    {% if transaction.transaction_type == 'REFUND' %}bg-success
+                                    {% elif transaction.transaction_type == 'DEPOSIT' %}bg-primary
+                                    {% elif transaction.transaction_type == 'WITHDRAWAL' %}bg-danger
+                                    {% else %}bg-info{% endif %}">
+                                    {{ transaction.get_transaction_type_display }}
+                                </span>
+                            </td>
+                            <td class="fw-bold 
+                                {% if transaction.transaction_type == 'REFUND' or transaction.transaction_type == 'DEPOSIT' %}text-success
+                                {% else %}text-danger{% endif %}">
+                                {{ transaction.display_amount }}
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if transaction.status == 'COMPLETED' %}bg-success
+                                    {% elif transaction.status == 'PENDING' %}bg-warning text-dark
+                                    {% elif transaction.status == 'CANCELLED' %}bg-secondary
+                                    {% elif transaction.status == 'FAILED' %}bg-danger
+                                    {% endif %}">
+                                    {{ transaction.get_status_display }}
+                                </span>
+                            </td>
+                          <!-- In the transactions table, update the Source column -->
+<td>
+    {% if transaction.order %}
+        {% if transaction.transaction_type == 'REFUND' %}
+            {% if transaction.order.status == 'cancelled' %}
+            <span class="badge bg-danger">Order Cancellation</span>
+            {% elif transaction.order.status == 'returned' or transaction.order.status == 'return_requested' %}
+            <span class="badge bg-warning">Product Return</span>
+            {% else %}
+            <span class="badge bg-secondary">Order Refund</span>
+            {% endif %}
+        {% elif transaction.transaction_type == 'WITHDRAWAL' %}
+            <span class="badge bg-primary">Order Payment</span>
+        {% endif %}
+    {% else %}
+        {% if 'referral' in transaction.reason|lower or 'bonus' in transaction.reason|lower %}
+        <span class="badge bg-success">Referral Bonus</span>
+        {% elif 'admin' in transaction.reason|lower or 'adjustment' in transaction.reason|lower %}
+        <span class="badge bg-info">Admin Adjustment</span>
+        {% elif transaction.transaction_type == 'DEPOSIT' %}
+        <span class="badge bg-secondary">Wallet Recharge</span>
+        {% else %}
+        <span class="badge bg-secondary">Other</span>
+        {% endif %}
+    {% endif %}
+</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="{% url 'admin_wallet_transaction_detail' transaction.id %}" 
+                                       class="action-btn view" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if transaction.order %}
+                                    <a href="{% url 'admin_order_detail' transaction.order.id %}" 
+                                       class="action-btn info" title="View Order">
+                                        <i class="fas fa-shopping-cart"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} transactions
+                </div>
+                <nav>
+                    <ul class="pagination">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                                <i class="fas fa-angle-double-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                                <i class="fas fa-angle-left"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                                    {{ num }}
+                                </a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                                <i class="fas fa-angle-right"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                                <i class="fas fa-angle-double-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-wallet fa-4x text-muted mb-3"></i>
+                <h4>No Transactions Found</h4>
+                <p class="text-muted">There are no wallet transactions matching your criteria.</p>
+                {% if search_query or selected_type or selected_status or date_from or date_to %}
+                <a href="{% url 'admin_wallet_transactions' %}" class="btn btn-primary mt-3">
+                    <i class="fas fa-times"></i> Clear Filters
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+    font-size: 14px;
+    text-decoration: none;
+    margin: 0 2px;
+}
+
+.action-btn.view {
+    background-color: #3498db;
+}
+
+.action-btn.info {
+    background-color: #17a2b8;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    color: white;
+}
+
+.user-avatar-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: #6c757d;
+    font-size: 14px;
+    font-weight: 600;
+}
+</style>
+{% endblock %}

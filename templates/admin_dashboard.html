@@ -5,6 +5,7 @@
 
 {% block content %}
 <div class="content-area">
+    <!-- Summary Cards Row (Your existing cards) -->
     <div class="row">
         <div class="col-md-12">
             <div class="admin-card">
@@ -44,23 +45,24 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- In your dashboard cards -->
-<div class="col-md-3 mb-4">
-    <div class="admin-card text-center h-100">
-        <div class="card-body">
-            <div class="dashboard-icon mb-3">
-                <i class="fas fa-shopping-bag fa-3x text-warning"></i>
-            </div>
-            <h3>{{ total_orders|default:"0" }}</h3>
-            <p>Total Orders</p>
-            <a href="{% url 'admin_order_list' %}" class="btn btn-warning mt-2">
-                Manage Orders
-            </a>
-        </div>
-    </div>
-</div>
+                        
+                        <!-- Orders Card -->
+                        <div class="col-md-3 mb-4">
+                            <div class="admin-card text-center h-100">
+                                <div class="card-body">
+                                    <div class="dashboard-icon mb-3">
+                                        <i class="fas fa-shopping-bag fa-3x text-warning"></i>
+                                    </div>
+                                    <h3>{{ total_orders|default:"0" }}</h3>
+                                    <p>Total Orders</p>
+                                    <a href="{% url 'admin_order_list' %}" class="btn btn-warning mt-2">
+                                        Manage Orders
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
 
-   <!-- Coupons Card -->
+                        <!-- Coupons Card -->
                         <div class="col-md-3 mb-4">
                             <div class="admin-card text-center h-100">
                                 <div class="card-body">
@@ -92,47 +94,32 @@
                             </div>
                         </div>
 
-<div class="col-md-3 mb-4">
-    <div class="admin-card text-center h-100">
-        <div class="card-body">
-            <div class="dashboard-icon mb-3">
-                <i class="fas fa-boxes fa-3x text-info"></i>
-            </div>
-            <h3>{{ total_variants|default:"0" }}</h3>
-            <p>Inventory Items</p>
-            <a href="{% url 'admin_inventory_management' %}" class="btn btn-info mt-2">
-                Manage Inventory
-            </a>
-        </div>
-    </div>
-</div>
-                    </div>
-                    
-                    <!-- Quick Actions -->
-                    <div class="row mt-4">
-                        <div class="col-md-12">
-                            <div class="admin-card">
-                                <div class="card-header">
-                                    <h5>Quick Actions</h5>
-                                </div>
+                        <!-- Inventory Card -->
+                        <div class="col-md-3 mb-4">
+                            <div class="admin-card text-center h-100">
                                 <div class="card-body">
-                                    <div class="d-flex gap-2 flex-wrap">
-                                        <a href="{% url 'user_list' %}" class="btn btn-outline-primary">
-                                            <i class="fas fa-users me-2"></i>View All Users
-                                        </a>
-                                        <a href="{% url 'product_list' %}" class="btn btn-outline-success">
-                                            <i class="fas fa-boxes me-2"></i>Manage Products
-                                        </a>
-                                        <a href="{% url 'category_manage' %}" class="btn btn-outline-warning">
-                                            <i class="fas fa-tags me-2"></i>Manage Categories
-                                        </a>
-                                         <a href="{% url 'admin_coupon_list' %}" class="btn btn-outline-purple">
-                                            <i class="fas fa-ticket-alt me-2"></i>Manage Coupons
-                                        </a>
-                                        <a href="{% url 'sales_report' %}" class="btn btn-outline-orange">
-                                            <i class="fas fa-chart-bar me-2"></i>View Sales Report
-                                        </a>
+                                    <div class="dashboard-icon mb-3">
+                                        <i class="fas fa-boxes fa-3x text-info"></i>
                                     </div>
+                                    <h3>{{ total_variants|default:"0" }}</h3>
+                                    <p>Inventory Items</p>
+                                    <a href="{% url 'admin_inventory_management' %}" class="btn btn-info mt-2">
+                                        Manage Inventory
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Low Stock Alert Card -->
+                        <div class="col-md-3 mb-4">
+                            <div class="admin-card text-center h-100 {% if low_stock_variants %}border-danger{% endif %}">
+                                <div class="card-body">
+                                    <div class="dashboard-icon mb-3">
+                                        <i class="fas fa-exclamation-triangle fa-3x {% if low_stock_variants %}text-danger{% else %}text-warning{% endif %}"></i>
+                                    </div>
+                                    <h3>{{ low_stock_variants.count }}</h3>
+                                    <p>Low Stock Items</p>
+                                    <small class="text-muted">{{ out_of_stock_count }} out of stock</small>
                                 </div>
                             </div>
                         </div>
@@ -141,7 +128,386 @@
             </div>
         </div>
     </div>
+
+    <!-- Chart Section with Filter -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="admin-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>Sales Overview
+                    </h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm {% if chart_period == 'daily' %}btn-primary{% else %}btn-outline-primary{% endif %} period-btn" data-period="daily">
+                            Daily
+                        </button>
+                        <button type="button" class="btn btn-sm {% if chart_period == 'monthly' %}btn-primary{% else %}btn-outline-primary{% endif %} period-btn" data-period="monthly">
+                            Monthly
+                        </button>
+                        <button type="button" class="btn btn-sm {% if chart_period == 'yearly' %}btn-primary{% else %}btn-outline-primary{% endif %} period-btn" data-period="yearly">
+                            Yearly
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="salesChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Best Selling Section (FIXED) -->
+    <div class="row mt-4">
+        <!-- Best Selling Products -->
+        <div class="col-md-4">
+            <div class="admin-card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-crown me-2 text-warning"></i>Best Selling Products (Top 10)
+                    </h5>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    {% if best_products %}
+                    <div class="list-group">
+                        {% for product in best_products %}
+                        <div class="list-group-item border-0 ps-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge {% if forloop.counter == 1 %}bg-warning{% elif forloop.counter == 2 %}bg-secondary{% elif forloop.counter == 3 %}bg-bronze{% else %}bg-light text-dark{% endif %} me-2">
+                                        {{ forloop.counter }}
+                                    </span>
+                                    <a href="{% url 'product_detail' product.variant__product__id %}" class="text-decoration-none">
+                                        {{ product.variant__product__name|truncatechars:30 }}
+                                    </a>
+                                </div>
+                                <div class="text-end">
+                                    <span class="fw-bold text-primary">{{ product.total_quantity }}</span>
+                                    <small class="text-muted d-block">units sold</small>
+                                    <small class="text-success">₹{{ product.total_revenue|floatformat:0 }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No sales data available</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Best Selling Categories -->
+        <div class="col-md-4">
+            <div class="admin-card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tags me-2 text-success"></i>Best Selling Categories (Top 10)
+                    </h5>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    {% if best_categories %}
+                    <div class="list-group">
+                        {% for category in best_categories %}
+                        <div class="list-group-item border-0 ps-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge {% if forloop.counter == 1 %}bg-warning{% elif forloop.counter == 2 %}bg-secondary{% elif forloop.counter == 3 %}bg-bronze{% else %}bg-light text-dark{% endif %} me-2">
+                                        {{ forloop.counter }}
+                                    </span>
+                                    {{ category.variant__product__category__name|default:"Uncategorized" }}
+                                </div>
+                                <div class="text-end">
+                                    <span class="fw-bold text-primary">{{ category.total_quantity }}</span>
+                                    <small class="text-muted d-block">units sold</small>
+                                    <small class="text-success">₹{{ category.total_revenue|floatformat:0 }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-tags fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No category data available</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Best Selling Brands -->
+        <div class="col-md-4">
+            <div class="admin-card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-trademark me-2 text-info"></i>Best Selling Brands (Top 10)
+                    </h5>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    {% if best_brands %}
+                    <div class="list-group">
+                        {% for brand in best_brands %}
+                        <div class="list-group-item border-0 ps-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge {% if forloop.counter == 1 %}bg-warning{% elif forloop.counter == 2 %}bg-secondary{% elif forloop.counter == 3 %}bg-bronze{% else %}bg-light text-dark{% endif %} me-2">
+                                        {{ forloop.counter }}
+                                    </span>
+                                    {{ brand.variant__product__brand|title|default:"Other" }}
+                                </div>
+                                <div class="text-end">
+                                    <span class="fw-bold text-primary">{{ brand.total_quantity }}</span>
+                                    <small class="text-muted d-block">units sold</small>
+                                    <small class="text-success">₹{{ brand.total_revenue|floatformat:0 }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-trademark fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No brand data available</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Orders and Quick Actions Row -->
+    <div class="row mt-4">
+        <!-- Recent Orders -->
+        <div class="col-md-6">
+            <div class="admin-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+
+                    <!-- Add this button to your Quick Actions section -->
+
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>Recent Orders
+                    </h5>
+                    <a href="{% url 'admin_order_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if recent_orders %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Customer</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'admin_order_detail' order.id %}">
+                                            #{{ order.order_number|truncatechars:8 }}
+                                        </a>
+                                    </td>
+                                    <td>{{ order.user.get_full_name|default:order.user.username }}</td>
+                                    <td>₹{{ order.total_amount|floatformat:2 }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if order.status == 'delivered' %}bg-success
+                                            {% elif order.status == 'cancelled' %}bg-danger
+                                            {% elif order.status == 'pending' %}bg-warning
+                                            {% else %}bg-info{% endif %}">
+                                            {{ order.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-3">No recent orders</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Low Stock Alerts -->
+        <div class="col-md-6">
+            <div class="admin-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2 text-danger"></i>Low Stock Alerts
+                    </h5>
+                    <a href="{% url 'admin_inventory_management' %}" class="btn btn-sm btn-outline-danger">Manage Inventory</a>
+                </div>
+                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                    {% if low_stock_variants %}
+                    <div class="list-group">
+                        {% for variant in low_stock_variants %}
+                        <div class="list-group-item border-0 ps-0 d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="fw-bold">{{ variant.product.name }}</span>
+                                <br>
+                                <small class="text-muted">{{ variant.volume_ml }}ml - {{ variant.gender|title }}</small>
+                            </div>
+                            <div>
+                                <span class="badge {% if variant.stock == 0 %}bg-danger{% else %}bg-warning{% endif %}">
+                                    Stock: {{ variant.stock }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-3">All products have sufficient stock</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="admin-card">
+                <div class="card-header">
+                    <h5>Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="{% url 'ledger_book' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-book me-2"></i>Ledger Book
+</a>
+                        
+                        <a href="{% url 'user_list' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-users me-2"></i>View All Users
+                        </a>
+                        <a href="{% url 'product_list' %}" class="btn btn-outline-success">
+                            <i class="fas fa-boxes me-2"></i>Manage Products
+                        </a>
+                        <a href="{% url 'category_manage' %}" class="btn btn-outline-warning">
+                            <i class="fas fa-tags me-2"></i>Manage Categories
+                        </a>
+                        <a href="{% url 'admin_coupon_list' %}" class="btn btn-outline-purple">
+                            <i class="fas fa-ticket-alt me-2"></i>Manage Coupons
+                        </a>
+                        <a href="{% url 'sales_report' %}" class="btn btn-outline-orange">
+                            <i class="fas fa-chart-bar me-2"></i>View Sales Report
+                        </a>
+                        <a href="{% url 'admin_inventory_management' %}" class="btn btn-outline-info">
+                            <i class="fas fa-boxes me-2"></i>Inventory
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- Chart.js Script -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize chart with data from Django
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    
+    // Parse the JSON data passed from Django
+    const chartLabels = {{ chart_labels|safe }};
+    const chartRevenue = {{ chart_revenue|safe }};
+    const chartOrders = {{ chart_orders|safe }};
+    
+    const salesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartLabels,
+            datasets: [
+                {
+                    label: 'Revenue (₹)',
+                    data: chartRevenue,
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.1,
+                    yAxisID: 'y-revenue'
+                },
+                {
+                    label: 'Number of Orders',
+                    data: chartOrders,
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    tension: 0.1,
+                    yAxisID: 'y-orders'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Sales Performance'
+                }
+            },
+            scales: {
+                'y-revenue': {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Revenue (₹)'
+                    }
+                },
+                'y-orders': {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    grid: {
+                        drawOnChartArea: false,
+                    },
+                    title: {
+                        display: true,
+                        text: 'Orders Count'
+                    }
+                }
+            }
+        }
+    });
+    
+    // Period filter buttons
+    document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const period = this.dataset.period;
+            
+            // Update button styles
+            document.querySelectorAll('.period-btn').forEach(b => {
+                b.classList.remove('btn-primary');
+                b.classList.add('btn-outline-primary');
+            });
+            this.classList.remove('btn-outline-primary');
+            this.classList.add('btn-primary');
+            
+            // Fetch new data via AJAX
+            fetch(`/dashboard/chart-data/?period=${period}`)
+                .then(response => response.json())
+                .then(data => {
+                    salesChart.data.labels = data.labels;
+                    salesChart.data.datasets[0].data = data.revenue;
+                    salesChart.data.datasets[1].data = data.orders;
+                    salesChart.update();
+                })
+                .catch(error => console.error('Error fetching chart data:', error));
+        });
+    });
+});
+</script>
 
 <style>
 .dashboard-icon {
@@ -153,6 +519,38 @@
 .admin-card:hover {
     transform: translateY(-5px);
     transition: transform 0.3s ease;
+}
+.list-group-item {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+.list-group-item:last-child {
+    border-bottom: none;
+}
+.btn-purple {
+    background: linear-gradient(135deg, #6f42c1, #6610f2);
+    border: none;
+    color: white;
+}
+.btn-purple:hover {
+    background: linear-gradient(135deg, #6610f2, #520dc2);
+    color: white;
+}
+.btn-orange {
+    background: linear-gradient(135deg, #fd7e14, #f86c6b);
+    border: none;
+    color: white;
+}
+.btn-orange:hover {
+    background: linear-gradient(135deg, #f86c6b, #fd7e14);
+    color: white;
+}
+.bg-bronze {
+    background-color: #cd7f32;
+    color: white;
+}
+.list-group-item:hover {
+    background-color: #f8f9fa;
 }
 </style>
 {% endblock %}

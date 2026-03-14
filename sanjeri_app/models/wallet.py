@@ -217,6 +217,50 @@ class WalletTransaction(models.Model):
         self.status = 'FAILED'
         self.save()
     
+    def get_source_display(self):
+        """
+        Determine the source of the transaction based on type, order status, and reason
+        Returns one of: 
+        - Order Payment
+        - Order Cancellation
+        - Product Return
+        - Admin Adjustment
+        - Referral Bonus
+        - Wallet Recharge
+        """
+        # Check if related to order
+        if self.order:
+            if self.transaction_type == 'WITHDRAWAL':
+                return 'Order Payment'
+            elif self.transaction_type == 'REFUND':
+                # Check order status to determine if cancellation or return
+                if self.order.status == 'cancelled':
+                    return 'Order Cancellation'
+                elif self.order.status in ['returned', 'return_requested', 'return_approved']:
+                    return 'Product Return'
+                else:
+                    return 'Order Refund'
+        
+        # Check reason field for clues
+        reason_lower = (self.reason or '').lower()
+        
+        if 'referral' in reason_lower or 'bonus' in reason_lower:
+            return 'Referral Bonus'
+        
+        if 'admin' in reason_lower or 'adjustment' in reason_lower:
+            return 'Admin Adjustment'
+        
+        # Default based on transaction type
+        if self.transaction_type == 'DEPOSIT':
+            return 'Wallet Recharge'
+        elif self.transaction_type == 'REFUND':
+            return 'Product Return'  # Default for refunds without order
+        elif self.transaction_type == 'WITHDRAWAL':
+            return 'Order Payment'  # Default for withdrawals without order
+        
+        return 'Other'
+
+        
     @property
     def is_deposit(self):
         return self.transaction_type == 'DEPOSIT'

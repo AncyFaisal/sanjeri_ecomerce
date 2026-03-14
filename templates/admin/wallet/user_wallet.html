@@ -1,0 +1,253 @@
+<!-- templates/admin/wallet/user_wallet.html -->
+{% extends 'common_admin.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    <div class="top-nav mb-4">
+        <div class="nav-left">
+            <h2 class="page-title">
+                <i class="fas fa-wallet me-2"></i>User Wallet
+            </h2>
+        </div>
+        <div class="nav-right">
+            <a href="{% url 'user_list' %}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-arrow-left"></i> Back to Users
+            </a>
+            <a href="{% url 'user_detail' wallet_user.id %}" class="btn btn-outline-primary">
+                <i class="fas fa-user"></i> View User
+            </a>
+        </div>
+    </div>
+
+    <!-- User Info Card -->
+    <div class="admin-card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-auto">
+                    {% if wallet_user.profile_image %}
+                    <img src="{{ wallet_user.profile_image.url }}" 
+                         class="rounded-circle" 
+                         style="width: 80px; height: 80px; object-fit: cover;"
+                         alt="{{ wallet_user.username }}">
+                    {% else %}
+                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center"
+                         style="width: 80px; height: 80px; font-size: 32px;">
+                        {{ wallet_user.username|first|upper }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col-md">
+                    <h4 class="mb-1">{{ wallet_user.get_full_name|default:wallet_user.username }}</h4>
+                    <p class="text-muted mb-2">{{ wallet_user.email }}</p>
+                    <div>
+                        <span class="badge {% if wallet_user.status == 'active' %}bg-success{% else %}bg-danger{% endif %} me-2">
+                            {{ wallet_user.get_status_display|default:wallet_user.status }}
+                        </span>
+                        <span class="badge bg-info">Joined: {{ wallet_user.date_joined|date:"d M Y" }}</span>
+                    </div>
+                </div>
+                <div class="col-md-auto text-end">
+                    <h3 class="text-primary mb-1">₹{{ current_balance|floatformat:2 }}</h3>
+                    <p class="text-muted mb-0">Current Balance</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wallet Stats -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="admin-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-success text-white rounded-circle p-3 me-3">
+                            <i class="fas fa-arrow-down fa-2x"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0">₹{{ total_deposits|floatformat:2 }}</h3>
+                            <p class="text-muted mb-0">Total Deposits (Completed)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="admin-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-danger text-white rounded-circle p-3 me-3">
+                            <i class="fas fa-arrow-up fa-2x"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0">₹{{ total_withdrawals|floatformat:2 }}</h3>
+                            <p class="text-muted mb-0">Total Withdrawals (Completed)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="admin-card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-history me-2"></i>Transaction History
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if transactions %}
+            <div class="table-responsive">
+                <table class="table styled-table">
+                    <thead>
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Order</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td><strong>#{{ transaction.id }}</strong></td>
+                            <td>{{ transaction.created_at|date:"d M Y" }}<br>
+                                <small class="text-muted">{{ transaction.created_at|time:"h:i A" }}</small>
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if transaction.transaction_type == 'REFUND' %}bg-success
+                                    {% elif transaction.transaction_type == 'DEPOSIT' %}bg-primary
+                                    {% elif transaction.transaction_type == 'WITHDRAWAL' %}bg-danger
+                                    {% else %}bg-info{% endif %}">
+                                    {{ transaction.get_transaction_type_display }}
+                                </span>
+                            </td>
+                            <td class="fw-bold 
+                                {% if transaction.transaction_type == 'REFUND' or transaction.transaction_type == 'DEPOSIT' %}text-success
+                                {% else %}text-danger{% endif %}">
+                                {{ transaction.display_amount }}
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if transaction.status == 'COMPLETED' %}bg-success
+                                    {% elif transaction.status == 'PENDING' %}bg-warning text-dark
+                                    {% elif transaction.status == 'CANCELLED' %}bg-secondary
+                                    {% elif transaction.status == 'FAILED' %}bg-danger
+                                    {% endif %}">
+                                    {{ transaction.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if transaction.order %}
+                                <a href="{% url 'admin_order_detail' transaction.order.id %}" 
+                                   class="text-primary">
+                                    #{{ transaction.order.order_number }}
+                                </a>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'admin_wallet_transaction_detail' transaction.id %}" 
+                                   class="action-btn view" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} transactions
+                </div>
+                <nav>
+                    <ul class="pagination">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1">
+                                <i class="fas fa-angle-double-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                                <i class="fas fa-angle-left"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                                <i class="fas fa-angle-right"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">
+                                <i class="fas fa-angle-double-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No transactions found for this user.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+    font-size: 14px;
+    text-decoration: none;
+}
+
+.action-btn.view {
+    background-color: #3498db;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    color: white;
+}
+</style>
+{% endblock %}

@@ -8,6 +8,132 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/admin_style.css' %}">
+    
+    <!-- Add vertical scrollbar to sidebar -->
+    <style>
+        /* Make sidebar scrollable */
+        .sidebar {
+            height: 100vh;
+            overflow-y: auto !important;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.3) rgba(255,255,255,0.1);
+        }
+        
+        /* Custom scrollbar for webkit browsers (Chrome, Safari, etc) */
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        
+        /* Ensure sidebar header stays at top when scrolling */
+        .sidebar-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: linear-gradient(135deg, var(--primary-color, #2c3e50), var(--secondary-color, #34495e));
+        }
+        
+        /* Add some bottom padding to last items */
+        .sidebar-nav {
+            padding-bottom: 2rem;
+        }
+        
+        /* Make sure main content doesn't have its own scrollbar conflict */
+        .main-content {
+            height: 100vh;
+            overflow-y: auto;
+        }
+        
+        /* Ensure body doesn't have double scrollbars */
+        body {
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        .admin-wrapper {
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* Dropdown Menu Styles */
+        .nav-item.has-dropdown {
+            position: relative;
+        }
+        
+        .dropdown-menu-sidebar {
+            display: none;
+            list-style: none;
+            padding: 0.5rem 0 0.5rem 2rem;
+            margin: 0;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .dropdown-menu-sidebar.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+        
+        .dropdown-menu-sidebar li {
+            margin: 0.25rem 0;
+        }
+        
+        .dropdown-menu-sidebar .nav-link {
+            padding: 0.6rem 1rem;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.7);
+        }
+        
+        .dropdown-menu-sidebar .nav-link:hover,
+        .dropdown-menu-sidebar .nav-link.active {
+            color: white;
+            background: rgba(255,255,255,0.15);
+        }
+        
+        .nav-link.dropdown-toggle {
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .nav-link.dropdown-toggle .submenu-icon {
+            transition: transform 0.3s ease;
+        }
+        
+        .nav-link.dropdown-toggle.open .submenu-icon {
+            transform: rotate(90deg);
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Active state for parent when dropdown is open */
+        .nav-link.dropdown-toggle.open {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+    </style>
 </head>
 <body>
     <div class="admin-wrapper">
@@ -19,11 +145,19 @@
             </div>
             <ul class="sidebar-nav">
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
+                    <a href="{% url 'admin_dashboard' %}" class="nav-link">
                         <i class="fas fa-tachometer-alt"></i>
                         <span>Dashboard</span>
                     </a>
                 </li>
+
+                <li class="nav-item">
+    <a href="{% url 'ledger_book' %}" class="nav-link {% if 'ledger' in request.path %}active{% endif %}">
+        <i class="fas fa-book"></i>
+        <span>Ledger Book</span>
+    </a>
+</li>
+
                 <li class="nav-item">
                     <a href="{% url 'product_list' %}" class="nav-link {% if request.resolver_match.url_name == 'product_list' or request.resolver_match.url_name == 'product_add' or request.resolver_match.url_name == 'product_edit' %}active{% endif %}">
                         <i class="fas fa-box-open"></i>
@@ -36,46 +170,65 @@
                         <span>Categories</span>
                     </a>
                 </li>
-            
-              
+                
                 <li class="nav-item">
                     <a href="{% url 'user_list' %}" class="nav-link {% if request.resolver_match.url_name == 'user_list' or request.resolver_match.url_name == 'user_detail' %}active{% endif %}">
                         <i class="fas fa-users"></i>
                         <span>User Management</span>
                     </a>
                 </li>
+                
+                <!-- Offer Management with Dropdown -->
+                <li class="nav-item has-dropdown">
+                    <a href="#" class="nav-link dropdown-toggle {% if 'offer' in request.path %}open{% endif %}" id="offerDropdownToggle">
+                        <i class="fas fa-percent"></i>
+                        <span>Offer Management</span>
+                        
+                    </a>
+                    <ul class="dropdown-menu-sidebar {% if 'offer' in request.path %}show{% endif %}" id="offerDropdown">
+                        <li>
+                            <a href="{% url 'product_offer_list' %}" class="nav-link {% if 'product' in request.path and 'offer' in request.path %}active{% endif %}">
+                                <i class="fas fa-tag"></i> Product Offers
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'category_offer_list' %}" class="nav-link {% if 'category' in request.path and 'offer' in request.path %}active{% endif %}">
+                                <i class="fas fa-layer-group"></i> Category Offers
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
                 <li class="nav-item">
-    <a href="#" class="nav-link has-submenu {% if 'offer' in request.path %}active{% endif %}">
-        <i class="fas fa-percent"></i>
-        <span>Offer Management</span>
-        <i class="fas fa-chevron-right ms-auto submenu-icon"></i>
+                    <a class="nav-link" href="{% url 'admin_order_list' %}">
+                        <i class="fas fa-shopping-bag"></i>
+                        Order Management
+                    </a>
+                </li>
+                <!-- Add this inside your sidebar-nav ul, probably after Order Management -->
+<li class="nav-item has-submenu">
+    <a href="#" class="nav-link has-submenu" data-submenu="wallet-submenu">
+        <i class="fas fa-wallet"></i>
+        <span>Wallet Management</span>
+        <i class="fas fa-chevron-right submenu-icon"></i>
     </a>
-    <ul class="submenu" style="{% if 'offer' in request.path %}display: block;{% endif %}">
+    <ul class="submenu" id="wallet-submenu">
         <li>
-            <a href="{% url 'product_offer_list' %}" class="nav-link {% if 'product' in request.path and 'offer' in request.path %}active{% endif %}">
-                <i class="fas fa-tag"></i> Product Offers
+            <a href="{% url 'admin_wallet_transactions' %}" class="nav-link">
+                <i class="fas fa-list"></i> All Transactions
             </a>
         </li>
         <li>
-            <a href="{% url 'category_offer_list' %}" class="nav-link {% if 'category' in request.path and 'offer' in request.path %}active{% endif %}">
-                <i class="fas fa-layer-group"></i> Category Offers
+            <a href="{% url 'admin_pending_refunds' %}" class="nav-link">
+                <i class="fas fa-clock"></i> Pending Refunds
+                {% if pending_refunds_count %}
+                <span class="badge bg-danger ms-2">{{ pending_refunds_count }}</span>
+                {% endif %}
             </a>
         </li>
     </ul>
 </li>
-                <!-- <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="fas fa-chart-line"></i>
-                        <span>Analytics</span>
-                    </a>
-                </li> -->
                 <li class="nav-item">
-    <a class="nav-link" href="{% url 'admin_order_list' %}">
-        <i class="fas fa-shopping-bag"></i>
-        Order Management
-    </a>
-</li>
-  <li class="nav-item">
                     <a href="{% url 'admin_coupon_list' %}" class="nav-link {% if 'coupon' in request.path %}active{% endif %}">
                         <i class="fas fa-ticket-alt"></i>
                         <span>Coupon Management</span>
@@ -88,12 +241,12 @@
                         <span>Sales Report</span>
                     </a>
                 </li>
-<li class="nav-item">
-    <a class="nav-link" href="{% url 'admin_inventory_management' %}">
-        <i class="fas fa-boxes"></i>
-        Inventory Management
-    </a>
-</li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'admin_inventory_management' %}">
+                        <i class="fas fa-boxes"></i>
+                        Inventory Management
+                    </a>
+                </li>
             </ul>
         </div>
 
@@ -140,16 +293,17 @@
                     </div>
                 </div>
             </nav>
-{% if messages %}
-  <div class="container mt-3">
-    {% for message in messages %}
-      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-    {% endfor %}
-  </div>
-{% endif %}
+            
+            {% if messages %}
+            <div class="container mt-3">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
 
             <!-- Content Area -->
             <div class="content-area">
@@ -160,6 +314,76 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{% static 'js/admin_script.js' %}"></script>
+    <!-- Add this in the head section of common_admin.html -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Dropdown Toggle Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropdownToggle = document.getElementById('offerDropdownToggle');
+            const dropdownMenu = document.getElementById('offerDropdown');
+            
+            if (dropdownToggle && dropdownMenu) {
+                // Toggle dropdown on click
+                dropdownToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Toggle the dropdown
+                    dropdownMenu.classList.toggle('show');
+                    this.classList.toggle('open');
+                });
+                
+                // Close dropdown when clicking on a menu item
+                const menuItems = dropdownMenu.querySelectorAll('.nav-link');
+                menuItems.forEach(item => {
+                    item.addEventListener('click', function() {
+                        // Don't close immediately - let the navigation happen
+                        // The dropdown will stay open if on offer pages due to the URL check below
+                    });
+                });
+                
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (!dropdownToggle.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                        dropdownMenu.classList.remove('show');
+                        dropdownToggle.classList.remove('open');
+                    }
+                });
+            }
+            
+            // Keep dropdown open if on offer pages
+            function checkAndUpdateDropdown() {
+                const currentPath = window.location.pathname;
+                const dropdownToggle = document.getElementById('offerDropdownToggle');
+                const dropdownMenu = document.getElementById('offerDropdown');
+                
+                if (currentPath.includes('offer')) {
+                    if (dropdownMenu) dropdownMenu.classList.add('show');
+                    if (dropdownToggle) dropdownToggle.classList.add('open');
+                } else {
+                    // Optional: Close dropdown when not on offer pages
+                    // Comment this out if you want the dropdown to stay as user interacts
+                    if (dropdownMenu) dropdownMenu.classList.remove('show');
+                    if (dropdownToggle) dropdownToggle.classList.remove('open');
+                }
+            }
+            
+            // Check on page load
+            checkAndUpdateDropdown();
+            
+            // Optional: Check when URL changes (for single-page app behavior)
+            // This is useful if you're using HTMX or similar
+            const observer = new MutationObserver(function() {
+                checkAndUpdateDropdown();
+            });
+            
+            observer.observe(document.querySelector('main-content'), { 
+                childList: true, 
+                subtree: true 
+            });
+        });
+    </script>
+    
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

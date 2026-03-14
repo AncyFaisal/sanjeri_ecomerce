@@ -4,7 +4,7 @@ from .models import Cart, Wishlist
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from .models.offer_models import ProductOffer, CategoryOffer
-
+from .models.wallet import WalletTransaction
 User = get_user_model()
 
 def wallet_balance(request):
@@ -92,3 +92,13 @@ def offer_context(request):
         'active_product_offers': active_product_offers,
         'active_category_offers': active_category_offers,
     }
+
+    # In your admin_views.py or create a context processor
+def admin_context(request):
+    if request.user.is_staff:
+        pending_refunds_count = WalletTransaction.objects.filter(
+            transaction_type='REFUND',
+            status='PENDING'
+        ).count()
+        return {'pending_refunds_count': pending_refunds_count}
+    return {}

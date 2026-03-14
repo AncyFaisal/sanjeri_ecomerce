@@ -11,6 +11,10 @@
     --text-light: #7f8c8d;
     --gray-light: #6c757d;
     --gray-dark: #495057;
+    --scrollbar-width: 6px;
+    --scrollbar-track: #f1f1f1;
+    --scrollbar-thumb: #c1c1c1;
+    --scrollbar-thumb-hover: #a8a8a8;
 }
 
 * {
@@ -23,28 +27,83 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #f5f6fa;
     color: var(--text-dark);
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Global Scrollbar Styles */
+::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+    height: var(--scrollbar-width);
+}
+
+::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+/* Firefox Scrollbar */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 .admin-wrapper {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
 }
 
-/* Sidebar Styles */
+/* ==================== SIDEBAR STYLES ==================== */
 .sidebar {
     width: 280px;
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
     color: white;
     transition: all 0.3s ease;
-    position: fixed;
+    position: relative;
     height: 100vh;
     z-index: 1000;
     box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Customize sidebar scrollbar */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
 }
 
 .sidebar-header {
     padding: 2rem 1.5rem 1.5rem;
     border-bottom: 1px solid rgba(255,255,255,0.1);
+    position: sticky;
+    top: 0;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    z-index: 2;
 }
 
 .logo {
@@ -58,11 +117,12 @@ body {
     font-size: 0.85rem;
     opacity: 0.8;
     margin: 0;
+    color: rgba(255,255,255,0.8);
 }
 
 .sidebar-nav {
     list-style: none;
-    padding: 1rem 0;
+    padding: 1rem 0 2rem 0;
 }
 
 .nav-item {
@@ -78,9 +138,11 @@ body {
     border-radius: 8px;
     transition: all 0.3s ease;
     font-weight: 500;
+    cursor: pointer;
 }
 
-.nav-link:hover, .nav-link.active {
+.nav-link:hover, 
+.nav-link.active {
     background: rgba(255,255,255,0.1);
     color: white;
     transform: translateX(5px);
@@ -93,11 +155,45 @@ body {
     text-align: center;
 }
 
-/* Main Content */
+/* Submenu Styles */
+.has-submenu {
+    position: relative;
+}
+
+.submenu-icon {
+    margin-left: auto;
+    font-size: 0.8rem;
+    transition: transform 0.3s ease;
+}
+
+.nav-link.has-submenu:hover .submenu-icon {
+    transform: rotate(90deg);
+}
+
+.submenu {
+    list-style: none;
+    padding-left: 2.5rem;
+    margin: 0.5rem 0;
+    display: none;
+}
+
+.submenu li {
+    margin: 0.25rem 0;
+}
+
+.submenu .nav-link {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+}
+
+/* ==================== MAIN CONTENT STYLES ==================== */
 .main-content {
     flex: 1;
-    margin-left: 280px;
     transition: margin-left 0.3s ease;
+    height: 100vh;
+    overflow-y: auto;
+    position: relative;
+    background-color: #f5f6fa;
 }
 
 /* Top Navigation */
@@ -111,6 +207,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
+    width: 100%;
 }
 
 .nav-left {
@@ -221,13 +318,18 @@ body {
     font-weight: 500;
 }
 
+/* Messages Container */
+.main-content .container.mt-3 {
+    padding: 0 2rem;
+    margin-top: 1rem !important;
+}
+
 /* Content Area */
 .content-area {
     padding: 2rem;
-    min-height: calc(100vh - 80px);
 }
 
-/* Card Styles */
+/* ==================== CARD STYLES ==================== */
 .admin-card {
     background: white;
     border-radius: 12px;
@@ -259,107 +361,21 @@ body {
     padding: 2rem;
 }
 
-/* Button Styles */
-.btn-primary {
-    background: linear-gradient(135deg, var(--accent-color), #2980b9);
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
-}
-
-.btn-success {
-    background: linear-gradient(135deg, var(--success-color), #229954);
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.btn-success:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
-}
-
-/* Dark-Light Reset/Cancel Button */
-.btn-outline-secondary {
-    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    border: 1px solid #dee2e6;
-    color: var(--gray-dark);
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.btn-outline-secondary:hover {
-    background: linear-gradient(135deg, #e9ecef, #dee2e6);
-    border-color: #adb5bd;
-    color: var(--gray-dark);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.2);
-}
-
-/* Quick Search Buttons */
-.quick-search-btn {
-    background: linear-gradient(135deg, #6c757d, #5a6268);
-    border: none;
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.quick-search-btn:hover {
-    background: linear-gradient(135deg, #5a6268, #495057);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
-    color: white;
-}
-
-/* Filter Search Buttons */
-.filter-search-btn {
-    background: linear-gradient(135deg, #17a2b8, #138496);
-    border: none;
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    margin-top: 1.75rem;
-}
-
-.filter-search-btn:hover {
-    background: linear-gradient(135deg, #138496, #117a8b);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
-    color: white;
-}
-
-/* Table Styles */
+/* ==================== TABLE STYLES ==================== */
 .table-container {
     background: white;
     border-radius: 12px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: visible;
     box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    margin-bottom: 1rem;
 }
 
 .styled-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.95rem;
+    min-width: 800px;
 }
 
 .styled-table thead {
@@ -372,6 +388,7 @@ body {
     font-weight: 600;
     text-align: left;
     border: none;
+    white-space: nowrap;
 }
 
 .styled-table td {
@@ -392,24 +409,143 @@ body {
     border-bottom: none;
 }
 
-/* Badge Styles */
+/* ==================== BUTTON STYLES ==================== */
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent-color), #2980b9);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    color: white;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--success-color), #229954);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    color: white;
+    cursor: pointer;
+}
+
+.btn-success:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+}
+
+.btn-outline-secondary {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border: 1px solid #dee2e6;
+    color: var(--gray-dark);
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.btn-outline-secondary:hover {
+    background: linear-gradient(135deg, #e9ecef, #dee2e6);
+    border-color: #adb5bd;
+    color: var(--gray-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.2);
+}
+
+.quick-search-btn {
+    background: linear-gradient(135deg, #6c757d, #5a6268);
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.quick-search-btn:hover {
+    background: linear-gradient(135deg, #5a6268, #495057);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+    color: white;
+}
+
+.filter-search-btn {
+    background: linear-gradient(135deg, #17a2b8, #138496);
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    margin-top: 1.75rem;
+}
+
+.filter-search-btn:hover {
+    background: linear-gradient(135deg, #138496, #117a8b);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+    color: white;
+}
+
+/* ==================== BADGE STYLES ==================== */
 .badge {
     padding: 0.5rem 0.75rem;
     border-radius: 6px;
     font-size: 0.8rem;
     font-weight: 500;
+    display: inline-block;
 }
 
-/* Form Styles */
-.form-control, .form-select {
+.bg-pink {
+    background-color: #e83e8c !important;
+    color: white;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.status-active {
+    background-color: rgba(39, 174, 96, 0.15);
+    color: var(--success-color);
+}
+
+.status-blocked {
+    background-color: rgba(231, 76, 60, 0.15);
+    color: var(--danger-color);
+}
+
+/* ==================== FORM STYLES ==================== */
+.form-control, 
+.form-select {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 0.75rem 1rem;
     font-size: 0.95rem;
     transition: all 0.3s ease;
+    width: 100%;
 }
 
-.form-control:focus, .form-select:focus {
+.form-control:focus, 
+.form-select:focus {
+    outline: none;
     border-color: var(--accent-color);
     box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
@@ -420,18 +556,22 @@ body {
     color: var(--text-dark);
 }
 
-/* Image Preview */
-.img-thumbnail {
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    transition: transform 0.3s ease;
+.form-label.fw-semibold {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    display: block;
 }
 
-.img-thumbnail:hover {
-    transform: scale(1.05);
+.input-group .form-select,
+.input-group .form-control {
+    height: 38px;
 }
 
-/* Form Actions */
+.form-check-input:checked {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
 .form-actions {
     background: #f8f9fa;
     padding: 1.5rem 2rem;
@@ -440,76 +580,34 @@ body {
     margin-top: 2rem;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    .sidebar {
-        width: 100%;
-        transform: translateX(-100%);
-    }
-    
-    .sidebar.active {
-        transform: translateX(0);
-    }
-    
-    .main-content {
-        margin-left: 0;
-    }
-    
-    .top-nav {
-        padding: 1rem;
-    }
-    
-    .search-input {
-        width: 200px;
-    }
-    
-    .content-area {
-        padding: 1rem;
-    }
-    
-    .card-body {
-        padding: 1.5rem;
-    }
-
-    .filter-search-btn {
-        margin-top: 0.5rem;
-    }
+/* ==================== FILTER SECTION STYLES ==================== */
+.filter-section {
+    background: var(--light-bg);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
 }
 
-@media (max-width: 576px) {
-    .nav-right {
-        gap: 1rem;
-    }
-    
-    .search-input {
-        width: 150px;
-    }
-    
-    .user-name {
-        display: none;
-    }
+.filter-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
 }
 
-.bg-pink {
-    background-color: #e83e8c !important;
+.align-items-end .form-label {
+    margin-bottom: 0.5rem;
 }
 
-.empty-state {
-    max-width: 400px;
-    margin: 0 auto;
+.flex-fill {
+    flex: 1;
 }
 
-/* Add these to your CSS file */
-.user-avatar-sm {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
+/* ==================== ACTION BUTTON STYLES ==================== */
 .action-buttons {
     display: flex;
     gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .action-btn {
@@ -524,6 +622,7 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 0.25rem;
 }
 
 .action-btn.view {
@@ -546,57 +645,37 @@ body {
     color: white;
 }
 
+.action-btn.edit {
+    background-color: var(--primary-color);
+    color: white;
+}
+
 .action-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
-.status-badge {
-    display: inline-block;
-    padding: 0.4rem 0.8rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.status-active {
-    background-color: rgba(39, 174, 96, 0.15);
-    color: var(--success-color);
-}
-
-.status-blocked {
-    background-color: rgba(231, 76, 60, 0.15);
-    color: var(--danger-color);
-}
-
-.filter-section {
-    background: var(--light-bg);
+/* ==================== IMAGE STYLES ==================== */
+.img-thumbnail {
     border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
+    border: 1px solid var(--border-color);
+    transition: transform 0.3s ease;
+    max-width: 100%;
+    height: auto;
 }
 
-.filter-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1rem;
+.img-thumbnail:hover {
+    transform: scale(1.05);
 }
 
-.empty-state {
-    max-width: 400px;
-    margin: 0 auto;
-    text-align: center;
-    padding: 2rem 0;
+.user-avatar-sm {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
 }
 
-.empty-state i {
-    opacity: 0.5;
-}
-
-
-/* ... your existing styles ... */
-
+/* ==================== PAGINATION STYLES ==================== */
 .pagination-container {
     display: flex;
     justify-content: space-between;
@@ -607,47 +686,197 @@ body {
 }
 
 .pagination-info {
-    color: var(--text-light, #7f8c8d);
+    color: var(--text-light);
     font-size: 0.9rem;
 }
 
 .pagination {
     margin-bottom: 0;
+    display: flex;
+    gap: 0.25rem;
 }
 
+/* ==================== EMPTY STATE STYLES ==================== */
 .empty-state {
     max-width: 400px;
     margin: 0 auto;
+    text-align: center;
+    padding: 3rem 1rem;
 }
 
-/* Improved filter section styling */
-.form-label.fw-semibold {
+.empty-state i {
+    opacity: 0.5;
+    color: var(--text-light);
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        transform: translateX(-100%);
+        position: fixed;
+    }
+    
+    .sidebar.active {
+        transform: translateX(0);
+    }
+    
+    .main-content {
+        margin-left: 0;
+    }
+    
+    .top-nav {
+        padding: 1rem;
+    }
+    
+    .search-input {
+        width: 200px;
+    }
+    
+    .content-area {
+        padding: 1rem;
+    }
+    
+    .main-content .container.mt-3 {
+        padding: 0 1rem;
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .filter-search-btn {
+        margin-top: 0.5rem;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .pagination-container {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 576px) {
+    .nav-right {
+        gap: 1rem;
+    }
+    
+    .search-container {
+        display: none;
+    }
+    
+    .user-name {
+        display: none;
+    }
+    
+    .filter-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==================== UTILITY CLASSES ==================== */
+.text-gray-600 {
+    color: var(--text-light);
+}
+
+.text-amber-900 {
+    color: var(--primary-color);
+}
+
+.bg-gradient {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.opacity-50 {
+    opacity: 0.5;
+}
+
+.opacity-75 {
+    opacity: 0.75;
+}
+
+/* Disabled state for payment options */
+.disabled-option {
+    opacity: 0.6;
+    cursor: not-allowed !important;
+    background-color: #f8f9fa !important;
+    border-color: #dee2e6 !important;
+}
+
+.disabled-option:hover {
+    transform: none !important;
+    border-color: #dee2e6 !important;
+    background-color: #f8f9fa !important;
+}
+
+/* Loading spinner */
+.loading-spinner {
+    width: 60px;
+    height: 60px;
+    border-width: 4px;
+    border-color: var(--primary-color);
+    border-top-color: transparent;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    border: none;
+    border-radius: 12px 12px 0 0;
+    padding: 1.25rem 1.5rem;
+}
+
+.modal-title {
+    color: white;
     font-weight: 600;
-    margin-bottom: 0.5rem;
-    display: block;
+    font-size: 1.25rem;
+    margin: 0;
 }
 
-.input-group .form-select,
-.input-group .form-control {
-    height: 38px;
+.modal-footer {
+    border-top: 1px solid #e5e7eb;
+    padding: 1.25rem 1.5rem;
 }
 
-.filter-search-btn {
-    background-color: #f8f9fa;
-    border: 1px solid #ced4da;
-    border-left: none;
+/* Shipping Info */
+.shipping-info {
+    background: #e0f2fe;
+    border: 1px solid #bae6fd;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: #0369a1;
 }
 
-.filter-search-btn:hover {
+/* Progress Bar */
+.progress {
+    height: 5px;
     background-color: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
 }
 
-/* Ensure proper alignment of form elements */
-.align-items-end .form-label {
-    margin-bottom: 0.5rem;
-}
-
-/* Make buttons equal width */
-.flex-fill {
-    flex: 1;
+.progress-bar {
+    background-color: var(--success-color);
+    transition: width 0.3s ease;
 }

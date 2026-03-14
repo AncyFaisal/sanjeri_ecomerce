@@ -659,22 +659,29 @@
 
                     <div class="checkout-step-body">
                         <div class="payment-options">
-                            <!-- Cash on Delivery -->
-                            <div class="payment-option-card {% if not payment_required %}selected{% endif %}" id="codOption">
-                                <div class="form-check mb-0">
-                                    <input class="form-check-input" type="radio" name="payment_method" id="payment_cod"
-                                        value="cod" {% if not payment_required %}checked{% endif %}>
-                                    <label class="form-check-label w-100" for="payment_cod">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <strong class="d-block mb-1">Cash on Delivery</strong>
-                                                <p class="text-gray-600 mb-0 small">Pay when you receive your order</p>
-                                            </div>
-                                            <i class="fas fa-money-bill-wave payment-icon"></i>
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
+                           <!-- Cash on Delivery -->
+<div class="payment-option-card {% if not payment_required %}selected{% endif %}" id="codOption">
+    <div class="form-check mb-0">
+        <input class="form-check-input" type="radio" name="payment_method" 
+               id="payment_cod" value="cod" 
+               {% if not payment_required %}checked{% endif %}
+               {% if cod_disabled %}disabled{% endif %}>
+        <label class="form-check-label w-100" for="payment_cod">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong class="d-block mb-1">Cash on Delivery</strong>
+                    <p class="text-gray-600 mb-0 small">Pay when you receive your order</p>
+                    {% if cod_disabled %}
+                        <small class="text-danger d-block mt-1">
+                            <i class="fas fa-exclamation-circle me-1"></i>Not available for orders above ₹1000
+                        </small>
+                    {% endif %}
+                </div>
+                <i class="fas fa-money-bill-wave payment-icon"></i>
+            </div>
+        </label>
+    </div>
+</div>
 
                             <!-- Wallet Payment -->
                             <div class="payment-option-card" id="walletOption">
@@ -970,7 +977,8 @@
                             <div class="shipping-info alert alert-info py-2 mb-3">
                                 <div class="d-flex align-items-center">
                                     <i class="fas fa-truck me-2"></i>
-                                    <span>Add ₹{{ 500|sub:subtotal|floatformat:0 }} more for FREE shipping!</span>
+                                    
+                                    <span>Free Shipping on orders above ₹500.Add ₹{{ 500|sub:subtotal|floatformat:0 }} more for FREE shipping!</span>
                                 </div>
                                 <div class="progress mt-2" style="height: 5px;">
                                     <div class="progress-bar bg-success" role="progressbar"
@@ -1128,7 +1136,8 @@
                 addAddress: '{% url "user_add_address" %}',
                 orderList: '{% url "order_list" %}',
                 paymentFailed: '{% url "payment_failed" 0 %}'.replace('0', 'ORDER_ID')
-            }
+            },
+            totalAmount: parseFloat('{{ total_amount|floatformat:2 }}'.replace(/,/g, ''))
         };
 
         // ==================== DOM ELEMENTS ====================
@@ -1143,8 +1152,51 @@
             removeCouponBtn: document.querySelector('.remove-coupon-btn'),
             couponChips: document.querySelectorAll('.coupon-chip'),
             saveAddressBtn: document.getElementById('saveAddressBtn'),
-            addAddressForm: document.getElementById('addAddressForm')
+            addAddressForm: document.getElementById('addAddressForm'),
+            placeOrderBtn: document.getElementById('placeOrderBtn')
         };
+
+        // ==================== DISABLE COD FOR HIGH VALUE ORDERS ====================
+        function setupCODRestriction() {
+            const codRadio = document.querySelector('input[name="payment_method"][value="cod"]');
+            
+            if (config.totalAmount > 1000 && codRadio) {
+                codRadio.disabled = true;
+                
+                // Find the parent payment-option-card and add styling
+                const codCard = codRadio.closest('.payment-option-card');
+                if (codCard) {
+                    codCard.classList.add('disabled-option', 'opacity-50');
+                    codCard.style.cursor = 'not-allowed';
+                    codCard.style.backgroundColor = '#f8f9fa';
+                }
+                
+                // Remove any existing message first
+                const existingMessage = codRadio.closest('.payment-option-card')?.querySelector('.cod-restriction-message');
+                if (existingMessage) existingMessage.remove();
+                
+                // Add a message next to COD option
+                const message = document.createElement('small');
+                message.className = 'cod-restriction-message text-danger d-block mt-1 fw-semibold';
+                message.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>Not available for orders above ₹1000';
+                
+                // Find where to append the message
+                const label = codRadio.closest('label');
+                if (label) {
+                    label.appendChild(message);
+                } else {
+                    const parent = codRadio.closest('.payment-option-card')?.querySelector('.d-flex');
+                    if (parent) {
+                        parent.appendChild(message);
+                    } else {
+                        codRadio.parentElement.appendChild(message);
+                    }
+                }
+            }
+        }
+
+        // Call the setup function
+        setupCODRestriction();
 
         // ==================== UTILITY FUNCTIONS ====================
         const utils = {
@@ -1157,21 +1209,38 @@
                 };
 
                 const typeConfig = types[type] || types.info;
+                
+                // Remove any existing notifications
+                const existingNotifications = document.querySelectorAll('.checkout-notification');
+                existingNotifications.forEach(notification => notification.remove());
+                
                 const notification = document.createElement('div');
-                notification.className = `alert ${typeConfig.class} alert-dismissible fade show position-fixed`;
+                notification.className = `checkout-notification alert ${typeConfig.class} alert-dismissible fade show position-fixed`;
                 notification.style.cssText = `
                     top: 20px;
                     right: 20px;
                     z-index: 9999;
                     min-width: 300px;
                     max-width: 400px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    border-radius: 8px;
                 `;
                 notification.innerHTML = `
-                    <strong>${typeConfig.icon}</strong> ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <div class="d-flex align-items-center">
+                        <strong class="me-2">${typeConfig.icon}</strong>
+                        <span>${message}</span>
+                        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                    </div>
                 `;
                 document.body.appendChild(notification);
-                setTimeout(() => notification.remove(), 5000);
+                
+                // Auto dismiss after 5 seconds
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.classList.remove('show');
+                        setTimeout(() => notification.remove(), 300);
+                    }
+                }, 5000);
             },
 
             showLoading: function (show = true) {
@@ -1185,13 +1254,13 @@
             validateForm: function () {
                 const selectedAddress = document.querySelector('input[name="address_id"]:checked');
                 if (!selectedAddress) {
-                    utils.showNotification('Please select a delivery address', 'warning');
+                    this.showNotification('Please select a delivery address', 'warning');
                     return false;
                 }
 
                 const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
                 if (!selectedPayment) {
-                    utils.showNotification('Please select a payment method', 'warning');
+                    this.showNotification('Please select a payment method', 'warning');
                     return false;
                 }
 
@@ -1199,101 +1268,139 @@
                     addressId: selectedAddress.value,
                     paymentMethod: selectedPayment.value
                 };
+            },
+
+            resetPlaceOrderButton: function() {
+                if (elements.placeOrderBtn) {
+                    elements.placeOrderBtn.disabled = false;
+                    elements.placeOrderBtn.innerHTML = '<i class="fas fa-shopping-bag me-2"></i>Place Order';
+                }
             }
         };
 
         // ==================== CHECKOUT HANDLER ====================
-       // ==================== CHECKOUT HANDLER ====================
-const checkoutHandler = {
-    isSubmitting: false,
-    submissionToken: null,
-    
-    async submitForm(e) {
-        e.preventDefault();
-        console.log("=== CHECKOUT FORM SUBMISSION ===");
+        const checkoutHandler = {
+            isSubmitting: false,
+            submissionToken: null,
+            
+            async submitForm(e) {
+                e.preventDefault();
+                console.log("=== CHECKOUT FORM SUBMISSION ===");
 
-        if (this.isSubmitting) {
-            console.log("⚠️ Form already submitting, preventing duplicate");
-            utils.showNotification('Your order is being processed. Please wait...', 'warning');
-            return false;
-        }
-        
-        this.submissionToken = 'order_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        document.getElementById('checkoutToken').value = this.submissionToken;
-        
-        this.isSubmitting = true;
-
-        const validation = utils.validateForm();
-        if (!validation) {
-            this.isSubmitting = false;
-            return;
-        }
-
-        utils.showLoading(true);
-
-        try {
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-            const formData = new FormData(elements.checkoutForm);
-            formData.append('checkout_token', this.submissionToken);
-
-            const response = await fetch(config.urls.placeOrder, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': csrfToken
-                },
-                body: new URLSearchParams(formData).toString()
-            });
-
-            // Check if response is JSON
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                // Not JSON - likely an HTML error page
-                const html = await response.text();
-                console.error("Received HTML instead of JSON:", html.substring(0, 500));
+                // Get payment method
+                const paymentMethod = document.querySelector('input[name="payment_method"]:checked')?.value;
                 
-                // Check if it's a login page
-                if (html.includes('login') || response.url.includes('login')) {
-                    utils.showNotification('Your session has expired. Please login again.', 'error');
-                    setTimeout(() => {
-                        window.location.href = '/login/?next=/checkout/';
-                    }, 2000);
-                } else {
-                    utils.showNotification('Server error occurred. Please try again.', 'error');
+                // Validate COD restriction
+                if (paymentMethod === 'cod' && config.totalAmount > 1000) {
+                    utils.showNotification('Cash on Delivery is not available for orders above ₹1000', 'error');
+                    this.isSubmitting = false;
+                    utils.resetPlaceOrderButton();
+                    return false;
+                }
+
+                // Check for duplicate submission
+                if (this.isSubmitting) {
+                    console.log("⚠️ Form already submitting, preventing duplicate");
+                    utils.showNotification('Your order is being processed. Please wait...', 'warning');
+                    return false;
                 }
                 
-                this.isSubmitting = false;
-                utils.showLoading(false);
-                return;
-            }
+                // Generate submission token
+                this.submissionToken = 'order_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                document.getElementById('checkoutToken').value = this.submissionToken;
+                
+                this.isSubmitting = true;
 
-            const responseData = await response.json();
-            console.log("Order Response:", responseData);
-
-            if (responseData.success) {
-                if (responseData.payment_required) {
-                    console.log("Opening Razorpay for online payment...");
-                    // Reset submitting flag after a delay
-                    setTimeout(() => { this.isSubmitting = false; }, 1000);
-                    paymentHandler.initiate(responseData);
-                } else {
-                    console.log("Redirecting to success page:", responseData.redirect_url);
-                    window.location.href = responseData.redirect_url;
+                // Disable place order button
+                if (elements.placeOrderBtn) {
+                    elements.placeOrderBtn.disabled = true;
+                    elements.placeOrderBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
                 }
-            } else {
-                this.isSubmitting = false;
-                throw new Error(responseData.message || 'Order creation failed');
+
+                // Validate form
+                const validation = utils.validateForm();
+                if (!validation) {
+                    this.isSubmitting = false;
+                    utils.resetPlaceOrderButton();
+                    return;
+                }
+
+                utils.showLoading(true);
+
+                try {
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    const formData = new FormData(elements.checkoutForm);
+                    formData.append('checkout_token', this.submissionToken);
+
+                    const response = await fetch(config.urls.placeOrder, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: new URLSearchParams(formData).toString()
+                    });
+
+                    // Check if response is JSON
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        // Not JSON - likely an HTML error page
+                        const html = await response.text();
+                        console.error("Received HTML instead of JSON:", html.substring(0, 500));
+                        
+                        if (html.includes('login') || response.url.includes('login')) {
+                            utils.showNotification('Your session has expired. Please login again.', 'error');
+                            setTimeout(() => {
+                                window.location.href = '/login/?next=/checkout/';
+                            }, 2000);
+                        } else {
+                            utils.showNotification('Server error occurred. Please try again.', 'error');
+                        }
+                        
+                        this.isSubmitting = false;
+                        utils.resetPlaceOrderButton();
+                        utils.showLoading(false);
+                        return;
+                    }
+
+                    const responseData = await response.json();
+                    console.log("Order Response:", responseData);
+
+                    if (responseData.success) {
+                        // For COD orders, redirect directly to success page
+                        if (paymentMethod === 'cod') {
+                            console.log("COD order successful, redirecting...");
+                            window.location.href = responseData.redirect_url;
+                        }
+                        // For online/mixed payments, open Razorpay
+                        else if (responseData.payment_required) {
+                            console.log("Opening Razorpay for online payment...");
+                            // Reset submitting flag after a delay
+                            setTimeout(() => { 
+                                this.isSubmitting = false; 
+                            }, 1000);
+                            paymentHandler.initiate(responseData);
+                        } else {
+                            console.log("Redirecting to success page:", responseData.redirect_url);
+                            window.location.href = responseData.redirect_url;
+                        }
+                    } else {
+                        // Show error message in notification box
+                        utils.showNotification(responseData.message || 'Order creation failed', 'error');
+                        this.isSubmitting = false;
+                        utils.resetPlaceOrderButton();
+                    }
+                } catch (error) {
+                    console.error("Checkout Error:", error);
+                    utils.showNotification(error.message || 'An unexpected error occurred', 'error');
+                    this.isSubmitting = false;
+                    utils.resetPlaceOrderButton();
+                } finally {
+                    utils.showLoading(false);
+                }
             }
-        } catch (error) {
-            console.error("Checkout Error:", error);
-            utils.showNotification(error.message, 'error');
-            this.isSubmitting = false;
-        } finally {
-            utils.showLoading(false);
-        }
-    }
-};
+        };
 
         // ==================== RAZORPAY PAYMENT HANDLER ====================
         const paymentHandler = {
@@ -1320,7 +1427,7 @@ const checkoutHandler = {
                             const paymentId = response.razorpay_payment_id || 'test_' + Date.now();
                             const orderId = response.razorpay_order_id || paymentData.razorpay_order_id;
 
-                            const verifyResponse = await fetch('{% url "verify_payment" %}', {
+                            const verifyResponse = await fetch(config.urls.verifyPayment, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -1362,6 +1469,8 @@ const checkoutHandler = {
                             }
                         } finally {
                             utils.showLoading(false);
+                            checkoutHandler.isSubmitting = false;
+                            utils.resetPlaceOrderButton();
                         }
                     },
 
@@ -1377,6 +1486,8 @@ const checkoutHandler = {
                         ondismiss: function () {
                             console.log("Payment modal closed by user");
                             utils.showNotification('Payment cancelled', 'warning');
+                            checkoutHandler.isSubmitting = false;
+                            utils.resetPlaceOrderButton();
                         }
                     }
                 };
@@ -1391,6 +1502,8 @@ const checkoutHandler = {
                     rzp.on('payment.failed', function (response) {
                         console.error("❌ Payment failed:", response);
                         utils.showNotification('Payment failed', 'error');
+                        checkoutHandler.isSubmitting = false;
+                        utils.resetPlaceOrderButton();
                         setTimeout(() => {
                             window.location.href = `/payment/failed/${paymentData.order_id}/`;
                         }, 2000);
@@ -1400,6 +1513,8 @@ const checkoutHandler = {
                 } catch (error) {
                     console.error("Failed to open Razorpay:", error);
                     utils.showNotification('Payment gateway error', 'error');
+                    checkoutHandler.isSubmitting = false;
+                    utils.resetPlaceOrderButton();
                 }
             }
         };
@@ -1431,17 +1546,20 @@ const checkoutHandler = {
                         if (elements.couponMessage) {
                             elements.couponMessage.innerHTML = '<div class="text-success">Coupon applied successfully!</div>';
                         }
+                        utils.showNotification('Coupon applied successfully!', 'success');
                         setTimeout(() => window.location.reload(), 1000);
                     } else {
                         if (elements.couponMessage) {
                             elements.couponMessage.innerHTML = `<div class="text-danger">${data.message}</div>`;
                         }
+                        utils.showNotification(data.message, 'error');
                     }
                 } catch (error) {
                     console.error("Coupon Error:", error);
                     if (elements.couponMessage) {
                         elements.couponMessage.innerHTML = '<div class="text-danger">Error applying coupon</div>';
                     }
+                    utils.showNotification('Error applying coupon', 'error');
                 }
             },
 
@@ -1480,7 +1598,10 @@ const checkoutHandler = {
                     const response = await fetch(config.urls.addAddress, {
                         method: 'POST',
                         body: formData,
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        headers: { 
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': config.csrfToken
+                        }
                     });
 
                     const data = await response.json();
@@ -1488,7 +1609,8 @@ const checkoutHandler = {
                     if (data.success) {
                         const modal = bootstrap.Modal.getInstance(document.getElementById('addAddressModal'));
                         if (modal) modal.hide();
-                        window.location.reload();
+                        utils.showNotification('Address added successfully!', 'success');
+                        setTimeout(() => window.location.reload(), 1000);
                     } else {
                         utils.showNotification('Error saving address: ' + data.message, 'error');
                     }
@@ -1501,10 +1623,12 @@ const checkoutHandler = {
 
         // ==================== EVENT LISTENERS ====================
         function setupEventListeners() {
+            // Form submission
             if (elements.checkoutForm) {
                 elements.checkoutForm.addEventListener('submit', (e) => checkoutHandler.submitForm(e));
             }
 
+            // Address card selection
             document.querySelectorAll('.address-card').forEach(card => {
                 card.addEventListener('click', function () {
                     const radio = this.querySelector('input[type="radio"]');
@@ -1516,10 +1640,11 @@ const checkoutHandler = {
                 });
             });
 
+            // Payment option selection
             document.querySelectorAll('.payment-option-card').forEach(card => {
                 card.addEventListener('click', function () {
                     const radio = this.querySelector('input[type="radio"]');
-                    if (radio) {
+                    if (radio && !radio.disabled) {
                         radio.checked = true;
                         document.querySelectorAll('.payment-option-card').forEach(c => c.classList.remove('selected'));
                         this.classList.add('selected');
@@ -1527,6 +1652,7 @@ const checkoutHandler = {
                 });
             });
 
+            // Coupon apply button
             if (elements.applyCouponBtn && elements.couponCodeInput) {
                 elements.applyCouponBtn.addEventListener('click', () => {
                     couponHandler.apply(elements.couponCodeInput.value);
@@ -1540,6 +1666,7 @@ const checkoutHandler = {
                 });
             }
 
+            // Coupon chips
             elements.couponChips.forEach(chip => {
                 chip.addEventListener('click', function () {
                     const couponCode = this.getAttribute('data-code');
@@ -1550,21 +1677,25 @@ const checkoutHandler = {
                 });
             });
 
+            // Remove coupon button
             if (elements.removeCouponBtn) {
                 elements.removeCouponBtn.addEventListener('click', () => couponHandler.remove());
             }
 
+            // Save address button
             if (elements.saveAddressBtn) {
                 elements.saveAddressBtn.addEventListener('click', () => addressHandler.saveAddress());
             }
 
-            const placeOrderBtn = document.getElementById('placeOrderBtn');
-            if (placeOrderBtn) {
-                placeOrderBtn.addEventListener('click', function() {
-                    setTimeout(() => {
-                        this.disabled = true;
-                        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
-                    }, 100);
+            // Place order button - just for visual feedback, actual submission is handled by form
+            if (elements.placeOrderBtn) {
+                elements.placeOrderBtn.addEventListener('click', function(e) {
+                    // Don't disable here - let the form submission handle it
+                    // This is just to prevent double clicks from triggering multiple form submissions
+                    if (checkoutHandler.isSubmitting) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
                 });
             }
         }
@@ -1574,11 +1705,6 @@ const checkoutHandler = {
             console.log("Checkout initialized");
             setupEventListeners();
             
-            if (elements.checkoutForm) {
-                elements.checkoutForm.removeEventListener('submit', checkoutHandler.submitForm);
-                elements.checkoutForm.addEventListener('submit', (e) => checkoutHandler.submitForm(e));
-            }
-
             if (!config.csrfToken) {
                 console.warn("CSRF token not found");
             }

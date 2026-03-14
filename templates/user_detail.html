@@ -1,221 +1,302 @@
-<!-- admin---detail of each user---user_detail.html -->
+<!-- templates/user_detail.html -->
 {% extends 'common_admin.html' %}
 {% load static %}
 
-{% block page_title %}User Details - {{ user.get_full_name }}{% endblock %}
+{% block title %}{{ page_title }}{% endblock %}
 
 {% block content %}
 <div class="content-area">
-    <div class="admin-card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h3>User Details</h3>
-            <button class="btn btn-outline-secondary" onclick="window.history.back()">
-                <i class="fas fa-arrow-left"></i> Back to Users
-            </button>
+    <div class="top-nav mb-4">
+        <div class="nav-left">
+            <h2 class="page-title">
+                <i class="fas fa-user me-2"></i>{{ user.get_full_name|default:user.username }}
+            </h2>
         </div>
+        <div class="nav-right">
+            <a href="{% url 'user_list' %}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-arrow-left"></i> Back to Users
+            </a>
+            <a href="{% url 'admin_user_wallet' user.id %}" class="btn btn-outline-primary">
+                <i class="fas fa-wallet"></i> Full Wallet History
+            </a>
+        </div>
+    </div>
+
+    <!-- User Profile Card -->
+    <div class="admin-card mb-4">
         <div class="card-body">
-            <!-- User Profile Header -->
-            <div class="user-profile-header mb-4">
-                <div class="d-flex align-items-center">
-                    <div class="user-avatar-icon me-4">
-                        <i class="fas fa-user"></i>
-                    </div>
-                    <div class="user-info">
-                        <h3>{{ user.get_full_name }}</h3>
-                        <p class="mb-1"><strong>Email:</strong> {{ user.email }}</p>
-                        {% if user.phone %}
-                        <p class="mb-1"><strong>Phone:</strong> {{ user.phone }}</p>
-                        {% endif %}
-                        <p class="mb-1">
-                            <strong>Status:</strong>
-                            <span
-                                class="status-badge {% if user.status == 'active' %}status-active{% else %}status-blocked{% endif %}">
-                                {{ user.status|title }}
-                            </span>
-                        </p>
-                    </div>
-                </div>
-            </div>
-
             <div class="row">
-                <!-- Basic Information -->
-                <div class="col-md-6">
-                    <div class="admin-card">
-                        <div class="card-header">
-                            <h5>Basic Information</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row mb-3">
-                                <div class="col-6">
-                                    <strong>First Name:</strong>
-                                    <p>{{ user.first_name }}</p>
-                                </div>
-                                <div class="col-6">
-                                    <strong>Last Name:</strong>
-                                    <p>{{ user.last_name }}</p>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-6">
-                                    <strong>Username:</strong>
-                                    <p>{{ user.username }}</p>
-                                </div>
-                                <div class="col-6">
-                                    <strong>Gender:</strong>
-                                    <p>{{ user.gender|title|default:"Not specified" }}</p>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-6">
-                                    <strong>Date Joined:</strong>
-                                    <p>{{ user.date_joined|date:"M d, Y" }}</p>
-                                </div>
-                                <div class="col-6">
-                                    <strong>Wallet Balance:</strong>
-                                    <p>₹{{ user.wallet_balance }}</p>
-                                </div>
-                            </div>
-                            {% if user.address %}
-                            <div class="row">
-                                <div class="col-12">
-                                    <strong>Address:</strong>
-                                    <p>{{ user.address }}</p>
-                                </div>
-                            </div>
-                            {% endif %}
-                        </div>
+                <div class="col-md-3 text-center">
+                    {% if user.profile_image %}
+                    <img src="{{ user.profile_image.url }}" 
+                         class="rounded-circle img-thumbnail" 
+                         style="width: 150px; height: 150px; object-fit: cover;"
+                         alt="{{ user.username }}">
+                    {% else %}
+                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto"
+                         style="width: 150px; height: 150px; font-size: 48px;">
+                        {{ user.username|first|upper }}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Block/Unblock Button (RESTORED) -->
+                    <div class="mt-3">
+                        {% if user.status == 'active' %}
+                        <button class="btn btn-warning" onclick="toggleUserStatus({{ user.id }})">
+                            <i class="fas fa-ban me-1"></i> Block User
+                        </button>
+                        {% else %}
+                        <button class="btn btn-success" onclick="toggleUserStatus({{ user.id }})">
+                            <i class="fas fa-check-circle me-1"></i> Unblock User
+                        </button>
+                        {% endif %}
                     </div>
                 </div>
-
-                <!-- User Statistics -->
-                <div class="col-md-6">
-                    <div class="admin-card">
-                        <div class="card-header">
-                            <h5>User Statistics</h5>
+                
+                <div class="col-md-9">
+                    <h3>{{ user.get_full_name|default:user.username }}</h3>
+                    <p class="text-muted">@{{ user.username }}</p>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <p><strong>Email:</strong> {{ user.email }}</p>
+                            <p><strong>Phone:</strong> {{ user.phone|default:"Not provided" }}</p>
+                            <p><strong>Gender:</strong> {{ user.get_gender_display|default:"Not specified" }}</p>
                         </div>
-                        <div class="card-body">
-                            <div class="user-stats">
-                                <div class="stat-card">
-                                    <div class="stat-value">{{ total_orders }}</div>
-                                    <div class="stat-label">Total Orders</div>
-                                </div>
-                                <div class="stat-card">
-                                    <div class="stat-value">₹{{ total_amount_spent }}</div>
-                                    <div class="stat-label">Total Spent</div>
-                                </div>
-                                <div class="stat-card">
-                                    <div class="stat-value">
-                                        {% if total_orders > 0 %}
-                                        ₹{{ avg_order_amount }}
-                                        {% else %}
-                                        0
-                                        {% endif %}
-                                    </div>
-                                    <div class="stat-label">Avg. Order</div>
-                                </div>
-                                <div class="stat-card">
-                                    <div class="stat-value">
-                                        {% if last_order %}
-                                        {{ last_order.created_at|date:"M d" }}
-                                        {% else %}
-                                        -
-                                        {% endif %}
-                                    </div>
-                                    <div class="stat-label">Last Order</div>
-                                </div>
-                            </div>
+                        <div class="col-md-6">
+                            <p><strong>Status:</strong> 
+                                <span class="badge {% if user.status == 'active' %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ user.get_status_display|default:user.status }}
+                                </span>
+                            </p>
+                            <p><strong>Date Joined:</strong> {{ user.date_joined|date:"d M Y" }}</p>
+                            <p><strong>Wallet Balance:</strong> 
+                                <span class="fw-bold text-primary">₹{{ wallet.balance|default:0|floatformat:2 }}</span>
+                            </p>
                         </div>
                     </div>
+                    
+                    {% if user.address %}
+                    <div class="mt-3">
+                        <strong>Address:</strong>
+                        <p>{{ user.address }}</p>
+                    </div>
+                    {% endif %}
                 </div>
-                <!-- Action Buttons -->
-                <!-- <div class="row mt-4">
-                    <div class="col-12">
-                        <div class="d-flex gap-2 justify-content-end">
-                            {% if user.status == 'active' %}
-                            <button class="btn btn-warning"
-                                onclick="confirmBlockUser({{ user.id }}, '{{ user.get_full_name|escapejs }}')">
-                                <i class="fas fa-ban"></i> Block User
-                            </button>
-                            {% else %}
-                            <button class="btn btn-success"
-                                onclick="confirmUnblockUser({{ user.id }}, '{{ user.get_full_name|escapejs }}')">
-                                <i class="fas fa-check"></i> Unblock User
-                            </button>
-                            {% endif %}
-                            <button class="btn btn-danger"
-                                onclick="confirmDeleteUser({{ user.id }}, '{{ user.get_full_name|escapejs }}')">
-                                <i class="fas fa-trash"></i> Delete User
-                            </button>
-                        </div>
-                    </div>
-                </div> -->
-                <!-- Block/Unblock Form -->
-               <div class="d-flex gap-2 justify-content-end">
-    {% if user.status == 'active' %}
-    <form method="post" action="{% url 'toggle_user_status' user.id %}" style="display: inline;">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-warning"
-                onclick="return confirm('Block {{ user.get_full_name|escapejs }}?')">
-            <i class="fas fa-ban"></i> Block User
-        </button>
-    </form>
-    {% else %}
-    <form method="post" action="{% url 'toggle_user_status' user.id %}" style="display: inline;">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-success"
-                onclick="return confirm('Unblock {{ user.get_full_name|escapejs }}?')">
-            <i class="fas fa-check"></i> Unblock User
-        </button>
-    </form>
-    {% endif %}
-    
-    <!-- <form method="post" action="{% url 'delete_user' user.id %}" style="display: inline;">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger"
-                onclick="return confirm('Delete {{ user.get_full_name|escapejs }}? This cannot be undone.')">
-            <i class="fas fa-trash"></i> Delete User
-        </button>
-    </form> -->
-</div>
             </div>
         </div>
     </div>
 
-    <style>
-        .user-avatar-lg {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 4px solid #fff;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="admin-card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Orders</h5>
+                    <h3>{{ total_orders }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="admin-card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Spent</h5>
+                    <h3>₹{{ total_amount_spent|floatformat:2 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="admin-card">
+                <div class="card-body">
+                    <h5 class="card-title">Avg Order Value</h5>
+                    <h3>₹{{ avg_order_amount|floatformat:2 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="admin-card">
+                <div class="card-body">
+                    <h5 class="card-title">Wallet Balance</h5>
+                    <h3 class="text-primary">₹{{ wallet.balance|default:0|floatformat:2 }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        .user-stats {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-        }
+    <!-- Recent Wallet Transactions Section -->
+    <div class="admin-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-history me-2"></i>Recent Wallet Transactions
+            </h5>
+            <a href="{% url 'admin_user_wallet' user.id %}" class="btn btn-sm btn-primary">
+                View All Transactions <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+        </div>
+        <div class="card-body">
+            {% if transactions %}
+            <div class="table-responsive">
+                <table class="table styled-table">
+                    <thead>
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Source</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'admin_wallet_transaction_detail' transaction.id %}" 
+                                   class="text-primary fw-bold text-decoration-none">
+                                    #{{ transaction.id }}
+                                </a>
+                            </td>
+                            <td>{{ transaction.created_at|date:"d M Y" }}<br>
+                                <small class="text-muted">{{ transaction.created_at|time:"h:i A" }}</small>
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if transaction.transaction_type == 'REFUND' %}bg-success
+                                    {% elif transaction.transaction_type == 'DEPOSIT' %}bg-primary
+                                    {% elif transaction.transaction_type == 'WITHDRAWAL' %}bg-danger
+                                    {% else %}bg-info{% endif %}">
+                                    {{ transaction.get_transaction_type_display }}
+                                </span>
+                            </td>
+                            <td class="fw-bold 
+                                {% if transaction.transaction_type == 'REFUND' or transaction.transaction_type == 'DEPOSIT' %}text-success
+                                {% else %}text-danger{% endif %}">
+                                {{ transaction.display_amount }}
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if transaction.status == 'COMPLETED' %}bg-success
+                                    {% elif transaction.status == 'PENDING' %}bg-warning text-dark
+                                    {% elif transaction.status == 'CANCELLED' %}bg-secondary
+                                    {% elif transaction.status == 'FAILED' %}bg-danger
+                                    {% endif %}">
+                                    {{ transaction.get_status_display }}
+                                </span>
+                            </td>
+                            <!-- In the user_detail.html transactions table, update the Source column -->
+<td>
+    {% if transaction.order %}
+        {% if transaction.transaction_type == 'REFUND' %}
+            {% if transaction.order.status == 'cancelled' %}
+            <span class="badge bg-danger">Order Cancellation</span>
+            {% elif transaction.order.status == 'returned' or transaction.order.status == 'return_requested' %}
+            <span class="badge bg-warning">Product Return</span>
+            {% else %}
+            <span class="badge bg-secondary">Order Refund</span>
+            {% endif %}
+        {% elif transaction.transaction_type == 'WITHDRAWAL' %}
+            <span class="badge bg-primary">Order Payment</span>
+        {% endif %}
+    {% else %}
+        {% if 'referral' in transaction.reason|lower or 'bonus' in transaction.reason|lower %}
+        <span class="badge bg-success">Referral Bonus</span>
+        {% elif 'admin' in transaction.reason|lower or 'adjustment' in transaction.reason|lower %}
+        <span class="badge bg-info">Admin Adjustment</span>
+        {% elif transaction.transaction_type == 'DEPOSIT' %}
+        <span class="badge bg-secondary">Wallet Recharge</span>
+        {% else %}
+        <span class="badge bg-secondary">Other</span>
+        {% endif %}
+    {% endif %}
+</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="{% url 'admin_wallet_transaction_detail' transaction.id %}" 
+                                       class="action-btn view" title="View Transaction">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if transaction.order %}
+                                    <a href="{% url 'admin_order_detail' transaction.order.id %}" 
+                                       class="action-btn info" title="View Order">
+                                        <i class="fas fa-shopping-cart"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No wallet transactions found for this user.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
 
-        .stat-card {
-            background: var(--light-bg, #f8f9fa);
-            border-radius: 8px;
-            padding: 1.5rem;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            color: var(--primary-color, #2c3e50);
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
-            color: var(--text-light, #7f8c8d);
-        }
-    </style>
-
+<!-- JavaScript for toggle functionality (RESTORED) -->
+<script>
+function toggleUserStatus(userId) {
+    if (!confirm('Are you sure you want to change this user\'s status?')) {
+        return;
+    }
     
-    {% endblock %}
+    fetch(`/users/${userId}/toggle-status/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error processing request');
+    });
+}
+</script>
+
+<style>
+.action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+    font-size: 14px;
+    text-decoration: none;
+}
+
+.action-btn.view {
+    background-color: #3498db;
+}
+
+.action-btn.info {
+    background-color: #17a2b8;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    color: white;
+}
+</style>
+{% endblock %}

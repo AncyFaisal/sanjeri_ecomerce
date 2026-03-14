@@ -47,7 +47,7 @@ from .views.wallet_views import (
     
     
 )
-from .views.admin_wallet_views import admin_pending_refunds, admin_approve_refund, admin_reject_refund
+from .views.admin_wallet_views import admin_pending_refunds, admin_approve_refund, admin_reject_refund,admin_wallet_transactions, admin_wallet_transaction_detail, admin_user_wallet
 from sanjeri_app.views.admin_offer_views import (
     product_offer_list, product_offer_create, product_offer_edit,
     product_offer_delete, product_offer_toggle_status,
@@ -60,7 +60,14 @@ from django.views.generic.base import RedirectView
 urlpatterns = [
     # Admin routes
     path('dashboard/', admin_dashboard, name='admin_dashboard'),
+    # Add this to your urlpatterns in urls.py
+    path('dashboard/chart-data/', dashboard_chart_data, name='dashboard_chart_data'),
 
+    # Add these to your urlpatterns in urls.py
+    path('ledger-book/', ledger_book_view, name='ledger_book'),
+    path('ledger-book/download/', generate_ledger_book, name='download_ledger_book'),
+    path('ledger-book/preview/', ledger_book_preview, name='ledger_book_preview'),
+    
     # User management
     path('login/', RedirectView.as_view(url='/user-login/', permanent=True), name='login'),
     path('user-list/', user_list, name='user_list'),
@@ -202,10 +209,12 @@ path('order-management/item/<int:item_id>/reject-return/', reject_item_return, n
 
 
 # Admin Wallet Management
+path('wallet/transactions/', admin_wallet_transactions, name='admin_wallet_transactions'),
+path('wallet/transaction/<int:transaction_id>/', admin_wallet_transaction_detail, name='admin_wallet_transaction_detail'),
+path('wallet/user/<int:user_id>/', admin_user_wallet, name='admin_user_wallet'),
 path('wallet/pending-refunds/', admin_pending_refunds, name='admin_pending_refunds'),
 path('wallet/refund/<int:refund_id>/approve/', admin_approve_refund, name='admin_approve_refund'),
 path('wallet/refund/<int:refund_id>/reject/', admin_reject_refund, name='admin_reject_refund'),
-
 
 
 # Inventory Management URLs

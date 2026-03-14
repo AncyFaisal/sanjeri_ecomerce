@@ -300,3 +300,22 @@ ___________________
     content: "💎";
     font-style: normal;
 }
+
+/* Add to your existing CSS */
+.disabled-option {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #f8f9fa;
+    border-color: #dee2e6 !important;
+}
+
+.disabled-option:hover {
+    transform: none !important;
+    border-color: #dee2e6 !important;
+    background-color: #f8f9fa !important;
+}
+
+.disabled-option .text-danger {
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+}

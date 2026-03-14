@@ -670,28 +670,40 @@ def place_order(request):
         
         # Case 3: Cash on Delivery
         elif actual_payment_method == 'cod':
-            print("Case 3: Cash on Delivery")
-            order.payment_status = 'pending'
-            order.status = 'confirmed'
-            order.save()
-            
-            # Clear cart
-            cart.items.all().delete()
-            
-            # Clear session data
-            if 'checkout_calculations' in request.session:
-                del request.session['checkout_calculations']
-            if 'applied_coupon' in request.session:
-                del request.session['applied_coupon']
+            if decimal_calculations['total_amount'] <Decimal('1000.00'):            
+                print("Case 3: Cash on Delivery")
+                order.payment_status = 'pending'
+                order.status = 'confirmed'
+                order.save()
+                
+                # Clear cart
+                cart.items.all().delete()
+                
+                # Clear session data
+                if 'checkout_calculations' in request.session:
+                    del request.session['checkout_calculations']
+                if 'applied_coupon' in request.session:
+                    del request.session['applied_coupon']
 
-            return JsonResponse({
-                'success': True,
-                'payment_required': False,
-                'redirect_url': reverse('order_success', args=[order.id]),
-                'order_id': order.id,
-                'order_number': order.order_number
-            })
-        
+                return JsonResponse({
+                    'success': True,
+                    'payment_required': False,
+                    'redirect_url': reverse('order_success', args=[order.id]),
+                    'order_id': order.id,
+                    'order_number': order.order_number
+                })
+            else:
+                # Reject COD for orders above ₹1000
+                print(f"COD not allowed for orders above ₹1000. Amount: {decimal_calculations['total_amount']}")
+                order.delete()  # Delete the order since we can't proceed
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Cash on Delivery is not available for orders above ₹1000. Please choose another payment method.'
+                })
+                # In your checkout_view, add this to context:
+                context['cod_disabled'] = total_amount > 1000
+                context['cod_disabled_message'] = 'Cash on Delivery not available for orders above ₹1000'
+
         else:
             print("Case 4: Default case")
             order.payment_status = 'pending'

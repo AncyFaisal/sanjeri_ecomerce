@@ -1,0 +1,294 @@
+<!-- templates/admin/wallet/transaction_detail.html -->
+{% extends 'common_admin.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    <div class="top-nav mb-4">
+        <div class="nav-left">
+            <h2 class="page-title">
+                <i class="fas fa-receipt me-2"></i>Transaction Details
+            </h2>
+        </div>
+        <div class="nav-right">
+            <a href="{% url 'admin_wallet_transactions' %}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-arrow-left"></i> Back to Transactions
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Transaction Details Card -->
+        <div class="col-lg-8">
+            <div class="admin-card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Transaction Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <label class="text-muted small">Transaction ID</label>
+                            <h5>#{{ transaction.id }}</h5>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <label class="text-muted small">Transaction Date</label>
+                            <h5>{{ transaction.created_at|date:"d M Y, h:i A" }}</h5>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <label class="text-muted small">Transaction Type</label>
+                            <h5>
+                                <span class="badge 
+                                    {% if transaction.transaction_type == 'REFUND' %}bg-success
+                                    {% elif transaction.transaction_type == 'DEPOSIT' %}bg-primary
+                                    {% elif transaction.transaction_type == 'WITHDRAWAL' %}bg-danger
+                                    {% else %}bg-info{% endif %} 
+                                    p-2">
+                                    {{ transaction.get_transaction_type_display }}
+                                </span>
+                            </h5>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <label class="text-muted small">Amount</label>
+                            <h5 class="{% if transaction.transaction_type == 'REFUND' or transaction.transaction_type == 'DEPOSIT' %}text-success{% else %}text-danger{% endif %}">
+                                {{ transaction.display_amount }}
+                            </h5>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <label class="text-muted small">Status</label>
+                            <h5>
+                                <span class="badge 
+                                    {% if transaction.status == 'COMPLETED' %}bg-success
+                                    {% elif transaction.status == 'PENDING' %}bg-warning text-dark
+                                    {% elif transaction.status == 'CANCELLED' %}bg-secondary
+                                    {% elif transaction.status == 'FAILED' %}bg-danger
+                                    {% endif %} 
+                                    p-2">
+                                    {{ transaction.get_status_display }}
+                                </span>
+                            </h5>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <label class="text-muted small">Admin Approved</label>
+                            <h5>
+                                {% if transaction.admin_approved %}
+                                <span class="badge bg-success p-2">
+                                    <i class="fas fa-check-circle me-1"></i>Yes
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary p-2">No</span>
+                                {% endif %}
+                            </h5>
+                        </div>
+                    </div>
+
+                    {% if transaction.reason %}
+                    <div class="mb-4">
+                        <label class="text-muted small">Reason / Description</label>
+                        <div class="bg-light p-3 rounded">
+                            {{ transaction.reason|linebreaks }}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Source of Transaction with Specific Options -->
+                    <div class="mb-3">
+                        <label class="text-muted small fw-bold">Source of Transaction</label>
+                        <div class="bg-light p-4 rounded mt-2">
+                            {% with source=transaction.get_source_display %}
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3">
+                                    {% if source == 'Order Payment' %}
+                                    <span class="badge bg-primary p-3"><i class="fas fa-shopping-cart fa-lg"></i></span>
+                                    {% elif source == 'Order Cancellation' %}
+                                    <span class="badge bg-danger p-3"><i class="fas fa-times-circle fa-lg"></i></span>
+                                    {% elif source == 'Product Return' %}
+                                    <span class="badge bg-warning p-3"><i class="fas fa-undo-alt fa-lg"></i></span>
+                                    {% elif source == 'Admin Adjustment' %}
+                                    <span class="badge bg-info p-3"><i class="fas fa-user-cog fa-lg"></i></span>
+                                    {% elif source == 'Referral Bonus' %}
+                                    <span class="badge bg-success p-3"><i class="fas fa-gift fa-lg"></i></span>
+                                    {% elif source == 'Wallet Recharge' %}
+                                    <span class="badge bg-secondary p-3"><i class="fas fa-wallet fa-lg"></i></span>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <h5 class="mb-1">{{ source }}</h5>
+                                    <p class="text-muted mb-0 small">
+                                        {% if source == 'Order Payment' %}
+                                        Payment made for order
+                                        {% elif source == 'Order Cancellation' %}
+                                        Refund for cancelled order
+                                        {% elif source == 'Product Return' %}
+                                        Refund for returned product
+                                        {% elif source == 'Admin Adjustment' %}
+                                        Manual adjustment by admin
+                                        {% elif source == 'Referral Bonus' %}
+                                        Bonus for referring a friend
+                                        {% elif source == 'Wallet Recharge' %}
+                                        Money added to wallet
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                            {% endwith %}
+
+                            <!-- If transaction is due to returned or cancelled product, show order button -->
+                            {% if transaction.order and transaction.transaction_type == 'REFUND' %}
+                            <div class="mt-3 pt-3 border-top">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-2">Related Order: #{{ transaction.order.order_number }}</h6>
+                                        <p class="mb-1">
+                                            <strong>Order Status:</strong> 
+                                            <span class="badge 
+                                                {% if transaction.order.status == 'delivered' %}bg-success
+                                                {% elif transaction.order.status == 'cancelled' %}bg-danger
+                                                {% elif transaction.order.status == 'returned' %}bg-info
+                                                {% elif transaction.order.status == 'return_requested' %}bg-warning
+                                                {% else %}bg-secondary{% endif %}">
+                                                {{ transaction.order.get_status_display }}
+                                            </span>
+                                        </p>
+                                        {% if transaction.order.status == 'cancelled' %}
+                                        <p class="mb-1 text-danger">
+                                            <i class="fas fa-times-circle me-1"></i>Order Cancelled
+                                        </p>
+                                        {% elif transaction.order.status == 'returned' or transaction.order.status == 'return_requested' %}
+                                        <p class="mb-1 text-info">
+                                            <i class="fas fa-undo-alt me-1"></i>Product Returned
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                    <a href="{% url 'admin_order_detail' transaction.order.id %}" 
+                                       class="btn btn-primary">
+                                        <i class="fas fa-eye me-1"></i>View Order Details
+                                    </a>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if transaction.approved_by %}
+                    <div class="mt-4 pt-3 border-top">
+                        <label class="text-muted small">Approved By</label>
+                        <p class="mb-0">{{ transaction.approved_by.get_full_name|default:transaction.approved_by.username }}</p>
+                        <small class="text-muted">{{ transaction.updated_at|date:"d M Y, h:i A" }}</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- User Details Card -->
+        <div class="col-lg-4">
+            <div class="admin-card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>User Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        {% if user.profile_image %}
+                        <img src="{{ user.profile_image.url }}" 
+                             class="rounded-circle mb-3" 
+                             style="width: 100px; height: 100px; object-fit: cover;"
+                             alt="{{ user.username }}">
+                        {% else %}
+                        <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
+                             style="width: 100px; height: 100px; font-size: 36px;">
+                            {{ user.username|first|upper }}
+                        </div>
+                        {% endif %}
+                        <h5>{{ user.get_full_name|default:user.username }}</h5>
+                        <p class="text-muted mb-0">@{{ user.username }}</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="text-muted small">Email</label>
+                        <p class="mb-0">{{ user.email }}</p>
+                    </div>
+
+                    {% if user.phone %}
+                    <div class="mb-3">
+                        <label class="text-muted small">Phone</label>
+                        <p class="mb-0">{{ user.phone }}</p>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="text-muted small">Status</label>
+                        <p class="mb-0">
+                            <span class="badge {% if user.status == 'active' %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ user.get_status_display|default:user.status }}
+                            </span>
+                        </p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="text-muted small">Wallet Balance</label>
+                        <p class="mb-0 fw-bold fs-5 text-primary">
+                            ₹{{ user.wallet.balance|floatformat:2 }}
+                        </p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="text-muted small">Date Joined</label>
+                        <p class="mb-0">{{ user.date_joined|date:"d M Y" }}</p>
+                    </div>
+
+                    <div class="mt-4">
+                        <a href="{% url 'admin_user_wallet' user.id %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-wallet me-2"></i>View User's Wallet
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Razorpay Details (if applicable) -->
+            {% if transaction.razorpay_order_id or transaction.razorpay_payment_id %}
+            <div class="admin-card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-credit-card me-2"></i>Payment Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if transaction.razorpay_order_id %}
+                    <div class="mb-3">
+                        <label class="text-muted small">Razorpay Order ID</label>
+                        <p class="mb-0 text-break">{{ transaction.razorpay_order_id }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if transaction.razorpay_payment_id %}
+                    <div class="mb-3">
+                        <label class="text-muted small">Razorpay Payment ID</label>
+                        <p class="mb-0 text-break">{{ transaction.razorpay_payment_id }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.badge {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+</style>
+{% endblock %}
