@@ -12,6 +12,7 @@ import json
 from datetime import timedelta
 from django.utils.dateparse import parse_datetime
 import pytz
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 
 # Get user's timezone (assuming IST)
@@ -31,6 +32,10 @@ def admin_coupon_list(request):
     search = request.GET.get('search', '')
     show_deleted = request.GET.get('show_deleted', 'false') == 'true'
     
+    # Pagination parameter
+    page = request.GET.get('page', 1)
+    page_size = request.GET.get('page_size', 10) 
+
     if show_deleted:
         coupons = Coupon.objects.deleted().order_by('-deleted_at')
     else:
@@ -48,15 +53,46 @@ def admin_coupon_list(request):
     active_count = Coupon.objects.filter(is_deleted=False).count()
     deleted_count = Coupon.objects.filter(is_deleted=True).count()
     
-
+     # Apply pagination
+    paginator = Paginator(coupons, page_size)
+    
+    try:
+        paginated_coupons = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page
+        paginated_coupons = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range, deliver last page
+        paginated_coupons = paginator.page(paginator.num_pages)
+    
+    # Build query string for pagination links (preserve filters)
+    query_params = []
+    if status:
+        query_params.append(f'status={status}')
+    if discount_type:
+        query_params.append(f'discount_type={discount_type}')
+    if search:
+        query_params.append(f'search={search}')
+    if show_deleted:
+        query_params.append('show_deleted=true')
+    if page_size != 10:
+        query_params.append(f'page_size={page_size}')
+    
+    query_string = '&'.join(query_params)
+    if query_string:
+        query_string = '&' + query_string
+        
     context = {
-        'coupons': coupons,
+        'coupons': paginated_coupons,
         'status_filter': status,
         'discount_type_filter': discount_type,
         'search_query': search,
         'show_deleted': show_deleted,
         'active_count': active_count,
-        'deleted_count': deleted_count,  
+        'deleted_count': deleted_count, 
+        'page_size': page_size,
+        'query_string': query_string,
+        'paginator': paginator, 
     }
     return render(request, 'admin/coupon/list.html', context)
 

@@ -369,8 +369,8 @@ def download_invoice(request, order_id):
             item.product_name,
             item.variant_details,
             str(item.quantity),
-            f"₹{item.unit_price}",
-            f"₹{item.total_price}"
+            f"Rs.{item.unit_price}",  # Changed from ₹ to Rs.
+            f"Rs.{item.total_price}"   # Changed from ₹ to Rs.
         ])
     
     # Combine header and data
@@ -390,19 +390,19 @@ def download_invoice(request, order_id):
     
     # Order summary
     summary_data = [
-        ['Subtotal:', f"₹{order.subtotal}"],
-        ['Shipping:', f"₹{order.shipping_charge}" if order.shipping_charge > 0 else 'FREE'],
-        ['Tax (18%):', f"₹{order.tax_amount:.2f}"],
+        ['Subtotal:', f"Rs.{order.subtotal}"],  # Changed from ₹ to Rs.
+        ['Shipping:', f"Rs.{order.shipping_charge}" if order.shipping_charge > 0 else 'FREE'],
+        ['Tax (18%):', f"Rs.{order.tax_amount:.2f}"],  # Changed from ₹ to Rs.
     ]
     
     if order.discount_amount > 0:
-        summary_data.append(['Discount:', f"-₹{order.discount_amount}"])
+        summary_data.append(['Discount:', f"-Rs.{order.discount_amount}"])  # Changed from ₹ to Rs.
     
     # Add wallet payment if used
     if hasattr(order, 'wallet_amount_used') and order.wallet_amount_used > 0:
-        summary_data.append(['Wallet Payment:', f"-₹{order.wallet_amount_used:.2f}"])
+        summary_data.append(['Wallet Payment:', f"-Rs.{order.wallet_amount_used:.2f}"])  # Changed from ₹ to Rs.
     
-    summary_data.append(['TOTAL:', f"₹{order.total_amount:.2f}"])
+    summary_data.append(['TOTAL:', f"Rs.{order.total_amount:.2f}"])  # Changed from ₹ to Rs.
     
     summary_table = Table(summary_data, colWidths=[400, 120])
     summary_table.setStyle(TableStyle([
@@ -420,7 +420,7 @@ def download_invoice(request, order_id):
     if order.status in ['cancelled', 'returned'] and wallet_refund:
         refund_info = Paragraph(
             f"<b>REFUND INFORMATION:</b><br/>"
-            f"Refund Amount: ₹{wallet_refund.amount}<br/>"
+            f"Refund Amount: Rs.{wallet_refund.amount}<br/>"  # Changed from ₹ to Rs.
             f"Refund Method: Wallet<br/>"
             f"Refund Date: {wallet_refund.created_at.strftime('%B %d, %Y')}<br/>"
             f"Status: Refunded to customer's wallet",

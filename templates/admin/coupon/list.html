@@ -14,16 +14,6 @@
                 <i class="fas fa-plus-circle"></i> Create New Coupon
             </a>
         </div>
-
-        <div class="nav-right">
-    <!-- <a href="{% url 'coupon_trash' %}" class="btn btn-outline-danger me-2">
-        <i class="fas fa-trash"></i> View Trash ({{ deleted_count }})
-    </a> -->
-    <a href="{% url 'create_coupon' %}" class="btn btn-primary">
-        <i class="fas fa-plus-circle"></i> Create New Coupon
-    </a>
-</div>
-
     </div>
 
     <!-- Tabs for Active/Deleted Coupons -->
@@ -34,14 +24,14 @@
                     <a class="nav-link {% if not show_deleted %}active{% endif %}" 
                        href="{% url 'admin_coupon_list' %}">
                         <i class="fas fa-ticket-alt"></i> Active Coupons
-                        <!-- <span class="badge bg-primary ms-1">{{ coupons.count }}</span> -->
+                        <span class="badge bg-primary ms-1">{{ active_count }}</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {% if show_deleted %}active{% endif %}" 
                        href="?show_deleted=true">
                         <i class="fas fa-trash"></i> Deleted Coupons
-                        <!-- <span class="badge bg-secondary ms-1">{{ deleted_count|default:"0" }}</span> -->
+                        <span class="badge bg-secondary ms-1">{{ deleted_count }}</span>
                     </a>
                 </li>
             </ul>
@@ -98,6 +88,9 @@
                         {% endif %}
                     </div>
                 </div>
+                
+                <!-- Preserve page_size when filtering -->
+                <input type="hidden" name="page_size" value="{{ page_size }}">
             </form>
             
             <!-- Active Filters Badges -->
@@ -108,21 +101,21 @@
                     {% if status_filter %}
                     <span class="badge bg-info">
                         Status: {{ status_filter|title }}
-                        <a href="?{% if discount_type_filter %}discount_type={{ discount_type_filter }}&{% endif %}{% if search_query %}search={{ search_query }}&{% endif %}" class="text-white ms-1" style="text-decoration: none;">×</a>
+                        <a href="?{% if discount_type_filter %}discount_type={{ discount_type_filter }}&{% endif %}{% if search_query %}search={{ search_query }}&{% endif %}{% if show_deleted %}show_deleted=true&{% endif %}page_size={{ page_size }}" class="text-white ms-1" style="text-decoration: none;">×</a>
                     </span>
                     {% endif %}
                     
                     {% if discount_type_filter %}
                     <span class="badge bg-info">
                         Type: {{ discount_type_filter|title }}
-                        <a href="?{% if status_filter %}status={{ status_filter }}&{% endif %}{% if search_query %}search={{ search_query }}&{% endif %}" class="text-white ms-1" style="text-decoration: none;">×</a>
+                        <a href="?{% if status_filter %}status={{ status_filter }}&{% endif %}{% if search_query %}search={{ search_query }}&{% endif %}{% if show_deleted %}show_deleted=true&{% endif %}page_size={{ page_size }}" class="text-white ms-1" style="text-decoration: none;">×</a>
                     </span>
                     {% endif %}
                     
                     {% if search_query %}
                     <span class="badge bg-info">
                         Search: "{{ search_query }}"
-                        <a href="?{% if status_filter %}status={{ status_filter }}&{% endif %}{% if discount_type_filter %}discount_type={{ discount_type_filter }}&{% endif %}" class="text-white ms-1" style="text-decoration: none;">×</a>
+                        <a href="?{% if status_filter %}status={{ status_filter }}&{% endif %}{% if discount_type_filter %}discount_type={{ discount_type_filter }}&{% endif %}{% if show_deleted %}show_deleted=true&{% endif %}page_size={{ page_size }}" class="text-white ms-1" style="text-decoration: none;">×</a>
                     </span>
                     {% endif %}
                 </div>
@@ -213,10 +206,6 @@
                                                 class="action-btn unblock" title="Restore">
                                             <i class="fas fa-undo"></i>
                                         </button>
-                                        <!-- <button onclick="permanentDeleteCoupon({{ coupon.id }}, '{{ coupon.code }}')" 
-                                                class="action-btn delete" title="Permanently Delete">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button> -->
                                     {% else %}
                                         <!-- Active coupons actions -->
                                         <a href="{% url 'toggle_coupon_status' coupon.id %}" 
@@ -237,33 +226,83 @@
                 </table>
             </div>
             
-            <!-- Pagination (optional) -->
-            {% if coupons.has_other_pages %}
-            <nav class="mt-4">
-                <ul class="pagination justify-content-center">
-                    {% if coupons.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ coupons.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if discount_type_filter %}&discount_type={{ discount_type_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">Previous</a>
-                    </li>
-                    {% endif %}
+            <!-- Pagination Section -->
+            {% if coupons.paginator.num_pages > 1 %}
+            <nav class="mt-4" aria-label="Coupon pagination">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <!-- Page size selector -->
+                    <div class="d-flex align-items-center mb-2 mb-sm-0">
+                        <label for="pageSize" class="me-2 text-muted small">Show:</label>
+                        <select id="pageSize" class="form-select form-select-sm" style="width: auto;" onchange="changePageSize(this.value)">
+                            <option value="10" {% if page_size == '10' %}selected{% endif %}>10</option>
+                            <option value="25" {% if page_size == '25' %}selected{% endif %}>25</option>
+                            <option value="50" {% if page_size == '50' %}selected{% endif %}>50</option>
+                            <option value="100" {% if page_size == '100' %}selected{% endif %}>100</option>
+                        </select>
+                        <span class="text-muted small ms-2">
+                            Showing {{ coupons.start_index }} - {{ coupons.end_index }} of {{ paginator.count }} coupons
+                        </span>
+                    </div>
                     
-                    {% for num in coupons.paginator.page_range %}
-                        {% if coupons.number == num %}
-                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                        {% else %}
+                    <!-- Pagination controls -->
+                    <ul class="pagination pagination-sm mb-0">
+                        {% if coupons.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if discount_type_filter %}&discount_type={{ discount_type_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                            <a class="page-link" href="?page={{ coupons.previous_page_number }}{{ query_string }}" aria-label="Previous">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link"><i class="fas fa-chevron-left"></i></span>
                         </li>
                         {% endif %}
-                    {% endfor %}
+                        
+                        {% for num in coupons.paginator.page_range %}
+                            {% if coupons.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% elif num > coupons.number|add:'-3' and num < coupons.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{{ query_string }}">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if coupons.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ coupons.next_page_number }}{{ query_string }}" aria-label="Next">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+                
+                <!-- Page info and jump to page -->
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <small class="text-muted">
+                        Page {{ coupons.number }} of {{ coupons.paginator.num_pages }}
+                    </small>
                     
-                    {% if coupons.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ coupons.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if discount_type_filter %}&discount_type={{ discount_type_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">Next</a>
-                    </li>
-                    {% endif %}
-                </ul>
+                    <div class="d-flex align-items-center">
+                        <label for="jumpToPage" class="me-2 text-muted small">Jump to:</label>
+                        <input type="number" id="jumpToPage" class="form-control form-control-sm" 
+                               style="width: 70px;" min="1" max="{{ coupons.paginator.num_pages }}" 
+                               value="{{ coupons.number }}">
+                        <button class="btn btn-sm btn-outline-secondary ms-1" onclick="jumpToPage()">Go</button>
+                    </div>
+                </div>
             </nav>
+            {% else %}
+            <div class="text-center text-muted mt-3">
+                <small>Showing all {{ coupons|length }} coupons</small>
+            </div>
             {% endif %}
             
             {% else %}
@@ -347,30 +386,6 @@ function restoreCoupon(couponId, code) {
     }
 }
 
-// Permanently delete coupon
-function permanentDeleteCoupon(couponId, code) {
-    if (confirm(`PERMANENTLY delete coupon "${code}"?\n\n⚠️ This action cannot be undone!`)) {
-        fetch(`/coupons/${couponId}/permanent-delete/`, {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': '{{ csrf_token }}'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showToast('success', data.message);
-                setTimeout(() => {
-                    location.reload();
-                }, 1500);
-            } else {
-                showToast('error', data.message);
-            }
-        });
-    }
-}
-
 // Toast notification function
 function showToast(type, message) {
     // Create toast container if it doesn't exist
@@ -404,6 +419,39 @@ function clearAllFilters() {
     window.location.href = "{% url 'admin_coupon_list' %}{% if show_deleted %}?show_deleted=true{% endif %}";
 }
 
+// Pagination Functions
+// Change page size
+function changePageSize(size) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page_size', size);
+    url.searchParams.set('page', 1); // Reset to first page
+    window.location.href = url.toString();
+}
+
+// Jump to specific page
+function jumpToPage() {
+    const page = document.getElementById('jumpToPage').value;
+    const maxPage = {{ coupons.paginator.num_pages }};
+    
+    if (page && page >= 1 && page <= maxPage) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('page', page);
+        window.location.href = url.toString();
+    } else {
+        alert(`Please enter a valid page number between 1 and ${maxPage}`);
+    }
+}
+
+// Update page size selector to show current value on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const pageSize = urlParams.get('page_size') || '10';
+    const pageSizeSelect = document.getElementById('pageSize');
+    if (pageSizeSelect) {
+        pageSizeSelect.value = pageSize;
+    }
+});
+
 // Keyboard shortcuts
 document.addEventListener('keydown', function(e) {
     // Ctrl + F to focus search
@@ -420,9 +468,13 @@ document.addEventListener('keydown', function(e) {
     
     // Escape to clear filters
     if (e.key === 'Escape') {
-        if (document.querySelector('input[name="search"]').value || 
-            document.querySelector('select[name="status"]').value || 
-            document.querySelector('select[name="discount_type"]').value) {
+        const searchInput = document.querySelector('input[name="search"]');
+        const statusSelect = document.querySelector('select[name="status"]');
+        const discountTypeSelect = document.querySelector('select[name="discount_type"]');
+        
+        if ((searchInput && searchInput.value) || 
+            (statusSelect && statusSelect.value) || 
+            (discountTypeSelect && discountTypeSelect.value)) {
             clearAllFilters();
         }
     }
@@ -526,6 +578,49 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .nav-tabs .nav-link:hover:not(.active) {
     color: #3498db;
+}
+
+/* Pagination styles */
+.pagination {
+    gap: 2px;
+}
+
+.pagination .page-link {
+    border-radius: 4px;
+    color: #2c3e50;
+    padding: 0.375rem 0.75rem;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #3498db;
+    border-color: #3498db;
+    color: white;
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #6c757d;
+    pointer-events: none;
+    background-color: #fff;
+    border-color: #dee2e6;
+}
+
+/* Page size selector */
+#pageSize {
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    padding: 0.25rem 0.5rem;
+}
+
+#jumpToPage {
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    text-align: center;
+}
+
+#jumpToPage::-webkit-inner-spin-button,
+#jumpToPage::-webkit-outer-spin-button {
+    opacity: 0.5;
+    height: 20px;
 }
 </style>
 {% endblock %}

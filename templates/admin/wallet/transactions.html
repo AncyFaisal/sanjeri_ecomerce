@@ -6,6 +6,7 @@
 
 {% block content %}
 <div class="content-area">
+    <!-- Header with better spacing -->
     <div class="top-nav mb-4">
         <div class="nav-left">
             <h2 class="page-title">
@@ -19,63 +20,63 @@
         </div>
     </div>
 
-    <!-- Summary Stats -->
-    <div class="row mb-4">
+    <!-- Improved Summary Stats with better visual hierarchy -->
+    <div class="row mb-4 g-3">
         <div class="col-md-3">
-            <div class="admin-card">
+            <div class="admin-card stat-card">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
-                        <div class="bg-primary text-white rounded-circle p-3 me-3">
+                        <div class="stat-icon bg-primary bg-opacity-10 text-primary rounded p-3 me-3">
                             <i class="fas fa-exchange-alt fa-2x"></i>
                         </div>
                         <div>
-                            <h3 class="mb-0">{{ total_transactions }}</h3>
-                            <p class="text-muted mb-0">Total Transactions</p>
+                            <span class="stat-label text-muted text-uppercase small fw-bold">Total Transactions</span>
+                            <h3 class="mb-0 stat-value">{{ total_transactions }}</h3>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="admin-card">
+            <div class="admin-card stat-card">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
-                        <div class="bg-success text-white rounded-circle p-3 me-3">
+                        <div class="stat-icon bg-success bg-opacity-10 text-success rounded p-3 me-3">
                             <i class="fas fa-rupee-sign fa-2x"></i>
                         </div>
                         <div>
-                            <h3 class="mb-0">₹{{ total_amount|floatformat:2 }}</h3>
-                            <p class="text-muted mb-0">Total Amount</p>
+                            <span class="stat-label text-muted text-uppercase small fw-bold">Total Amount</span>
+                            <h3 class="mb-0 stat-value">₹{{ total_amount|floatformat:2 }}</h3>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="admin-card">
+            <div class="admin-card stat-card">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
-                        <div class="bg-info text-white rounded-circle p-3 me-3">
+                        <div class="stat-icon bg-info bg-opacity-10 text-info rounded p-3 me-3">
                             <i class="fas fa-check-circle fa-2x"></i>
                         </div>
                         <div>
-                            <h3 class="mb-0">{{ completed_count }}</h3>
-                            <p class="text-muted mb-0">Completed</p>
+                            <span class="stat-label text-muted text-uppercase small fw-bold">Completed</span>
+                            <h3 class="mb-0 stat-value">{{ completed_count }}</h3>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="admin-card">
+            <div class="admin-card stat-card">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
-                        <div class="bg-warning text-white rounded-circle p-3 me-3">
+                        <div class="stat-icon bg-warning bg-opacity-10 text-warning rounded p-3 me-3">
                             <i class="fas fa-clock fa-2x"></i>
                         </div>
                         <div>
-                            <h3 class="mb-0">{{ pending_count }}</h3>
-                            <p class="text-muted mb-0">Pending</p>
+                            <span class="stat-label text-muted text-uppercase small fw-bold">Pending</span>
+                            <h3 class="mb-0 stat-value">{{ pending_count }}</h3>
                         </div>
                     </div>
                 </div>
@@ -83,18 +84,28 @@
         </div>
     </div>
 
-    <!-- Search and Filter Card -->
-    <div class="admin-card mb-4">
+    <!-- Improved Filter Card with better layout -->
+    <div class="admin-card mb-4 filter-card">
+        <div class="card-header bg-transparent">
+            <h5 class="mb-0">
+                <i class="fas fa-filter me-2"></i>Filter Transactions
+            </h5>
+        </div>
         <div class="card-body">
             <form method="GET" class="row g-3">
                 <div class="col-md-3">
-                    <label class="form-label">Search</label>
-                    <input type="text" name="search" class="form-control" 
-                           placeholder="Transaction ID, User, Order..." 
-                           value="{{ search_query }}">
+                    <label class="form-label fw-semibold small text-uppercase">Search</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" name="search" class="form-control border-start-0 ps-0" 
+                               placeholder="Transaction ID, User, Order..." 
+                               value="{{ search_query }}">
+                    </div>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Transaction Type</label>
+                    <label class="form-label fw-semibold small text-uppercase">Transaction Type</label>
                     <select name="type" class="form-select">
                         <option value="">All Types</option>
                         {% for type_code, type_name in transaction_types %}
@@ -105,7 +116,7 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Status</label>
+                    <label class="form-label fw-semibold small text-uppercase">Status</label>
                     <select name="status" class="form-select">
                         <option value="">All Status</option>
                         {% for status_code, status_name in status_choices %}
@@ -116,123 +127,167 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">From Date</label>
+                    <label class="form-label fw-semibold small text-uppercase">From Date</label>
                     <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">To Date</label>
+                    <label class="form-label fw-semibold small text-uppercase">To Date</label>
                     <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
                 </div>
                 <div class="col-md-1 d-flex align-items-end">
                     <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-search"></i>
+                        <i class="fas fa-filter"></i>
                     </button>
                 </div>
             </form>
+            
+            <!-- Active Filters Display -->
+            {% if search_query or selected_type or selected_status or date_from or date_to %}
+            <div class="mt-3 pt-2 border-top">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span class="small text-muted me-2">Active filters:</span>
+                    {% if search_query %}
+                    <span class="badge bg-light text-dark p-2">
+                        Search: "{{ search_query }}"
+                        <a href="?{% if selected_type %}type={{ selected_type }}&{% endif %}{% if selected_status %}status={{ selected_status }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}{% endif %}" class="ms-2 text-danger">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    </span>
+                    {% endif %}
+                    {% if selected_type %}
+                    <span class="badge bg-light text-dark p-2">
+                        Type: {{ selected_type|title }}
+                        <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if selected_status %}status={{ selected_status }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}{% endif %}" class="ms-2 text-danger">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    </span>
+                    {% endif %}
+                    <!-- Add similar for other filters -->
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 
-    <!-- Transactions Table -->
+    <!-- Improved Transactions Table with fixed action column -->
     <div class="admin-card">
-        <div class="card-body">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>Transaction History
+            </h5>
+            <span class="badge bg-primary">{{ page_obj.paginator.count }} Total</span>
+        </div>
+        <div class="card-body p-0">
             {% if transactions %}
-            <div class="table-responsive">
-                <table class="table styled-table">
-                    <thead>
+            <div class="table-responsive" style="min-height: 400px;">
+                <table class="table styled-table table-hover mb-0">
+                    <thead class="bg-light">
                         <tr>
-                            <th>Transaction ID</th>
-                            <th>Date</th>
-                            <th>User</th>
-                            <th>Type</th>
-                            <th>Amount</th>
-                            <th>Status</th>
-                            <th>Order #</th>
-                            <th>Actions</th>
+                            <th class="px-3">Transaction ID</th>
+                            <th class="px-3">Date & Time</th>
+                            <th class="px-3">User</th>
+                            <th class="px-3">Type</th>
+                            <th class="px-3">Amount</th>
+                            <th class="px-3">Status</th>
+                            <th class="px-3">Source</th>
+                            <th class="px-3 text-center" style="min-width: 100px;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for transaction in transactions %}
                         <tr>
-                            <td>
-                                <strong>#{{ transaction.id }}</strong>
+                            <td class="px-3">
+                                <span class="fw-semibold">#{{ transaction.id }}</span>
                             </td>
-                            <td>{{ transaction.created_at|date:"d M Y" }}<br>
+                            <td class="px-3">
+                                <div>{{ transaction.created_at|date:"d M Y" }}</div>
                                 <small class="text-muted">{{ transaction.created_at|time:"h:i A" }}</small>
                             </td>
-                            <!-- In templates/admin/wallet/transactions.html - Update the User column -->
-<td>
-    <div class="d-flex align-items-center">
-        {% if transaction.wallet.user.profile_image %}
-        <img src="{{ transaction.wallet.user.profile_image.url }}" 
-             class="user-avatar-sm me-2" 
-             alt="{{ transaction.wallet.user.username }}">
-        {% else %}
-        <div class="user-avatar-sm bg-secondary text-white d-flex align-items-center justify-content-center me-2">
-            {{ transaction.wallet.user.username|first|upper }}
-        </div>
-        {% endif %}
-        <div>
-            <a href="{% url 'user_detail' transaction.wallet.user.id %}" 
-               class="text-decoration-none fw-bold text-primary">
-                <strong>{{ transaction.wallet.user.get_full_name|default:transaction.wallet.user.username }}</strong>
-            </a>
-            <br>
-            <small class="text-muted">{{ transaction.wallet.user.email }}</small>
-        </div>
-    </div>
-</td>
-                            <td>
-                                <span class="badge 
-                                    {% if transaction.transaction_type == 'REFUND' %}bg-success
-                                    {% elif transaction.transaction_type == 'DEPOSIT' %}bg-primary
-                                    {% elif transaction.transaction_type == 'WITHDRAWAL' %}bg-danger
-                                    {% else %}bg-info{% endif %}">
+                            <td class="px-3">
+                                <div class="d-flex align-items-center">
+                                    {% if transaction.wallet.user.profile_image %}
+                                    <img src="{{ transaction.wallet.user.profile_image.url }}" 
+                                         class="user-avatar-sm me-2 rounded-circle" 
+                                         alt="{{ transaction.wallet.user.username }}">
+                                    {% else %}
+                                    <div class="user-avatar-sm bg-secondary bg-opacity-10 text-secondary d-flex align-items-center justify-content-center me-2 rounded-circle fw-bold">
+                                        {{ transaction.wallet.user.username|first|upper }}
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <a href="{% url 'user_detail' transaction.wallet.user.id %}" 
+                                           class="text-decoration-none fw-semibold text-primary hover-underline">
+                                            {{ transaction.wallet.user.get_full_name|default:transaction.wallet.user.username }}
+                                        </a>
+                                        <br>
+                                        <small class="text-muted">{{ transaction.wallet.user.email|truncatechars:20 }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-3">
+                                <span class="badge rounded-pill px-3 py-2
+                                    {% if transaction.transaction_type == 'REFUND' %}bg-success bg-opacity-10 text-success
+                                    {% elif transaction.transaction_type == 'DEPOSIT' %}bg-primary bg-opacity-10 text-primary
+                                    {% elif transaction.transaction_type == 'WITHDRAWAL' %}bg-danger bg-opacity-10 text-danger
+                                    {% else %}bg-info bg-opacity-10 text-info{% endif %}">
+                                    <i class="fas 
+                                        {% if transaction.transaction_type == 'REFUND' %}fa-undo
+                                        {% elif transaction.transaction_type == 'DEPOSIT' %}fa-plus-circle
+                                        {% elif transaction.transaction_type == 'WITHDRAWAL' %}fa-minus-circle
+                                        {% else %}fa-circle{% endif %} me-1">
+                                    </i>
                                     {{ transaction.get_transaction_type_display }}
                                 </span>
                             </td>
-                            <td class="fw-bold 
-                                {% if transaction.transaction_type == 'REFUND' or transaction.transaction_type == 'DEPOSIT' %}text-success
-                                {% else %}text-danger{% endif %}">
-                                {{ transaction.display_amount }}
+                            <td class="px-3 fw-bold">
+                                <span class="{% if transaction.transaction_type == 'REFUND' or transaction.transaction_type == 'DEPOSIT' %}text-success{% else %}text-danger{% endif %}">
+                                    {{ transaction.display_amount }}
+                                </span>
                             </td>
-                            <td>
-                                <span class="badge 
-                                    {% if transaction.status == 'COMPLETED' %}bg-success
-                                    {% elif transaction.status == 'PENDING' %}bg-warning text-dark
-                                    {% elif transaction.status == 'CANCELLED' %}bg-secondary
-                                    {% elif transaction.status == 'FAILED' %}bg-danger
+                            <td class="px-3">
+                                <span class="badge rounded-pill px-3 py-2
+                                    {% if transaction.status == 'COMPLETED' %}bg-success bg-opacity-10 text-success
+                                    {% elif transaction.status == 'PENDING' %}bg-warning bg-opacity-10 text-warning
+                                    {% elif transaction.status == 'CANCELLED' %}bg-secondary bg-opacity-10 text-secondary
+                                    {% elif transaction.status == 'FAILED' %}bg-danger bg-opacity-10 text-danger
                                     {% endif %}">
+                                    <i class="fas 
+                                        {% if transaction.status == 'COMPLETED' %}fa-check-circle
+                                        {% elif transaction.status == 'PENDING' %}fa-clock
+                                        {% elif transaction.status == 'CANCELLED' %}fa-times-circle
+                                        {% elif transaction.status == 'FAILED' %}fa-exclamation-circle
+                                        {% endif %} me-1">
+                                    </i>
                                     {{ transaction.get_status_display }}
                                 </span>
                             </td>
-                          <!-- In the transactions table, update the Source column -->
-<td>
-    {% if transaction.order %}
-        {% if transaction.transaction_type == 'REFUND' %}
-            {% if transaction.order.status == 'cancelled' %}
-            <span class="badge bg-danger">Order Cancellation</span>
-            {% elif transaction.order.status == 'returned' or transaction.order.status == 'return_requested' %}
-            <span class="badge bg-warning">Product Return</span>
-            {% else %}
-            <span class="badge bg-secondary">Order Refund</span>
-            {% endif %}
-        {% elif transaction.transaction_type == 'WITHDRAWAL' %}
-            <span class="badge bg-primary">Order Payment</span>
-        {% endif %}
-    {% else %}
-        {% if 'referral' in transaction.reason|lower or 'bonus' in transaction.reason|lower %}
-        <span class="badge bg-success">Referral Bonus</span>
-        {% elif 'admin' in transaction.reason|lower or 'adjustment' in transaction.reason|lower %}
-        <span class="badge bg-info">Admin Adjustment</span>
-        {% elif transaction.transaction_type == 'DEPOSIT' %}
-        <span class="badge bg-secondary">Wallet Recharge</span>
-        {% else %}
-        <span class="badge bg-secondary">Other</span>
-        {% endif %}
-    {% endif %}
-</td>
-                            <td>
-                                <div class="action-buttons">
+                            <td class="px-3">
+                                {% if transaction.order %}
+                                    {% if transaction.transaction_type == 'REFUND' %}
+                                        {% if transaction.order.status == 'cancelled' %}
+                                        <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2">Order Cancellation</span>
+                                        {% elif transaction.order.status == 'returned' or transaction.order.status == 'return_requested' %}
+                                        <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2">Product Return</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2">Order Refund</span>
+                                        {% endif %}
+                                    {% elif transaction.transaction_type == 'WITHDRAWAL' %}
+                                        <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">Order Payment</span>
+                                    {% endif %}
+                                {% else %}
+                                    {% if 'referral' in transaction.reason|lower or 'bonus' in transaction.reason|lower %}
+                                    <span class="badge bg-success bg-opacity-10 text-success px-3 py-2">Referral Bonus</span>
+                                    {% elif 'admin' in transaction.reason|lower or 'adjustment' in transaction.reason|lower %}
+                                    <span class="badge bg-info bg-opacity-10 text-info px-3 py-2">Admin Adjustment</span>
+                                    {% elif transaction.transaction_type == 'DEPOSIT' %}
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2">Wallet Recharge</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2">Other</span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td class="px-3 text-center">
+                                <div class="action-buttons d-flex justify-content-center gap-2">
                                     <a href="{% url 'admin_wallet_transaction_detail' transaction.id %}" 
                                        class="action-btn view" title="View Details">
                                         <i class="fas fa-eye"></i>
@@ -251,111 +306,319 @@
                 </table>
             </div>
 
-            <!-- Pagination -->
+            <!-- Improved Pagination with page size selector -->
             {% if page_obj.has_other_pages %}
-            <div class="pagination-container">
-                <div class="pagination-info">
-                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} transactions
+            <div class="px-3 py-3 border-top d-flex flex-wrap justify-content-between align-items-center">
+                <div class="pagination-info text-muted small">
+                    Showing <span class="fw-semibold">{{ page_obj.start_index }}</span> 
+                    to <span class="fw-semibold">{{ page_obj.end_index }}</span> 
+                    of <span class="fw-semibold">{{ page_obj.paginator.count }}</span> transactions
                 </div>
-                <nav>
-                    <ul class="pagination">
-                        {% if page_obj.has_previous %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
-                                <i class="fas fa-angle-double-left"></i>
-                            </a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
-                                <i class="fas fa-angle-left"></i>
-                            </a>
-                        </li>
-                        {% endif %}
+                
+                <div class="d-flex align-items-center gap-3">
+                    <!-- Page size selector -->
+                    <div class="d-flex align-items-center">
+                        <label class="small text-muted me-2">Show:</label>
+                        <select class="form-select form-select-sm" style="width: auto;" 
+                                onchange="changePageSize(this.value)">
+                            <option value="10" {% if request.GET.page_size == '10' or not request.GET.page_size %}selected{% endif %}>10</option>
+                            <option value="25" {% if request.GET.page_size == '25' %}selected{% endif %}>25</option>
+                            <option value="50" {% if request.GET.page_size == '50' %}selected{% endif %}>50</option>
+                            <option value="100" {% if request.GET.page_size == '100' %}selected{% endif %}>100</option>
+                        </select>
+                    </div>
 
-                        {% for num in page_obj.paginator.page_range %}
-                            {% if page_obj.number == num %}
-                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <!-- Pagination -->
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            {% if page_obj.has_previous %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
-                                    {{ num }}
+                                <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}" title="First">
+                                    <i class="fas fa-angle-double-left"></i>
                                 </a>
                             </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}" title="Previous">
+                                    <i class="fas fa-angle-left"></i>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link"><i class="fas fa-angle-double-left"></i></span>
+                            </li>
+                            <li class="page-item disabled">
+                                <span class="page-link"><i class="fas fa-angle-left"></i></span>
+                            </li>
                             {% endif %}
-                        {% endfor %}
 
-                        {% if page_obj.has_next %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
-                                <i class="fas fa-angle-right"></i>
-                            </a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
-                                <i class="fas fa-angle-double-right"></i>
-                            </a>
-                        </li>
-                        {% endif %}
-                    </ul>
-                </nav>
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}">
+                                        {{ num }}
+                                    </a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}" title="Next">
+                                    <i class="fas fa-angle-right"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}" title="Last">
+                                    <i class="fas fa-angle-double-right"></i>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link"><i class="fas fa-angle-right"></i></span>
+                            </li>
+                            <li class="page-item disabled">
+                                <span class="page-link"><i class="fas fa-angle-double-right"></i></span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
             </div>
             {% endif %}
 
             {% else %}
             <div class="text-center py-5">
-                <i class="fas fa-wallet fa-4x text-muted mb-3"></i>
-                <h4>No Transactions Found</h4>
-                <p class="text-muted">There are no wallet transactions matching your criteria.</p>
-                {% if search_query or selected_type or selected_status or date_from or date_to %}
-                <a href="{% url 'admin_wallet_transactions' %}" class="btn btn-primary mt-3">
-                    <i class="fas fa-times"></i> Clear Filters
-                </a>
-                {% endif %}
+                <div class="empty-state">
+                    <i class="fas fa-wallet fa-4x text-muted mb-3 opacity-50"></i>
+                    <h4 class="fw-semibold">No Transactions Found</h4>
+                    <p class="text-muted mb-3">There are no wallet transactions matching your criteria.</p>
+                    {% if search_query or selected_type or selected_status or date_from or date_to %}
+                    <a href="{% url 'admin_wallet_transactions' %}" class="btn btn-primary">
+                        <i class="fas fa-times me-2"></i>Clear Filters
+                    </a>
+                    {% endif %}
+                </div>
             </div>
             {% endif %}
         </div>
     </div>
 </div>
 
+<!-- Page Size Change Script -->
+<script>
+function changePageSize(size) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page_size', size);
+    url.searchParams.set('page', 1); // Reset to first page
+    window.location.href = url.toString();
+}
+
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+    tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+
 <style>
+/* Enhanced action buttons */
 .action-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
     border: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     color: white;
     font-size: 14px;
     text-decoration: none;
-    margin: 0 2px;
 }
 
 .action-btn.view {
-    background-color: #3498db;
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
 }
 
 .action-btn.info {
-    background-color: #17a2b8;
+    background: linear-gradient(135deg, #17a2b8, #138496);
+    box-shadow: 0 2px 4px rgba(23, 162, 184, 0.2);
 }
 
 .action-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     color: white;
 }
 
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+/* Enhanced user avatar */
 .user-avatar-sm {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     object-fit: cover;
-    background-color: #6c757d;
+    background-color: #f8f9fa;
     font-size: 14px;
     font-weight: 600;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Stat cards enhancement */
+.stat-card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+
+.stat-icon {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+/* Filter card enhancement */
+.filter-card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.filter-card .card-header {
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    padding: 1rem 1.5rem;
+}
+
+/* Table enhancements */
+.styled-table th {
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+    border-bottom-width: 1px;
+}
+
+.styled-table td {
+    vertical-align: middle;
+    padding: 1rem 0.75rem;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.styled-table tbody tr:hover {
+    background-color: rgba(52, 152, 219, 0.02);
+}
+
+/* Badge enhancements */
+.badge {
+    font-weight: 500;
+    font-size: 0.75rem;
+}
+
+.badge.rounded-pill {
+    padding: 0.35rem 1rem;
+}
+
+/* Pagination enhancements */
+.pagination .page-link {
+    border: none;
+    color: #6c757d;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    border-radius: 6px;
+    margin: 0 2px;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #3498db;
+    color: white;
+}
+
+.pagination .page-link:hover {
+    background-color: #f8f9fa;
+    color: #3498db;
+}
+
+.pagination-info {
+    font-size: 0.875rem;
+}
+
+/* Empty state */
+.empty-state {
+    padding: 3rem;
+}
+
+/* Hover underline for user links */
+.hover-underline:hover {
+    text-decoration: underline !important;
+}
+
+/* Input group enhancement */
+.input-group-text {
+    background-color: #f8f9fa;
+    border-right: none;
+}
+
+.input-group .form-control {
+    border-left: none;
+}
+
+.input-group .form-control:focus {
+    border-color: #dee2e6;
+    box-shadow: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .action-buttons {
+        flex-wrap: wrap;
+    }
+    
+    .table-responsive {
+        border-radius: 8px;
+    }
+    
+    .stat-value {
+        font-size: 1.25rem;
+    }
+    
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+    }
+    
+    .stat-icon i {
+        font-size: 1.5rem;
+    }
 }
 </style>
 {% endblock %}

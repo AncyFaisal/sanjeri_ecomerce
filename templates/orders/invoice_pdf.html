@@ -16,6 +16,11 @@
         .text-right { text-align: right; }
         .total-row { font-weight: bold; background-color: #f8f9fa; }
         .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #666; }
+        /* Simple approach - just use Rs. which is universally supported */
+        .price-value::before {
+            content: "Rs.";
+            margin-right: 2px;
+        }
     </style>
 </head>
 <body>
@@ -70,8 +75,8 @@
                     <td>{{ item.product_name }}</td>
                     <td>{{ item.variant_details }}</td>
                     <td>{{ item.quantity }}</td>
-                    <td>₹{{ item.unit_price }}</td>
-                    <td>₹{{ item.total_price }}</td>
+                    <td>Rs.{{ item.unit_price }}</td>
+                    <td>Rs.{{ item.total_price }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -82,25 +87,25 @@
         <table style="width: 50%; margin-left: auto;">
             <tr>
                 <td>Subtotal:</td>
-                <td class="text-right">₹{{ order.subtotal }}</td>
+                <td class="text-right">Rs.{{ order.subtotal }}</td>
             </tr>
             <tr>
                 <td>Shipping:</td>
-                <td class="text-right">{% if order.shipping_charge == 0 %}FREE{% else %}₹{{ order.shipping_charge }}{% endif %}</td>
+                <td class="text-right">{% if order.shipping_charge == 0 %}FREE{% else %}Rs.{{ order.shipping_charge }}{% endif %}</td>
             </tr>
             <tr>
                 <td>Tax (18%):</td>
-                <td class="text-right">₹{{ order.tax_amount|floatformat:2 }}</td>
+                <td class="text-right">Rs.{{ order.tax_amount|floatformat:2 }}</td>
             </tr>
             {% if order.discount_amount > 0 %}
             <tr>
                 <td>Discount:</td>
-                <td class="text-right">-₹{{ order.discount_amount }}</td>
+                <td class="text-right">-Rs.{{ order.discount_amount }}</td>
             </tr>
             {% endif %}
             <tr class="total-row">
                 <td><strong>Total Amount:</strong></td>
-                <td class="text-right"><strong>₹{{ order.total_amount|floatformat:2 }}</strong></td>
+                <td class="text-right"><strong>Rs.{{ order.total_amount|floatformat:2 }}</strong></td>
             </tr>
         </table>
     </div>

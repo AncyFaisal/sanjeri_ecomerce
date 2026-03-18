@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 from ..models import WalletTransaction, CustomUser
 from ..services.wallet_service import WalletService
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 @staff_member_required
 def admin_pending_refunds(request):
@@ -17,6 +18,24 @@ def admin_pending_refunds(request):
         status='PENDING'
     ).select_related('wallet__user', 'order').order_by('-created_at')
     
+    # Get page size from request (default to 10)
+    page_size = request.GET.get('page_size', 10)
+    try:
+        page_size = int(page_size)
+    except ValueError:
+        page_size = 10
+    
+    # Paginate the results
+    paginator = Paginator(pending_refunds, page_size)
+    page_number = request.GET.get('page', 1)
+    
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
     total_pending_amount = pending_refunds.aggregate(
         total=Sum('amount')
     )['total'] or 0
@@ -29,7 +48,8 @@ def admin_pending_refunds(request):
     ).count()
     
     context = {
-        'pending_refunds': pending_refunds,
+        'page_obj': page_obj,  
+        'paginator': paginator,
         'total_pending_amount': total_pending_amount,
         'total_approved': approved_today,
         'title': 'Pending Refunds - Admin'

@@ -219,14 +219,15 @@ class Order(models.Model):
         
         return self.total_amount
     
+   
     @property
     def can_pay_online(self):
         """Check if order can be paid online"""
         # Order must be in a state where online payment makes sense
-        valid_statuses = ['pending', 'confirmed']
+        valid_statuses = ['pending', 'confirmed', 'pending_payment']
         
-        # Payment must be pending or partially paid
-        valid_payment_statuses = ['pending', 'partially_paid']
+        # Payment must be pending, partially paid, OR failed (for retry)
+        valid_payment_statuses = ['pending', 'partially_paid', 'failed']
         
         # Payment method must support online payment
         valid_payment_methods = ['online', 'mixed']
@@ -237,7 +238,7 @@ class Order(models.Model):
             self.payment_method in valid_payment_methods and
             self.amount_to_pay > 0
         )
-    
+
     @property
     def is_fully_paid(self):
         """Check if order is fully paid"""

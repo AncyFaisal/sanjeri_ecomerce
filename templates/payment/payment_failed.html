@@ -1,3 +1,4 @@
+<!-- payment/payment_failed.html -->
 {% extends 'base.html' %}
 {% load static %}
 
@@ -45,6 +46,36 @@
         margin-top: 2rem;
         flex-wrap: wrap;
     }
+    
+    .retry-btn {
+        background: linear-gradient(135deg, #7928CA, #FF0080);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .retry-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(121, 40, 202, 0.4);
+        color: white;
+    }
+    
+    .razorpay-badge {
+        background: #0F2A4D;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        display: inline-block;
+        margin-top: 10px;
+    }
+    
+    .razorpay-badge i {
+        color: #3399FF;
+    }
 </style>
 {% endblock %}
 
@@ -84,10 +115,17 @@
             </div>
         </div>
         
+        <!-- Retry Payment Button -->
+        <div class="text-center mb-3">
+            <button onclick="retryPayment()" class="retry-btn btn-lg px-5 py-3">
+                <i class="fas fa-redo-alt me-2"></i>Retry Payment with Razorpay
+            </button>
+            <div class="razorpay-badge mt-2">
+                <i class="fas fa-shield-alt me-1"></i> Secure payment by Razorpay
+            </div>
+        </div>
+        
         <div class="action-buttons">
-            <!-- <a href="{% url 'order_detail' order.id %}" class="btn btn-danger-outline btn-lg px-4">
-                <i class="fas fa-receipt me-2"></i>View Order Details
-            </a> -->
             <a href="{% url 'homepage' %}" class="btn btn-outline-secondary btn-lg px-4">
                 <i class="fas fa-shopping-bag me-2"></i>Continue Shopping
             </a>
@@ -99,4 +137,136 @@
         </div>
     </div>
 </div>
+
+<!-- Razorpay Script -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+function retryPayment() {
+    // Show loading state
+    const retryBtn = document.querySelector('.retry-btn');
+    const originalText = retryBtn.innerHTML;
+    retryBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Preparing payment...';
+    retryBtn.disabled = true;
+    
+    console.log('🟡 Starting payment retry for order {{ order.id }}');
+    
+    // First, reset the payment status to allow retry
+    fetch(`/retry/{{ order.id }}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        console.log('🟡 Retry response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('🟡 Retry response data:', data);
+        
+        if (data.success) {
+            console.log('✅ Order status reset successful, initiating payment...');
+            // Now initiate the payment
+            return fetch(`/initiate/{{ order.id }}/`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            });
+        } else {
+            throw new Error(data.message || 'Failed to reset order status');
+        }
+    })
+    .then(response => {
+        console.log('🟡 Initiate response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('🟡 Initiate response data:', data);
+        
+        if (data.success) {
+            console.log('✅ Payment initiation successful, opening Razorpay...');
+            
+            // Initialize Razorpay with the new order
+            const options = {
+                key: data.key,
+                amount: data.amount,
+                currency: data.currency,
+                name: "Sanjeri Perfumes",
+                description: `Order #${data.order_number}`,
+                image: "{% static 'images/logo.png' %}",
+                order_id: data.razorpay_order_id,
+                handler: function(response) {
+                    console.log('✅ Razorpay payment successful:', response);
+                    verifyPayment(response, {{ order.id }});
+                },
+                prefill: {
+                    name: data.customer_name,
+                    email: data.customer_email,
+                    contact: data.customer_phone
+                },
+                notes: {
+                    order_id: {{ order.id }},
+                    order_number: "{{ order.order_number }}"
+                },
+                theme: {
+                    color: "#7928CA"
+                },
+                modal: {
+                    ondismiss: function() {
+                        console.log('🟡 Razorpay modal dismissed');
+                        retryBtn.innerHTML = originalText;
+                        retryBtn.disabled = false;
+                        alert('Payment cancelled. You can retry when ready.');
+                    }
+                }
+            };
+            
+            const rzp = new Razorpay(options);
+            rzp.open();
+        } else {
+            console.error('🔴 Payment initiation failed:', data.message);
+            alert('Error: ' + data.message);
+            retryBtn.innerHTML = originalText;
+            retryBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('🔴 Error in retry process:', error);
+        alert('Failed to initialize payment: ' + error.message);
+        retryBtn.innerHTML = originalText;
+        retryBtn.disabled = false;
+    });
+}
+
+function verifyPayment(response, orderId) {
+    fetch('/verify/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_signature: response.razorpay_signature,
+            order_id: orderId
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = data.redirect_url;
+        } else {
+            alert('Payment verification failed: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error verifying payment');
+    });
+}
+</script>
 {% endblock %}
