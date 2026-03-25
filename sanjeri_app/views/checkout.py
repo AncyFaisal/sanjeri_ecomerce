@@ -164,6 +164,10 @@ def checkout_view(request):
     # ========== 10. CALCULATE FINAL TOTAL ==========
     total_amount = total_before_wallet - wallet_discount
     
+    # ========== ADD THIS: Check COD eligibility ==========
+    cod_disabled = total_amount > Decimal('1000.00')
+    cod_disabled_message = 'Cash on Delivery is not available for orders above ₹1000'
+
     # ========== 11. STORE ALL CALCULATIONS IN SESSION (CONVERT DECIMALS TO FLOAT) ==========
     request.session['checkout_calculations'] = {
     'offer_discount': float(offer_discount),
@@ -222,6 +226,9 @@ def checkout_view(request):
         # Wallet
         'max_wallet_amount': float(min(wallet_balance, total_before_wallet)),
         'payment_required': total_amount > 0,
+
+        'cod_disabled': cod_disabled,
+        'cod_disabled_message': cod_disabled_message,
         
         # For debugging
         'price_after_offers': float(price_after_offers),

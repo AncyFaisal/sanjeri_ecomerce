@@ -49,6 +49,8 @@ class CustomUser(AbstractUser):
         default=None  # This is the default
     )
 
+   
+    
     class Meta:
         constraints = [
             UniqueConstraint(

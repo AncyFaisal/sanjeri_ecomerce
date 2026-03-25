@@ -648,148 +648,149 @@
                     </div>
                 </div>
 
-                <!-- Step 2: Payment Method -->
-                <div class="checkout-step mb-4">
-                    <div class="checkout-step-header">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-credit-card checkout-step-icon me-3"></i>
-                            <h3 class="checkout-step-title">2. Payment Method</h3>
-                        </div>
-                    </div>
-
-                    <div class="checkout-step-body">
-                        <div class="payment-options">
-                           <!-- Cash on Delivery -->
-<div class="payment-option-card {% if not payment_required %}selected{% endif %}" id="codOption">
-    <div class="form-check mb-0">
-        <input class="form-check-input" type="radio" name="payment_method" 
-               id="payment_cod" value="cod" 
-               {% if not payment_required %}checked{% endif %}
-               {% if cod_disabled %}disabled{% endif %}>
-        <label class="form-check-label w-100" for="payment_cod">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <strong class="d-block mb-1">Cash on Delivery</strong>
-                    <p class="text-gray-600 mb-0 small">Pay when you receive your order</p>
-                    {% if cod_disabled %}
-                        <small class="text-danger d-block mt-1">
-                            <i class="fas fa-exclamation-circle me-1"></i>Not available for orders above ₹1000
-                        </small>
-                    {% endif %}
-                </div>
-                <i class="fas fa-money-bill-wave payment-icon"></i>
-            </div>
-        </label>
+                <!-- Payment Methods Section -->
+<div class="checkout-step mb-4">
+    <div class="checkout-step-header">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-credit-card checkout-step-icon me-3"></i>
+            <h3 class="checkout-step-title">2. Payment Method</h3>
+        </div>
     </div>
-</div>
 
-                            <!-- Wallet Payment -->
-                            <div class="payment-option-card" id="walletOption">
-                                <div class="form-check mb-0">
-                                    <input class="form-check-input" type="radio" name="payment_method" 
-                                           id="payment_wallet" value="wallet"
-                                           {% if wallet_balance <= 0 %}disabled{% endif %}>
-                                    <label class="form-check-label w-100" for="payment_wallet">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <strong class="d-block mb-1">Pay with Wallet</strong>
-                                                <p class="text-gray-600 mb-0 small">
-                                                    Available Balance: <span class="{% if wallet_balance > 0 %}text-success{% else %}text-danger{% endif %} fw-bold">
-                                                        ₹{{ wallet_balance|floatformat:2 }}
-                                                    </span>
-                                                </p>
-                                                {% if wallet_balance <= 0 %}
-                                                    <p class="text-danger small mt-1">
-                                                        <i class="fas fa-exclamation-circle"></i> No balance available
-                                                    </p>
-                                                {% elif total_amount <= wallet_balance %}
-                                                    <p class="text-success small mt-1">
-                                                        <i class="fas fa-check-circle"></i> Sufficient balance
-                                                    </p>
-                                                {% else %}
-                                                    <p class="text-warning small mt-1">
-                                                        <i class="fas fa-exclamation-triangle"></i> Need ₹{{ total_amount|sub:wallet_balance|floatformat:2 }} more
-                                                    </p>
-                                                {% endif %}
-                                            </div>
-                                            <i class="fas fa-wallet payment-icon"></i>
-                                        </div>
-                                    </label>
+    <div class="checkout-step-body">
+        <div class="payment-options">
+            <!-- Cash on Delivery -->
+            <div class="payment-option-card {% if not payment_required and not cod_disabled %}selected{% endif %}" 
+                 id="codOption" 
+                 {% if cod_disabled %}style="opacity:0.6; background-color:#f8f9fa;"{% endif %}>
+                <div class="form-check mb-0">
+                    <input class="form-check-input" type="radio" name="payment_method" 
+                           id="payment_cod" value="cod" 
+                           {% if not payment_required and not cod_disabled %}checked{% endif %}
+                           {% if cod_disabled %}disabled{% endif %}>
+                    <label class="form-check-label w-100" for="payment_cod">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong class="d-block mb-1">Cash on Delivery</strong>
+                                <p class="text-gray-600 mb-0 small">Pay when you receive your order</p>
+                                {% if cod_disabled %}
+                                    <small class="text-danger d-block mt-1">
+                                        <i class="fas fa-exclamation-circle me-1"></i>Not available for orders above ₹1000
+                                    </small>
+                                {% endif %}
+                            </div>
+                            <i class="fas fa-money-bill-wave payment-icon"></i>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Wallet Payment -->
+            <div class="payment-option-card" id="walletOption">
+                <div class="form-check mb-0">
+                    <input class="form-check-input" type="radio" name="payment_method" 
+                           id="payment_wallet" value="wallet"
+                           {% if wallet_balance <= 0 %}disabled{% endif %}>
+                    <label class="form-check-label w-100" for="payment_wallet">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong class="d-block mb-1">Pay with Wallet</strong>
+                                <p class="text-gray-600 mb-0 small">
+                                    Available Balance: <span class="{% if wallet_balance > 0 %}text-success{% else %}text-danger{% endif %} fw-bold">
+                                        ₹{{ wallet_balance|floatformat:2 }}
+                                    </span>
+                                </p>
+                                {% if wallet_balance <= 0 %}
+                                    <p class="text-danger small mt-1">
+                                        <i class="fas fa-exclamation-circle"></i> No balance available
+                                    </p>
+                                {% elif total_amount <= wallet_balance %}
+                                    <p class="text-success small mt-1">
+                                        <i class="fas fa-check-circle"></i> Sufficient balance
+                                    </p>
+                                {% else %}
+                                    <p class="text-warning small mt-1">
+                                        <i class="fas fa-exclamation-triangle"></i> Need ₹{{ total_amount|sub:wallet_balance|floatformat:2 }} more
+                                    </p>
+                                {% endif %}
+                            </div>
+                            <i class="fas fa-wallet payment-icon"></i>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Online Payment -->
+            <div class="payment-option-card {% if payment_required %}selected{% endif %}" id="onlineOption">
+                <div class="form-check mb-0">
+                    <input class="form-check-input" type="radio" name="payment_method"
+                        id="payment_online" value="online" {% if payment_required %}checked{% endif %}>
+                    <label class="form-check-label w-100" for="payment_online">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong class="d-block mb-1">Online Payment</strong>
+                                <p class="text-gray-600 mb-1 small">Pay securely online</p>
+                                <div class="payment-methods-icons">
+                                    <span class="payment-method-icon" data-method="card">
+                                        <i class="fab fa-cc-visa"></i> Card
+                                    </span>
+                                    <span class="payment-method-icon" data-method="upi">
+                                        <i class="fas fa-mobile-alt"></i> UPI
+                                    </span>
+                                    <span class="payment-method-icon" data-method="netbanking">
+                                        <i class="fas fa-university"></i> Net Banking
+                                    </span>
                                 </div>
                             </div>
-
-                            <!-- Online Payment -->
-                            <div class="payment-option-card {% if payment_required %}selected{% endif %}" id="onlineOption">
-                                <div class="form-check mb-0">
-                                    <input class="form-check-input" type="radio" name="payment_method"
-                                        id="payment_online" value="online" {% if payment_required %}checked{% endif %}>
-                                    <label class="form-check-label w-100" for="payment_online">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <strong class="d-block mb-1">Online Payment</strong>
-                                                <p class="text-gray-600 mb-1 small">Pay securely online</p>
-                                                <div class="payment-methods-icons">
-                                                    <span class="payment-method-icon" data-method="card">
-                                                        <i class="fab fa-cc-visa"></i> Card
-                                                    </span>
-                                                    <span class="payment-method-icon" data-method="upi">
-                                                        <i class="fas fa-mobile-alt"></i> UPI
-                                                    </span>
-                                                    <span class="payment-method-icon" data-method="netbanking">
-                                                        <i class="fas fa-university"></i> Net Banking
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div class="text-end">
-                                                <i class="fas fa-credit-card payment-icon"></i>
-                                                <div class="mt-2">
-                                                    <span class="badge bg-success small">
-                                                        <i class="fas fa-shield-alt me-1"></i>100% Secure
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </label>
+                            <div class="text-end">
+                                <i class="fas fa-credit-card payment-icon"></i>
+                                <div class="mt-2">
+                                    <span class="badge bg-success small">
+                                        <i class="fas fa-shield-alt me-1"></i>100% Secure
+                                    </span>
                                 </div>
                             </div>
+                        </div>
+                    </label>
+                </div>
+            </div>
 
-                            <!-- Preferred Payment Method Selection (Hidden by default) -->
-                            <div class="preferred-method mt-4" id="preferredMethodSection" style="display: none;">
-                                <h6 class="mb-3">Select Preferred Payment Method:</h6>
-                                <div class="row g-3">
-                                    <div class="col-md-4">
-                                        <div class="method-option" data-method="card">
-                                            <div class="card h-100 text-center p-3">
-                                                <i class="fas fa-credit-card fa-2x mb-3 text-primary"></i>
-                                                <h6>Card</h6>
-                                                <p class="small text-muted">Credit/Debit Card</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="method-option" data-method="upi">
-                                            <div class="card h-100 text-center p-3">
-                                                <i class="fas fa-mobile-alt fa-2x mb-3 text-success"></i>
-                                                <h6>UPI</h6>
-                                                <p class="small text-muted">Google Pay, PhonePe, etc.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="method-option" data-method="netbanking">
-                                            <div class="card h-100 text-center p-3">
-                                                <i class="fas fa-university fa-2x mb-3 text-info"></i>
-                                                <h6>Net Banking</h6>
-                                                <p class="small text-muted">Bank Transfer</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <input type="hidden" name="preferred_method" id="preferredMethod" value="">
+            <!-- Preferred Payment Method Selection (Hidden by default) -->
+            <div class="preferred-method mt-4" id="preferredMethodSection" style="display: none;">
+                <h6 class="mb-3">Select Preferred Payment Method:</h6>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="method-option" data-method="card">
+                            <div class="card h-100 text-center p-3">
+                                <i class="fas fa-credit-card fa-2x mb-3 text-primary"></i>
+                                <h6>Card</h6>
+                                <p class="small text-muted">Credit/Debit Card</p>
                             </div>
                         </div>
                     </div>
-
+                    <div class="col-md-4">
+                        <div class="method-option" data-method="upi">
+                            <div class="card h-100 text-center p-3">
+                                <i class="fas fa-mobile-alt fa-2x mb-3 text-success"></i>
+                                <h6>UPI</h6>
+                                <p class="small text-muted">Google Pay, PhonePe, etc.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="method-option" data-method="netbanking">
+                            <div class="card h-100 text-center p-3">
+                                <i class="fas fa-university fa-2x mb-3 text-info"></i>
+                                <h6>Net Banking</h6>
+                                <p class="small text-muted">Bank Transfer</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <input type="hidden" name="preferred_method" id="preferredMethod" value="">
+            </div>
+        </div>
+    </div>
                     <!-- Coupon Section -->
                     <div class="coupon-section">
                         <div class="d-flex align-items-center mb-3">
@@ -1156,7 +1157,7 @@
             placeOrderBtn: document.getElementById('placeOrderBtn')
         };
 
-        // ==================== DISABLE COD FOR HIGH VALUE ORDERS ====================
+        // ==================== COD RESTRICTION FUNCTION ====================
         function setupCODRestriction() {
             const codRadio = document.querySelector('input[name="payment_method"][value="cod"]');
             
@@ -1166,7 +1167,8 @@
                 // Find the parent payment-option-card and add styling
                 const codCard = codRadio.closest('.payment-option-card');
                 if (codCard) {
-                    codCard.classList.add('disabled-option', 'opacity-50');
+                    codCard.classList.add('disabled-option');
+                    codCard.style.opacity = '0.6';
                     codCard.style.cursor = 'not-allowed';
                     codCard.style.backgroundColor = '#f8f9fa';
                 }
@@ -1192,11 +1194,20 @@
                         codRadio.parentElement.appendChild(message);
                     }
                 }
+
+                // If COD was previously selected, switch to online payment
+                if (codRadio.checked) {
+                    const onlineRadio = document.getElementById('payment_online');
+                    if (onlineRadio) {
+                        onlineRadio.checked = true;
+                        
+                        // Update selected classes
+                        document.querySelectorAll('.payment-option-card').forEach(c => c.classList.remove('selected'));
+                        document.getElementById('onlineOption')?.classList.add('selected');
+                    }
+                }
             }
         }
-
-        // Call the setup function
-        setupCODRestriction();
 
         // ==================== UTILITY FUNCTIONS ====================
         const utils = {
@@ -1264,6 +1275,13 @@
                     return false;
                 }
 
+                // ===== ADDED: COD validation in validateForm =====
+                if (selectedPayment.value === 'cod' && config.totalAmount > 1000) {
+                    this.showNotification('Cash on Delivery is not available for orders above ₹1000', 'error');
+                    return false;
+                }
+                // ===== END ADDED =====
+
                 return {
                     addressId: selectedAddress.value,
                     paymentMethod: selectedPayment.value
@@ -1287,17 +1305,6 @@
                 e.preventDefault();
                 console.log("=== CHECKOUT FORM SUBMISSION ===");
 
-                // Get payment method
-                const paymentMethod = document.querySelector('input[name="payment_method"]:checked')?.value;
-                
-                // Validate COD restriction
-                if (paymentMethod === 'cod' && config.totalAmount > 1000) {
-                    utils.showNotification('Cash on Delivery is not available for orders above ₹1000', 'error');
-                    this.isSubmitting = false;
-                    utils.resetPlaceOrderButton();
-                    return false;
-                }
-
                 // Check for duplicate submission
                 if (this.isSubmitting) {
                     console.log("⚠️ Form already submitting, preventing duplicate");
@@ -1317,7 +1324,7 @@
                     elements.placeOrderBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
                 }
 
-                // Validate form
+                // Validate form (includes COD validation now)
                 const validation = utils.validateForm();
                 if (!validation) {
                     this.isSubmitting = false;
@@ -1369,7 +1376,7 @@
 
                     if (responseData.success) {
                         // For COD orders, redirect directly to success page
-                        if (paymentMethod === 'cod') {
+                        if (validation.paymentMethod === 'cod') {
                             console.log("COD order successful, redirecting...");
                             window.location.href = responseData.redirect_url;
                         }
@@ -1640,14 +1647,18 @@
                 });
             });
 
-            // Payment option selection
+            // Payment option selection - UPDATED to respect disabled state
             document.querySelectorAll('.payment-option-card').forEach(card => {
                 card.addEventListener('click', function () {
                     const radio = this.querySelector('input[type="radio"]');
+                    // ===== UPDATED: Check if radio is disabled =====
                     if (radio && !radio.disabled) {
                         radio.checked = true;
                         document.querySelectorAll('.payment-option-card').forEach(c => c.classList.remove('selected'));
                         this.classList.add('selected');
+                    } else if (radio && radio.disabled) {
+                        // Show message if trying to select disabled COD
+                        utils.showNotification('Cash on Delivery is not available for orders above ₹1000', 'warning');
                     }
                 });
             });
@@ -1703,6 +1714,10 @@
         // ==================== INITIALIZATION ====================
         function init() {
             console.log("Checkout initialized");
+            
+            // ===== ADDED: Setup COD restriction first =====
+            setupCODRestriction();
+            
             setupEventListeners();
             
             if (!config.csrfToken) {
