@@ -1,4 +1,3 @@
-<!-- templates/orders/order_detail.html -->
 {% extends 'base.html' %}
 {% load static %}
 {% load math_filters %}
@@ -7,193 +6,582 @@
 
 {% block extra_css %}
 <style>
-    .order-status-badge {
+    :root {
+        --primary-color: #431405;
+        --secondary-color: #5a2a1a;
+        --accent-color: #c7a17a;
+        --light-bg: #fff8f5;
+        --dark-text: #2c2c2c;
+        --border-light: #e9e2dc;
+    }
+
+    /* Hero Section */
+    .order-hero {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        padding: 40px 0;
+        margin-bottom: 40px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .order-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
+        background-size: 30px 30px;
+        animation: shimmer 20s linear infinite;
+    }
+    
+    @keyframes shimmer {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(30px, 30px); }
+    }
+    
+    .order-hero h1 {
+        font-family: 'Playfair Display', serif;
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .order-hero p {
         font-size: 0.9rem;
-        padding: 0.4rem 0.8rem;
+        opacity: 0.9;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Breadcrumb */
+    .breadcrumb-custom {
+        background: white;
+        border-radius: 50px;
+        padding: 10px 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     }
     
-    .payment-badge {
-        font-size: 0.8rem;
-        padding: 0.3rem 0.6rem;
+    .breadcrumb-custom a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.3s;
     }
     
-    .order-item-card {
-        border: 1px solid #dee2e6;
-        border-radius: 10px;
-        padding: 1rem;
-        margin-bottom: 1rem;
+    .breadcrumb-custom a:hover {
+        color: var(--accent-color);
+    }
+    
+    .breadcrumb-custom .active {
+        color: var(--accent-color);
+        font-weight: 500;
+    }
+
+    /* Cards */
+    .order-card {
+        background: white;
+        border-radius: 20px;
+        border: 1px solid var(--border-light);
+        overflow: hidden;
+        margin-bottom: 25px;
         transition: all 0.3s ease;
     }
     
+    .order-card:hover {
+        box-shadow: 0 8px 25px rgba(67, 20, 5, 0.08);
+    }
+    
+    .order-card-header {
+        background: linear-gradient(135deg, #faf7f4 0%, #f5f0ea 100%);
+        padding: 18px 25px;
+        border-bottom: 1px solid var(--border-light);
+    }
+    
+    .order-card-header h5 {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .order-card-body {
+        padding: 25px;
+    }
+
+    /* Status Badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 16px;
+        border-radius: 30px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        gap: 8px;
+    }
+    
+    .status-badge.delivered {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-badge.confirmed {
+        background: #cce5ff;
+        color: #004085;
+    }
+    
+    .status-badge.shipped {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+    
+    .status-badge.pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-badge.cancelled,
+    .status-badge.refunded {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .status-badge.return_requested {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .payment-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        gap: 5px;
+    }
+    
+    .payment-badge.completed,
+    .payment-badge.success {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .payment-badge.failed {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .payment-badge.pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .payment-badge.refunded {
+        background: #e2e3e5;
+        color: #383d41;
+    }
+    
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .btn-outline-custom {
+        background: transparent;
+        border: 1px solid var(--border-light);
+        border-radius: 30px;
+        padding: 8px 20px;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        transition: all 0.3s;
+    }
+    
+    .btn-outline-custom:hover {
+        background: #f8f5f2;
+        border-color: var(--primary-color);
+    }
+    
+    .btn-danger-custom {
+        background: transparent;
+        border: 1px solid #dc3545;
+        border-radius: 30px;
+        padding: 8px 20px;
+        color: #dc3545;
+        font-size: 0.85rem;
+        transition: all 0.3s;
+    }
+    
+    .btn-danger-custom:hover {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .btn-warning-custom {
+        background: transparent;
+        border: 1px solid #ffc107;
+        border-radius: 30px;
+        padding: 8px 20px;
+        color: #ffc107;
+        font-size: 0.85rem;
+        transition: all 0.3s;
+    }
+    
+    .btn-warning-custom:hover {
+        background: #ffc107;
+        color: white;
+    }
+    
+    .btn-success-custom {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+        border: none;
+        border-radius: 30px;
+        padding: 10px 25px;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+    
+    .btn-success-custom:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+    }
+
+    /* Order Items */
+    .order-item-card {
+        border: 1px solid var(--border-light);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
     .order-item-card:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
     }
     
     .order-item-card.cancelled {
-        background-color: #f8f9fa;
-        opacity: 0.7;
+        background: #faf7f4;
+        opacity: 0.8;
     }
     
-    .refund-info {
-        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-        border: 1px solid #10b981;
-        border-radius: 10px;
-        padding: 1rem;
+    .product-image {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 12px;
     }
     
-    .wallet-payment-badge {
-        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-        color: #92400e;
-        border: 1px solid #fbbf24;
+    .product-name {
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 5px;
+    }
+    
+    .variant-details {
+        font-size: 0.8rem;
+        color: #7a6a5c;
+    }
+    
+    /* Alert Cards */
+    .alert-custom {
+        background: #fff3e6;
+        border: 1px solid #ffd9b5;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 25px;
+    }
+    
+    .alert-custom-success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 25px;
+    }
+    
+    /* Wallet & Razorpay Badges */
+    .wallet-badge {
+        background: linear-gradient(135deg, #fff3cd, #ffe6b3);
+        color: #856404;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
     }
     
     .razorpay-badge {
-        background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%);
+        background: linear-gradient(135deg, #dbeafe, #bfdbfe);
         color: #1e40af;
-        border: 1px solid #3b82f6;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    /* Summary */
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-light);
+    }
+    
+    .summary-row:last-child {
+        border-bottom: none;
+    }
+    
+    .summary-total {
+        padding-top: 15px;
+        margin-top: 15px;
+        border-top: 2px solid var(--border-light);
+    }
+    
+    /* Address Card */
+    .address-card {
+        background: #faf7f4;
+        border-radius: 16px;
+        padding: 20px;
+    }
+    
+    /* Help Card */
+    .help-card {
+        background: linear-gradient(135deg, #faf7f4 0%, #f5f0ea 100%);
+        border-radius: 16px;
+        padding: 25px;
+        text-align: center;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .order-hero h1 {
+            font-size: 1.5rem;
+        }
+        
+        .order-card-header h5 {
+            font-size: 1.1rem;
+        }
+        
+        .order-card-body {
+            padding: 20px;
+        }
+        
+        .product-image {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 10px;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+        
+        .action-buttons .btn {
+            width: 100%;
+        }
+        
+        .text-md-end {
+            text-align: left !important;
+            margin-top: 10px;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .order-hero h1 {
+            font-size: 1.2rem;
+        }
+        
+        .breadcrumb-custom {
+            font-size: 0.8rem;
+        }
+        
+        .order-item-card {
+            padding: 15px;
+        }
+        
+        .product-name {
+            font-size: 0.9rem;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-5">
+<!-- Hero Section -->
+<div class="order-hero">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="text-white">Order Details</h1>
+                <p class="text-white-50">Track and manage your order</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <div class="status-badge {{ order.status }}">
+                    <i class="fas fa-{% if order.status == 'delivered' %}check-circle{% elif order.status == 'cancelled' %}times-circle{% elif order.status == 'pending' %}clock{% elif order.status == 'shipped' %}truck{% else %}info-circle{% endif %}"></i>
+                    {{ order.get_status_display }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
     <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb bg-white p-3 rounded shadow-sm">
-            <li class="breadcrumb-item">
-                <a href="{% url 'homepage' %}" class="text-decoration-none text-gray-600">
-                    <i class="fas fa-home me-1"></i>Home
-                </a>
-            </li>
-            <li class="breadcrumb-item">
-                <a href="{% url 'order_list' %}" class="text-decoration-none text-gray-600">
-                    <i class="fas fa-shopping-bag me-1"></i>My Orders
-                </a>
-            </li>
-            <li class="breadcrumb-item active text-amber-900 fw-semibold">
-                <i class="fas fa-receipt me-1"></i>Order #{{ order.order_number }}
-            </li>
-        </ol>
-    </nav>
+    <div class="breadcrumb-custom">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'homepage' %}"><i class="fas fa-home me-1"></i>Home</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{% url 'order_list' %}"><i class="fas fa-shopping-bag me-1"></i>My Orders</a>
+                </li>
+                <li class="breadcrumb-item active">
+                    <i class="fas fa-receipt me-1"></i>Order #{{ order.order_number }}
+                </li>
+            </ol>
+        </nav>
+    </div>
 
     <div class="row">
-        <!-- Left Column: Order Details -->
+        <!-- Left Column -->
         <div class="col-lg-8">
-            <!-- Order Header -->
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div>
-                            <h2 class="h4 mb-1">Order #{{ order.order_number }}</h2>
-                            <p class="text-muted mb-0">
-                                <i class="far fa-calendar me-1"></i>
+            <!-- Order Header Card -->
+            <div class="order-card">
+                <div class="order-card-header">
+                    <h5>
+                        <i class="fas fa-receipt"></i>
+                        Order #{{ order.order_number }}
+                    </h5>
+                </div>
+                <div class="order-card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <i class="far fa-calendar me-2 text-muted"></i>
                                 {{ order.created_at|date:"F d, Y - h:i A" }}
                             </p>
                         </div>
-                        <div class="text-end">
-                            <!-- Order Status Badge -->
-                            <span class="order-status-badge badge 
-                                {% if order.status == 'delivered' %}bg-success
-                                {% elif order.status == 'cancelled' or order.status == 'refunded' %}bg-danger
-                                {% elif order.status == 'pending' %}bg-warning
-                                {% elif order.status == 'return_requested' %}bg-info
-                                {% else %}bg-primary{% endif %}">
-                                {{ order.get_status_display }}
-                            </span>
+                        <div class="col-md-6">
+                            <div class="action-buttons">
+                                <a href="{% url 'download_invoice' order.id %}" class="btn-outline-custom">
+                                    <i class="fas fa-download me-2"></i>Invoice
+                                </a>
+                                
+                                {% if order.can_be_cancelled %}
+                                <form method="POST" action="{% url 'cancel_order' order.id %}" 
+                                      onsubmit="return confirm('Are you sure you want to cancel this entire order? This action cannot be undone.')" 
+                                      style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-danger-custom">
+                                        <i class="fas fa-times me-2"></i>Cancel Order
+                                    </button>
+                                </form>
+                                {% endif %}
+                                
+                                {% if order.can_be_returned %}
+                                <button type="button" class="btn-warning-custom" 
+                                        data-bs-toggle="modal" data-bs-target="#returnOrderModal">
+                                    <i class="fas fa-undo-alt me-2"></i>Return Order
+                                </button>
+                                {% endif %}
+                                
+                                {% if order.payment_status == 'pending' and order.can_pay_online %}
+                                <button class="btn-success-custom" id="payNowBtn" data-order-id="{{ order.id }}">
+                                    <i class="fas fa-credit-card me-2"></i>Pay ₹{{ order.amount_to_pay|floatformat:2 }}
+                                </button>
+                                {% endif %}
+                            </div>
                         </div>
-                    </div>
-
-                    <!-- Action Buttons - FIXED: Only one cancel button -->
-                    <div class="d-flex flex-wrap gap-2">
-                        <!-- Invoice Download -->
-                        <a href="{% url 'download_invoice' order.id %}" class="btn btn-outline-primary">
-                            <i class="fas fa-download me-2"></i>Download Invoice
-                        </a>
-                        
-                        <!-- Cancel Order Button - USING FORM WITH CONFIRMATION -->
-                        {% if order.can_be_cancelled %}
-                        <form method="POST" action="{% url 'cancel_order' order.id %}" 
-                              onsubmit="return confirm('Are you sure you want to cancel this entire order? This action cannot be undone.')" 
-                              style="display: inline;">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-outline-danger">
-                                <i class="fas fa-times me-2"></i>Cancel Order
-                            </button>
-                        </form>
-                        {% endif %}
-                        
-                        <!-- Return Order Button - USING MODAL (keeps reason required) -->
-                        {% if order.can_be_returned %}
-                        <button type="button" class="btn btn-outline-warning" 
-                                data-bs-toggle="modal" data-bs-target="#returnOrderModal">
-                            <i class="fas fa-undo me-2"></i>Return Order
-                        </button>
-                        {% endif %}
-                        
-                        <!-- Pay Now Button -->
-                        {% if order.payment_status == 'pending' and order.can_pay_online %}
-                        <button class="btn btn-success" id="payNowBtn" data-order-id="{{ order.id }}">
-                            <i class="fas fa-credit-card me-2"></i>Pay ₹{{ order.amount_to_pay|floatformat:2 }}
-                        </button>
-                        {% endif %}
-
-                        <!-- Refund Status Button -->
-                        {% if order.status == 'cancelled' or order.return_status == 'approved' %}
-                        <a href="{% url 'refund_status' order.id %}" class="btn btn-outline-info">
-                            <i class="fas fa-receipt me-2"></i>View Refund Status
-                        </a>
-                        {% endif %}
-
-                        <!-- Check Refund Status for pending returns -->
-                        {% if order.return_status == 'requested' %}
-                        <a href="{% url 'refund_status' order.id %}" class="btn btn-outline-warning">
-                            <i class="fas fa-clock me-2"></i>Check Refund Status
-                        </a>
-                        {% endif %}
                     </div>
                 </div>
             </div>
 
-            <!-- Payment Information -->
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-credit-card me-2"></i>Payment Information
+            <!-- Return Status Alerts -->
+            {% if order.return_status == 'requested' %}
+            <div class="alert-custom">
+                <div class="d-flex align-items-start">
+                    <i class="fas fa-clock me-3 mt-1" style="font-size: 1.2rem;"></i>
+                    <div>
+                        <h6 class="mb-2 fw-bold">Return Request Submitted</h6>
+                        <p class="mb-2"><strong>Reason:</strong> {{ order.return_reason }}</p>
+                        <p class="mb-0 small">Your return request is under review. Refund will be processed after admin approval.</p>
+                    </div>
+                </div>
+            </div>
+            {% elif order.return_status == 'approved' %}
+            <div class="alert-custom-success">
+                <div class="d-flex align-items-start">
+                    <i class="fas fa-check-circle me-3 mt-1" style="font-size: 1.2rem; color: #155724;"></i>
+                    <div>
+                        <h6 class="mb-2 fw-bold text-success">Return Approved</h6>
+                        <p class="mb-0">Your return request has been approved. Refund has been processed.</p>
+                    </div>
+                </div>
+            </div>
+            {% elif order.return_status == 'rejected' %}
+            <div class="alert-custom" style="background: #f8d7da; border-color: #f5c6cb;">
+                <div class="d-flex align-items-start">
+                    <i class="fas fa-times-circle me-3 mt-1" style="font-size: 1.2rem; color: #721c24;"></i>
+                    <div>
+                        <h6 class="mb-2 fw-bold text-danger">Return Request Rejected</h6>
+                        <p class="mb-2"><strong>Reason:</strong> {{ order.return_rejection_reason }}</p>
+                        <p class="mb-0">Please contact support if you have questions.</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Payment Information Card -->
+            <div class="order-card">
+                <div class="order-card-header">
+                    <h5>
+                        <i class="fas fa-credit-card"></i>
+                        Payment Information
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="order-card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <p class="mb-2">
-                                <strong>Payment Method:</strong><br>
+                            <p class="mb-3">
+                                <strong class="d-block mb-2">Payment Method</strong>
                                 {{ order.get_payment_method_display }}
                             </p>
-                            <p class="mb-2">
-                                <strong>Payment Status:</strong><br>
-                                <span class="payment-badge badge 
-                                    {% if order.payment_status == 'completed' or order.payment_status == 'success' %}bg-success
-                                    {% elif order.payment_status == 'failed' %}bg-danger
-                                    {% elif order.payment_status == 'pending' %}bg-warning
-                                    {% elif order.payment_status == 'refunded' %}bg-info
-                                    {% else %}bg-secondary{% endif %}">
+                            <p class="mb-0">
+                                <strong class="d-block mb-2">Payment Status</strong>
+                                <span class="payment-badge {{ order.payment_status }}">
+                                    <i class="fas fa-{% if order.payment_status == 'completed' %}check-circle{% elif order.payment_status == 'failed' %}times-circle{% else %}clock{% endif %}"></i>
                                     {{ order.get_payment_status_display }}
                                 </span>
                             </p>
                         </div>
                         <div class="col-md-6">
                             {% if order.wallet_used %}
-                            <p class="mb-2">
-                                <strong>Wallet Payment:</strong><br>
-                                <span class="wallet-payment-badge badge">
+                            <p class="mb-3">
+                                <strong class="d-block mb-2">Wallet Payment</strong>
+                                <span class="wallet-badge">
                                     <i class="fas fa-wallet me-1"></i>₹{{ order.wallet_amount|floatformat:2 }}
                                 </span>
                             </p>
                             {% endif %}
                             
                             {% if order.razorpay_payment_id %}
-                            <p class="mb-2">
-                                <strong>Razorpay ID:</strong><br>
-                                <small class="text-muted">{{ order.razorpay_payment_id|truncatechars:20 }}</small>
+                            <p class="mb-0">
+                                <strong class="d-block mb-2">Razorpay ID</strong>
+                                <span class="razorpay-badge">
+                                    <i class="fab fa-razorpay me-1"></i>{{ order.razorpay_payment_id|truncatechars:20 }}
+                                </span>
                             </p>
                             {% endif %}
                         </div>
@@ -201,116 +589,76 @@
                 </div>
             </div>
 
-            <!-- Return Status Information -->
-            {% if order.return_status == 'requested' %}
-            <div class="alert alert-warning mb-4">
-                <div class="d-flex align-items-start">
-                    <i class="fas fa-clock me-3 mt-1"></i>
-                    <div>
-                        <h5 class="alert-heading">Return Request Submitted</h5>
-                        <p class="mb-2"><strong>Reason:</strong> {{ order.return_reason }}</p>
-                        <p class="mb-0">Your return request is under review. Refund will be processed after admin approval.</p>
-                    </div>
-                </div>
-            </div>
-            {% elif order.return_status == 'approved' %}
-            <div class="alert alert-success mb-4">
-                <div class="d-flex align-items-start">
-                    <i class="fas fa-check-circle me-3 mt-1"></i>
-                    <div>
-                        <h5 class="alert-heading">Return Approved</h5>
-                        <p class="mb-0">Your return request has been approved. Refund has been processed.</p>
-                    </div>
-                </div>
-            </div>
-            {% elif order.return_status == 'rejected' %}
-            <div class="alert alert-danger mb-4">
-                <div class="d-flex align-items-start">
-                    <i class="fas fa-times-circle me-3 mt-1"></i>
-                    <div>
-                        <h5 class="alert-heading">Return Request Rejected</h5>
-                        <p class="mb-2"><strong>Reason for rejection:</strong> {{ order.return_rejection_reason }}</p>
-                        <p class="mb-0">Your return request has been rejected. Please contact support if you have questions.</p>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Order Items -->
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-box me-2"></i>Order Items ({{ order.items.count }})
+            <!-- Order Items Card -->
+            <div class="order-card">
+                <div class="order-card-header">
+                    <h5>
+                        <i class="fas fa-box"></i>
+                        Order Items ({{ order.items.count }})
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="order-card-body">
                     {% for item in order.items.all %}
                     <div class="order-item-card {% if item.is_cancelled %}cancelled{% endif %}">
                         <div class="row align-items-center">
-                            <!-- Product Image -->
-                            <div class="col-md-2">
+                            <div class="col-md-2 text-center text-md-start">
                                 {% if item.product_image %}
                                 <img src="{{ item.product_image.url }}" alt="{{ item.product_name }}" 
-                                     class="img-fluid rounded" style="max-height: 100px;">
+                                     class="product-image">
                                 {% else %}
                                 <img src="{% static 'images/placeholder.jpg' %}" alt="No Image" 
-                                     class="img-fluid rounded" style="max-height: 100px;">
+                                     class="product-image">
                                 {% endif %}
                             </div>
                             
-                            <!-- Product Details -->
                             <div class="col-md-6">
-                                <h6 class="mb-1 {% if item.is_cancelled %}text-decoration-line-through text-muted{% endif %}">
+                                <div class="product-name">
                                     {{ item.product_name }}
                                     {% if item.is_cancelled %}
                                     <span class="badge bg-danger ms-2">Cancelled</span>
                                     {% endif %}
-                                </h6>
-                                <p class="text-muted small mb-1">{{ item.variant_details }}</p>
-                                <p class="small mb-1">Quantity: {{ item.quantity }}</p>
-                                <p class="small mb-0">Price: ₹{{ item.unit_price|floatformat:2 }} each</p>
-                                
+                                </div>
+                                <div class="variant-details">{{ item.variant_details }}</div>
+                                <div class="mt-2">
+                                    <span class="me-3">Qty: {{ item.quantity }}</span>
+                                    <span>₹{{ item.unit_price|floatformat:2 }} each</span>
+                                </div>
                                 {% if item.cancellation_reason %}
-                                <p class="small text-danger mt-2 mb-0">
-                                    <strong>Cancellation Reason:</strong> {{ item.cancellation_reason }}
-                                </p>
+                                <div class="small text-danger mt-2">
+                                    <i class="fas fa-info-circle me-1"></i>{{ item.cancellation_reason }}
+                                </div>
                                 {% endif %}
                             </div>
                             
-                            <!-- Price & Actions - FIXED: Only one cancel button -->
-                            <div class="col-md-4 text-end">
+                            <div class="col-md-4 text-md-end mt-3 mt-md-0">
                                 <h5 class="mb-2 {% if item.is_cancelled %}text-decoration-line-through text-muted{% endif %}">
                                     ₹{{ item.total_price|floatformat:2 }}
                                 </h5>
                                 
-                                <!-- Cancel Item Button - USING FORM WITH CONFIRMATION (only one) -->
                                 {% if not item.is_cancelled and order.can_be_cancelled %}
                                 <form method="POST" action="{% url 'cancel_order_item' item.id %}" 
-                                      onsubmit="return confirm('Are you sure you want to cancel {{ item.product_name }}? This action cannot be undone.')" 
+                                      onsubmit="return confirm('Are you sure you want to cancel {{ item.product_name }}?')" 
                                       style="display: inline;">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <button type="submit" class="btn-danger-custom" style="padding: 5px 15px; font-size: 0.75rem;">
                                         <i class="fas fa-times"></i> Cancel Item
                                     </button>
                                 </form>
                                 {% endif %}
 
-                                 <!-- ===== NEW: Return Item Button (only for delivered orders, not cancelled, not already returned) ===== -->
-    {% if order.status == 'delivered' and not item.is_cancelled and item.return_status == 'not_requested' %}
-    <a href="{% url 'request_item_return' item.id %}" class="btn btn-sm btn-outline-warning">
-        <i class="fas fa-undo"></i> Return Item
-    </a>
-    {% endif %}
-    
-    <!-- Show return status if requested -->
-    {% if item.return_status == 'requested' %}
-    <span class="badge bg-warning mt-2">Return Requested</span>
-    {% elif item.return_status == 'approved' %}
-    <span class="badge bg-success mt-2">Return Approved</span>
-    {% elif item.return_status == 'rejected' %}
-    <span class="badge bg-danger mt-2">Return Rejected</span>
-    {% endif %}
-    
+                                {% if order.status == 'delivered' and not item.is_cancelled and item.return_status == 'not_requested' %}
+                                <a href="{% url 'request_item_return' item.id %}" class="btn-warning-custom" style="padding: 5px 15px; font-size: 0.75rem; display: inline-block; margin-top: 8px;">
+                                    <i class="fas fa-undo-alt"></i> Return Item
+                                </a>
+                                {% endif %}
+                                
+                                {% if item.return_status == 'requested' %}
+                                <span class="badge bg-warning mt-2 d-block">Return Requested</span>
+                                {% elif item.return_status == 'approved' %}
+                                <span class="badge bg-success mt-2 d-block">Return Approved</span>
+                                {% elif item.return_status == 'rejected' %}
+                                <span class="badge bg-danger mt-2 d-block">Return Rejected</span>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -319,63 +667,57 @@
             </div>
         </div>
 
-        <!-- Right Column: Order Summary & Address -->
+        <!-- Right Column -->
         <div class="col-lg-4">
-            <!-- Order Summary -->
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-receipt me-2"></i>Order Summary
+            <!-- Order Summary Card -->
+            <div class="order-card">
+                <div class="order-card-header">
+                    <h5>
+                        <i class="fas fa-receipt"></i>
+                        Order Summary
                     </h5>
                 </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-between mb-2">
+                <div class="order-card-body">
+                    <div class="summary-row">
                         <span class="text-muted">Subtotal</span>
                         <span>₹{{ order.subtotal|floatformat:2 }}</span>
                     </div>
                     
                     {% if order.coupon_discount > 0 %}
-                    <div class="d-flex justify-content-between mb-2 text-success">
+                    <div class="summary-row text-success">
                         <span>Coupon Discount</span>
                         <span>-₹{{ order.coupon_discount|floatformat:2 }}</span>
                     </div>
                     {% endif %}
                     
-                    {% if order.discount_amount > order.coupon_discount %}
-                    <div class="d-flex justify-content-between mb-2 text-success">
-                        <span>Additional Discount</span>
-                        <span>-₹{{ additional_discount|floatformat:2 }}</span>
-                    </div>
-                    {% endif %}
-                    
-                    <div class="d-flex justify-content-between mb-2">
+                    <div class="summary-row">
                         <span class="text-muted">Shipping</span>
                         <span class="{% if order.shipping_charge == 0 %}text-success{% endif %}">
                             {% if order.shipping_charge == 0 %}FREE{% else %}₹{{ order.shipping_charge|floatformat:2 }}{% endif %}
                         </span>
                     </div>
                     
-                    <div class="d-flex justify-content-between mb-2">
+                    <div class="summary-row">
                         <span class="text-muted">Tax (18%)</span>
                         <span>₹{{ order.tax_amount|floatformat:2 }}</span>
                     </div>
                     
                     {% if order.wallet_amount > 0 %}
-                    <div class="d-flex justify-content-between mb-2 text-warning">
+                    <div class="summary-row text-warning">
                         <span>Wallet Payment</span>
                         <span>-₹{{ order.wallet_amount|floatformat:2 }}</span>
                     </div>
                     {% endif %}
                     
-                    <hr>
-                    
-                    <div class="d-flex justify-content-between mb-3">
-                        <strong>Total Amount</strong>
-                        <strong class="fs-5 text-amber-900">₹{{ order.total_amount|floatformat:2 }}</strong>
+                    <div class="summary-total">
+                        <div class="d-flex justify-content-between">
+                            <strong>Total Amount</strong>
+                            <strong class="fs-5" style="color: var(--primary-color);">₹{{ order.total_amount|floatformat:2 }}</strong>
+                        </div>
                     </div>
                     
                     {% if order.amount_to_pay > 0 and order.payment_status == 'pending' %}
-                    <div class="alert alert-warning mt-3">
+                    <div class="alert-custom mt-3" style="background: #fff3cd; border-color: #ffc107;">
                         <div class="d-flex justify-content-between align-items-center">
                             <span>Amount to pay:</span>
                             <strong class="fs-6">₹{{ order.amount_to_pay|floatformat:2 }}</strong>
@@ -385,87 +727,91 @@
                 </div>
             </div>
 
-            <!-- Shipping Address -->
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-map-marker-alt me-2"></i>Shipping Address
+            <!-- Shipping Address Card -->
+            <div class="order-card">
+                <div class="order-card-header">
+                    <h5>
+                        <i class="fas fa-map-marker-alt"></i>
+                        Shipping Address
                     </h5>
                 </div>
-                <div class="card-body">
-                    <p class="mb-2"><strong>{{ order.shipping_address.full_name }}</strong></p>
-                    <p class="mb-2">
-                        <i class="fas fa-phone me-2 text-muted"></i>{{ order.shipping_address.phone }}
-                    </p>
-                    <p class="mb-2">
-                        {{ order.shipping_address.address_line1 }}
-                        {% if order.shipping_address.address_line2 %}
-                        , {{ order.shipping_address.address_line2 }}
+                <div class="order-card-body">
+                    <div class="address-card">
+                        <div class="fw-bold mb-2">{{ order.shipping_address.full_name }}</div>
+                        <div class="mb-2">
+                            <i class="fas fa-phone me-2 text-muted"></i>{{ order.shipping_address.phone }}
+                        </div>
+                        <div class="mb-2">
+                            {{ order.shipping_address.address_line1 }}
+                            {% if order.shipping_address.address_line2 %}
+                            , {{ order.shipping_address.address_line2 }}
+                            {% endif %}
+                        </div>
+                        {% if order.shipping_address.landmark %}
+                        <div class="mb-2">
+                            <i class="fas fa-map-pin me-2 text-muted"></i>
+                            Landmark: {{ order.shipping_address.landmark }}
+                        </div>
                         {% endif %}
-                    </p>
-                    {% if order.shipping_address.landmark %}
-                    <p class="mb-2">
-                        <i class="fas fa-map-pin me-2 text-muted"></i>
-                        Landmark: {{ order.shipping_address.landmark }}
-                    </p>
-                    {% endif %}
-                    <p class="mb-2">
-                        <i class="fas fa-city me-2 text-muted"></i>
-                        {{ order.shipping_address.city }}, {{ order.shipping_address.state }} - {{ order.shipping_address.postal_code }}
-                    </p>
-                    <p class="mb-0">
-                        <i class="fas fa-globe me-2 text-muted"></i>
-                        {{ order.shipping_address.country }}
-                    </p>
+                        <div class="mb-2">
+                            <i class="fas fa-city me-2 text-muted"></i>
+                            {{ order.shipping_address.city }}, {{ order.shipping_address.state }}
+                        </div>
+                        <div class="mb-2">
+                            <i class="fas fa-mail-bulk me-2 text-muted"></i>
+                            {{ order.shipping_address.postal_code }}
+                        </div>
+                        <div class="mb-0">
+                            <i class="fas fa-globe me-2 text-muted"></i>
+                            {{ order.shipping_address.country }}
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Need Help Card -->
-            <div class="card shadow-sm border-0">
-                <div class="card-body text-center">
-                    <i class="fas fa-headset fa-2x text-amber-900 mb-3"></i>
-                    <h6 class="mb-2">Need Help with Your Order?</h6>
-                    <p class="text-muted small mb-3">
-                        Contact our customer support for any questions about your order.
-                    </p>
-                    <a href="mailto:support@sanjeri.com" class="btn btn-outline-amber-900 btn-sm">
-                        <i class="fas fa-envelope me-1"></i>Contact Support
-                    </a>
-                </div>
+            <!-- Help Card -->
+            <div class="help-card">
+                <i class="fas fa-headset fa-3x mb-3" style="color: var(--accent-color);"></i>
+                <h6 class="mb-2">Need Help with Your Order?</h6>
+                <p class="text-muted small mb-3">
+                    Contact our customer support for any questions about your order.
+                </p>
+                <a href="mailto:support@sanjeri.com" class="btn-outline-custom">
+                    <i class="fas fa-envelope me-2"></i>Contact Support
+                </a>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Return Order Modal (KEEP THIS - only for returns) -->
+<!-- Return Order Modal -->
 {% if order.can_be_returned %}
 <div class="modal fade" id="returnOrderModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; overflow: hidden;">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white;">
                 <h5 class="modal-title">Return Order #{{ order.order_number }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{% url 'request_return' order.id %}">   
                 {% csrf_token %}
-                <div class="modal-body">
-                    <p>Please provide a reason for returning this order.</p>
+                <div class="modal-body" style="padding: 25px;">
+                    <p class="mb-3">Please provide a reason for returning this order.</p>
                     
-                    <div class="mb-3">
-                        <label for="returnReason" class="form-label">
-                            Reason for return <span class="text-danger">*</span>:
-                        </label>
+                    <div class="mb-4">
+                        <label for="returnReason" class="form-label fw-bold">Reason for return <span class="text-danger">*</span>:</label>
                         <textarea class="form-control" id="returnReason" name="return_reason" 
                                   rows="4" placeholder="Please provide a detailed reason for return..." 
+                                  style="border-radius: 12px; border-color: var(--border-light);"
                                   required></textarea>
                     </div>
                     
-                    <div class="alert alert-info">
+                    <div class="alert-custom" style="background: #f8f9fa; border-color: var(--border-light);">
                         <div class="d-flex align-items-start">
-                            <i class="fas fa-info-circle me-2 mt-1"></i>
+                            <i class="fas fa-info-circle me-2 mt-1" style="color: var(--accent-color);"></i>
                             <div>
-                                <h6 class="alert-heading">Return Policy</h6>
-                                <ul class="mb-0 ps-3">
+                                <h6 class="mb-2 fw-bold">Return Policy</h6>
+                                <ul class="mb-0 ps-3 small">
                                     <li>Returns accepted within 7 days of delivery</li>
                                     <li>Products must be unused and in original packaging</li>
                                     <li>Refund amount: <strong>₹{{ order.total_amount|floatformat:2 }}</strong></li>
@@ -476,27 +822,23 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-warning">Submit Return Request</button>
+                <div class="modal-footer" style="border-top: 1px solid var(--border-light);">
+                    <button type="button" class="btn-outline-custom" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn-warning-custom">Submit Return Request</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 {% endif %}
-{% endblock %}
 
-{% block extra_js %}
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Pay Now Button
     const payNowBtn = document.getElementById('payNowBtn');
     
     async function initiatePayment(orderId) {
         try {
-            // Show loading
             payNowBtn.disabled = true;
             payNowBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
             
@@ -529,7 +871,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     theme: { color: '#431405' },
                     modal: {
                         ondismiss: function() {
-                            // Reset button if payment modal is closed
                             payNowBtn.disabled = false;
                             payNowBtn.innerHTML = '<i class="fas fa-credit-card me-2"></i>Pay ₹{{ order.amount_to_pay|floatformat:2 }}';
                         }
@@ -572,11 +913,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await verifyResponse.json();
             
             if (data.success) {
-                // Redirect to success page
                 window.location.href = data.redirect_url;
             } else {
                 alert('Payment verification failed: ' + data.message);
-                window.location.reload(); // Reload to update payment status
+                window.location.reload();
             }
             
         } catch (error) {
@@ -595,7 +935,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Return form validation
     const returnForm = document.querySelector('form[action*="request_return"]');
     if (returnForm) {
         returnForm.addEventListener('submit', function(e) {

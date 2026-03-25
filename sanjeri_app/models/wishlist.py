@@ -1,7 +1,7 @@
 # models/wishlist.py
 from django.db import models
 from django.conf import settings
-from .product import Product
+from .product import Product, ProductVariant
 
 # models/wishlist.py - Add this method to Wishlist model
 class Wishlist(models.Model):
@@ -28,11 +28,10 @@ class WishlistItem(models.Model):
         on_delete=models.CASCADE,
         related_name='items'  # ADD THIS LINE
     )
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)    
     added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ['wishlist', 'product']
-
     def __str__(self):
         return f"{self.product.name} in {self.wishlist}"

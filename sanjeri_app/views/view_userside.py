@@ -64,6 +64,8 @@ def home(request):
 def men_products(request):
     """Men's products view showing each variant as separate card"""
     # Get all parameters including search
+    # At the beginning of the view function:
+ 
     search_query = request.GET.get('q', '')
     sort_by = request.GET.get('sort', 'featured')
     price_range = request.GET.get('price_range', '')
@@ -87,32 +89,7 @@ def men_products(request):
         except Wishlist.DoesNotExist:
             pass
 
-    # Add this debug code after getting your products
-    # now = timezone.now()
-
-    # Check active product offers
-    # active_product_offers = ProductOffer.objects.filter(
-    #     is_active=True,
-    #     valid_from__lte=now,
-    #     valid_to__gte=now
-    # )
-    # print(f"\n=== OFFER DEBUG ===")
-    # print(f"Active Product Offers: {active_product_offers.count()}")
-    # for offer in active_product_offers:
-    #     print(f"  - {offer.name}: {offer.discount_percentage}% off")
-    #     print(f"    Products: {[p.name for p in offer.products.all()]}")
     
-    # # Check active category offers
-    # active_category_offers = CategoryOffer.objects.filter(
-    #     is_active=True,
-    #     valid_from__lte=now,
-    #     valid_to__gte=now
-    # )
-    # print(f"Active Category Offers: {active_category_offers.count()}")
-    # for offer in active_category_offers:
-    #     print(f"  - {offer.name}: {offer.discount_percentage}% off on {offer.category.name}")
-
-
     # Start with VARIANTS, not products
     variants = ProductVariant.objects.filter(
         is_active=True,
@@ -175,6 +152,11 @@ def men_products(request):
     else:  # featured (default)
         variants = variants.filter(product__is_featured=True).order_by('-product__created_at')
     
+    # Add wishlist status to each variant's product
+    for variant in variants:
+        variant.product.is_in_wishlist = variant.product.id in wishlist_product_ids
+    
+
     # Get available filter options
     available_volumes = ProductVariant.objects.filter(
         product__is_active=True,
@@ -198,9 +180,6 @@ def men_products(request):
         'occasion', flat=True
     ).distinct()
     
-    # Add wishlist status to each variant's product
-    for variant in variants:
-        variant.product.is_in_wishlist = variant.product.id in wishlist_product_ids
     
     # Pagination
     paginator = Paginator(variants, 5)  # Changed from 5 to 12 for 4 per row × 3 rows
@@ -232,6 +211,7 @@ def men_products(request):
 def women_products(request):
     """Women's products view showing each variant as separate card"""
     # Get all parameters including search
+
     search_query = request.GET.get('q', '')
     sort_by = request.GET.get('sort', 'featured')
     price_range = request.GET.get('price_range', '')
@@ -250,7 +230,9 @@ def women_products(request):
 
         try:
             wishlist = Wishlist.objects.get(user=request.user)
-            wishlist_product_ids = list(wishlist.products.values_list('id', flat=True))
+            wishlist_product_ids = list(WishlistItem.objects.filter(
+                wishlist=wishlist
+            ).values_list('product_id', flat=True))        
         except Wishlist.DoesNotExist:
             pass
     
@@ -351,6 +333,11 @@ def women_products(request):
     else:  # featured (default)
         variants = variants.filter(product__is_featured=True).order_by('-product__created_at')
     
+    # Then for each variant, add:
+    for variant in variants:
+        variant.product.is_in_wishlist = variant.product.id in wishlist_product_ids
+
+
     print(f"Final variants count before pagination: {variants.count()}")
     print("=== END DEBUG ===")
     
@@ -384,9 +371,7 @@ def women_products(request):
     ).distinct()
     
     # For each variant, check if its product is in wishlist
-    for variant in page_obj.object_list:
-        variant.product.is_in_wishlist = variant.product.id in wishlist_product_ids
-    
+   
     context = {
         'variants': page_obj,  # Use paginated variants
         'page_obj': page_obj,
@@ -398,6 +383,7 @@ def women_products(request):
         'available_occasions': available_occasions,
         'title': 'Women\'s Fragrances - Sanjeri',
         'cart_item_count': cart_item_count,
+        'wishlist_count': len(wishlist_product_ids),
         'active_filters': {
             'price_range': price_range,
             'fragrance_type': fragrance_type,
@@ -410,6 +396,8 @@ def women_products(request):
 def unisex_products(request):
     """Unisex products view showing each variant as separate card"""
     # Get all parameters including search
+
+   
     search_query = request.GET.get('q', '')
     sort_by = request.GET.get('sort', 'featured')
     price_range = request.GET.get('price_range', '')
@@ -530,6 +518,11 @@ def unisex_products(request):
     else:  # featured (default)
         variants = variants.filter(product__is_featured=True).order_by('-product__created_at')
     
+     # Then for each variant, add:
+    for variant in variants:
+        variant.product.is_in_wishlist = variant.product.id in wishlist_product_ids
+
+
     print(f"Final variants count before pagination: {variants.count()}")
     print("=== END DEBUG ===")
     

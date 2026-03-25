@@ -61,15 +61,15 @@
                             </div>
                             
                             <!-- Wishlist Icon -->
-                            <a href="{% url 'wishlist' %}" class="nav-icon position-relative">
-                                <i class="fas fa-heart"></i>
-                                {% if wishlist_count > 0 %}
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                    {{ wishlist_count }}
-                                    <span class="visually-hidden">wishlist items</span>
-                                </span>
-                                {% endif %}
-                            </a>
+<!-- Wishlist Icon -->
+<a href="{% url 'wishlist' %}" class="nav-icon position-relative">
+    <i class="far fa-heart"></i>
+    {% if wishlist_count > 0 %}
+    <span class="wishlist-count" style="position: absolute; top: -8px; right: -8px; background: #dc3545; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center;">
+        {{ wishlist_count }}
+    </span>
+    {% endif %}
+</a>
                             
                             <!-- Cart Icon -->
                             <a href="{% url 'cart' %}" class="nav-icon position-relative">

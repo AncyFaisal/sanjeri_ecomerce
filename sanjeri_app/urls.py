@@ -135,9 +135,10 @@ path('products/<int:product_pk>/variants/<int:variant_pk>/restore/', variant_res
  path('wishlist/count/', get_wishlist_count, name='get_wishlist_count'),
     path('wishlist/', wishlist_view, name='wishlist'),
     path('wishlist/add/<int:product_id>/', add_to_wishlist, name='add_to_wishlist'),
-    path('wishlist/remove/<int:item_id>/', remove_from_wishlist, name='remove_from_wishlist'),
+    path('wishlist/remove/<int:product_id>/', remove_from_wishlist, name='remove_from_wishlist'),
     path('wishlist/move-to-cart/<int:product_id>/', add_to_cart_from_wishlist, name='move_to_cart_from_wishlist'),
-
+    path('wishlist/check-multiple/', check_multiple_wishlist, name='check_multiple_wishlist'),
+    
     # Cart URLs
     path('cart/check-variant/<int:variant_id>/', check_variant_in_cart, name='check_variant_in_cart'),
     path('cart/debug/', cart_debug, name='cart_debug'),  # Add this

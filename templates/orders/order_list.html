@@ -1,130 +1,598 @@
-<!-- templates/orders/order_list.html -->
 {% extends 'base.html' %}
 {% load static %}
 
 {% block title %}{{ title }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #431405;
+        --secondary-color: #5a2a1a;
+        --accent-color: #c7a17a;
+        --light-bg: #fff8f5;
+        --dark-text: #2c2c2c;
+        --border-light: #e9e2dc;
+    }
+
+    /* Hero Section */
+    .orders-hero {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        padding: 50px 0;
+        margin-bottom: 40px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .orders-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
+        background-size: 30px 30px;
+        animation: shimmer 20s linear infinite;
+    }
+    
+    @keyframes shimmer {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(30px, 30px); }
+    }
+    
+    .orders-hero h1 {
+        font-family: 'Playfair Display', serif;
+        font-size: 2.5rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .orders-hero p {
+        font-size: 1rem;
+        opacity: 0.9;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .orders-count-badge {
+        background: rgba(255,255,255,0.2);
+        backdrop-filter: blur(10px);
+        border-radius: 50px;
+        padding: 8px 20px;
+        font-size: 0.9rem;
+    }
+
+    /* Orders Card */
+    .orders-card {
+        background: white;
+        border-radius: 20px;
+        border: 1px solid var(--border-light);
+        overflow: hidden;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+    }
+    
+    .orders-header {
+        background: linear-gradient(135deg, #faf7f4 0%, #f5f0ea 100%);
+        padding: 20px 25px;
+        border-bottom: 1px solid var(--border-light);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .orders-header h4 {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin: 0;
+    }
+    
+    /* Search Form */
+    .search-form {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .search-input {
+        border: 1px solid var(--border-light);
+        border-radius: 30px;
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        transition: all 0.3s;
+        min-width: 200px;
+    }
+    
+    .search-input:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(199, 161, 122, 0.1);
+    }
+    
+    .status-select {
+        border: 1px solid var(--border-light);
+        border-radius: 30px;
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .status-select:focus {
+        outline: none;
+        border-color: var(--accent-color);
+    }
+    
+    .btn-search {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        border: none;
+        border-radius: 30px;
+        padding: 8px 20px;
+        transition: all 0.3s;
+    }
+    
+    .btn-search:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(67, 20, 5, 0.2);
+    }
+    
+    .btn-clear {
+        background: transparent;
+        color: var(--primary-color);
+        border: 1px solid var(--border-light);
+        border-radius: 30px;
+        padding: 8px 20px;
+        transition: all 0.3s;
+    }
+    
+    .btn-clear:hover {
+        background: #f8f5f2;
+        border-color: var(--primary-color);
+    }
+    
+    /* Table Styles */
+    .orders-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    
+    .orders-table thead th {
+        background: #faf7f4;
+        padding: 15px 20px;
+        font-weight: 600;
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--border-light);
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .orders-table tbody tr {
+        transition: all 0.3s;
+    }
+    
+    .orders-table tbody tr:hover {
+        background: #faf7f4;
+    }
+    
+    .orders-table td {
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--border-light);
+        vertical-align: middle;
+    }
+    
+    .order-number {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 0.9rem;
+    }
+    
+    .order-date {
+        color: #7a6a5c;
+        font-size: 0.85rem;
+    }
+    
+    .order-items {
+        font-size: 0.85rem;
+        color: #7a6a5c;
+    }
+    
+    .order-amount {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 1rem;
+    }
+    
+    /* Status Badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 12px;
+        border-radius: 30px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        gap: 5px;
+    }
+    
+    .status-badge.delivered {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-badge.confirmed {
+        background: #cce5ff;
+        color: #004085;
+    }
+    
+    .status-badge.shipped {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+    
+    .status-badge.pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-badge.cancelled,
+    .status-badge.refunded {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .btn-action {
+        padding: 6px 12px;
+        font-size: 0.75rem;
+        border-radius: 20px;
+        transition: all 0.3s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .btn-view {
+        background: #f8f5f2;
+        color: var(--primary-color);
+        border: 1px solid var(--border-light);
+    }
+    
+    .btn-view:hover {
+        background: var(--primary-color);
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    .btn-invoice {
+        background: #f8f5f2;
+        color: var(--accent-color);
+        border: 1px solid var(--border-light);
+    }
+    
+    .btn-invoice:hover {
+        background: var(--accent-color);
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    .btn-cancel {
+        background: transparent;
+        color: #dc3545;
+        border: 1px solid #dc3545;
+    }
+    
+    .btn-cancel:hover {
+        background: #dc3545;
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    .btn-return {
+        background: transparent;
+        color: #ffc107;
+        border: 1px solid #ffc107;
+    }
+    
+    .btn-return:hover {
+        background: #ffc107;
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    /* Empty State */
+    .empty-orders {
+        text-align: center;
+        padding: 60px 20px;
+    }
+    
+    .empty-icon {
+        font-size: 4rem;
+        color: var(--border-light);
+        margin-bottom: 20px;
+    }
+    
+    .empty-icon i {
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .empty-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 10px;
+    }
+    
+    .empty-subtitle {
+        color: #7a6a5c;
+        margin-bottom: 25px;
+    }
+    
+    .btn-shop {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        border: none;
+        border-radius: 50px;
+        padding: 12px 30px;
+        transition: all 0.3s;
+    }
+    
+    .btn-shop:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(67, 20, 5, 0.2);
+        color: white;
+    }
+    
+    /* Modal Styles */
+    .modal-content {
+        border-radius: 20px;
+        border: none;
+        overflow: hidden;
+    }
+    
+    .modal-header {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        border: none;
+        padding: 20px;
+    }
+    
+    .modal-header .btn-close {
+        background: white;
+        border-radius: 50%;
+        opacity: 0.8;
+    }
+    
+    .modal-body {
+        padding: 25px;
+    }
+    
+    .modal-footer {
+        padding: 20px;
+        border-top: 1px solid var(--border-light);
+    }
+    
+    /* Responsive */
+    @media (max-width: 992px) {
+        .orders-table {
+            display: block;
+            overflow-x: auto;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .orders-hero h1 {
+            font-size: 1.8rem;
+        }
+        
+        .orders-header {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .search-form {
+            justify-content: center;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+        
+        .btn-action {
+            justify-content: center;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .orders-hero h1 {
+            font-size: 1.5rem;
+        }
+        
+        .orders-header h4 {
+            font-size: 1.2rem;
+        }
+        
+        .search-input {
+            min-width: 150px;
+        }
+        
+        .order-number {
+            font-size: 0.8rem;
+        }
+        
+        .order-amount {
+            font-size: 0.9rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">My Orders</h4>
-                    <div class="d-flex gap-2">
-                        <!-- Search Form -->
-                        <form method="GET" class="d-flex">
-                            <input type="text" name="search" class="form-control me-2" 
-                                   placeholder="Search by order number..." 
-                                   value="{{ search_query }}">
-                            <select name="status" class="form-select me-2" style="width: auto;">
-                                <option value="">All Status</option>
-                                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
-                                <option value="confirmed" {% if status_filter == 'confirmed' %}selected{% endif %}>Confirmed</option>
-                                <option value="shipped" {% if status_filter == 'shipped' %}selected{% endif %}>Shipped</option>
-                                <option value="delivered" {% if status_filter == 'delivered' %}selected{% endif %}>Delivered</option>
-                                <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
-                                <option value="refunded" {% if status_filter == 'refunded' %}selected{% endif %}>Refunded</option>
-                            </select>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search"></i>
-                            </button>
-                            <a href="{% url 'order_list' %}" class="btn btn-outline-secondary ms-2">
-                                <i class="fas fa-times"></i>
-                            </a>
-                        </form>
-                    </div>
-                </div>
-                <div class="card-body">
-                    {% if orders %}
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Order Number</th>
-                                        <th>Date</th>
-                                        <th>Items</th>
-                                        <th>Total Amount</th>
-                                        <th>Status</th>
-                                        <th>Payment</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for order in orders %}
-                                    <tr>
-                                        <td>
-                                            <strong>#{{ order.order_number }}</strong>
-                                        </td>
-                                        <td>{{ order.created_at|date:"M d, Y" }}</td>
-                                        <td>{{ order.items.count }} item(s)</td>
-                                        <td>₹{{ order.total_amount }}</td>
-                                        <td>
-                                            <span class="badge bg-{% if order.status == 'delivered' %}success{% elif order.status == 'cancelled' or order.status == 'refunded' %}danger{% elif order.status == 'pending' %}warning{% else %}info{% endif %}">
-                                                {{ order.get_status_display }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-{% if order.payment_status == 'completed' %}success{% else %}warning{% endif %}">
-                                                {{ order.get_payment_status_display }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div class="btn-group">
-                                                <a href="{% url 'order_detail' order.id %}" class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-eye"></i> View
-                                                </a>
-                                                <a href="{% url 'download_invoice' order.id %}" class="btn btn-sm btn-outline-secondary">
-                                                    <i class="fas fa-download"></i> Invoice
-                                                </a>
-                                                
-                                                <!-- Cancel Order - Simple form with confirmation -->
-                                                {% if order.can_be_cancelled %}
-                                                <form method="POST" action="{% url 'cancel_order' order.id %}" 
-                                                      onsubmit="return confirm('Are you sure you want to cancel order #{{ order.order_number }}? This action cannot be undone.')" 
-                                                      style="display: inline;">
-                                                    {% csrf_token %}
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                        <i class="fas fa-times"></i> Cancel
-                                                    </button>
-                                                </form>
-                                                {% endif %}
-                                                
-                                                <!-- Return Order - Opens modal (reason required) -->
-                                                {% if order.can_be_returned %}
-                                                <button type="button" class="btn btn-sm btn-outline-warning" 
-                                                        data-bs-toggle="modal" data-bs-target="#returnModal{{ order.id }}">
-                                                    <i class="fas fa-undo"></i> Return
-                                                </button>
-                                                {% endif %}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <div class="text-center py-5">
-                            <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
-                            <h5>No orders found</h5>
-                            <p class="text-muted">
-                                {% if search_query or status_filter %}
-                                    Try adjusting your search or filters
-                                {% else %}
-                                    You haven't placed any orders yet.
-                                {% endif %}
-                            </p>
-                            <a href="{% url 'homepage' %}" class="btn btn-primary">Start Shopping</a>
-                        </div>
-                    {% endif %}
+<!-- Hero Section -->
+<div class="orders-hero">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="text-white">My Orders</h1>
+                <p class="text-white-50">Track and manage your order history</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <div class="orders-count-badge text-white d-inline-block">
+                    <i class="fas fa-shopping-bag me-2"></i>
+                    {{ orders|length }} Order{{ orders|length|pluralize }}
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Return Order Modals (KEEP THESE - only for returns) -->
+<div class="container pb-5">
+    <div class="orders-card">
+        <div class="orders-header">
+            <h4>Order History</h4>
+            
+            <form method="GET" class="search-form">
+                <input type="text" name="search" class="search-input" 
+                       placeholder="Search by order number..." 
+                       value="{{ search_query }}">
+                <select name="status" class="status-select">
+                    <option value="">All Status</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="confirmed" {% if status_filter == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                    <option value="shipped" {% if status_filter == 'shipped' %}selected{% endif %}>Shipped</option>
+                    <option value="delivered" {% if status_filter == 'delivered' %}selected{% endif %}>Delivered</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                    <option value="refunded" {% if status_filter == 'refunded' %}selected{% endif %}>Refunded</option>
+                </select>
+                <button type="submit" class="btn-search">
+                    <i class="fas fa-search me-1"></i> Search
+                </button>
+                <a href="{% url 'order_list' %}" class="btn-clear">
+                    <i class="fas fa-times me-1"></i> Clear
+                </a>
+            </form>
+        </div>
+        
+        <div class="card-body p-0">
+            {% if orders %}
+                <div class="table-responsive">
+                    <table class="orders-table">
+                        <thead>
+                             <tr>
+                                <th>Order Number</th>
+                                <th>Date</th>
+                                <th>Items</th>
+                                <th>Total Amount</th>
+                                <th>Status</th>
+                                <th>Payment</th>
+                                <th>Actions</th>
+                             </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td>
+                                    <div class="order-number">#{{ order.order_number }}</div>
+                                </td>
+                                <td>
+                                    <div class="order-date">{{ order.created_at|date:"M d, Y" }}</div>
+                                </td>
+                                <td>
+                                    <div class="order-items">{{ order.items.count }} item(s)</div>
+                                </td>
+                                <td>
+                                    <div class="order-amount">₹{{ order.total_amount|floatformat:2 }}</div>
+                                </td>
+                                <td>
+                                    <span class="status-badge {{ order.status }}">
+                                        <i class="fas fa-{% if order.status == 'delivered' %}check-circle{% elif order.status == 'cancelled' %}times-circle{% elif order.status == 'pending' %}clock{% elif order.status == 'shipped' %}truck{% else %}info-circle{% endif %}"></i>
+                                        {{ order.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="status-badge {% if order.payment_status == 'completed' %}delivered{% else %}pending{% endif %}">
+                                        <i class="fas fa-{% if order.payment_status == 'completed' %}credit-card{% else %}exclamation-triangle{% endif %}"></i>
+                                        {{ order.get_payment_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="{% url 'order_detail' order.id %}" class="btn-action btn-view">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        <a href="{% url 'download_invoice' order.id %}" class="btn-action btn-invoice">
+                                            <i class="fas fa-download"></i> Invoice
+                                        </a>
+                                        
+                                        {% if order.can_be_cancelled %}
+                                        <form method="POST" action="{% url 'cancel_order' order.id %}" 
+                                              onsubmit="return confirm('Are you sure you want to cancel order #{{ order.order_number }}? This action cannot be undone.')" 
+                                              style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn-action btn-cancel">
+                                                <i class="fas fa-times"></i> Cancel
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                        
+                                        {% if order.can_be_returned %}
+                                        <button type="button" class="btn-action btn-return" 
+                                                data-bs-toggle="modal" data-bs-target="#returnModal{{ order.id }}">
+                                            <i class="fas fa-undo-alt"></i> Return
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <!-- Empty State -->
+                <div class="empty-orders">
+                    <div class="empty-icon">
+                        <i class="fas fa-shopping-bag"></i>
+                    </div>
+                    <h3 class="empty-title">
+                        {% if search_query or status_filter %}
+                            No orders found
+                        {% else %}
+                            Your order history is empty
+                        {% endif %}
+                    </h3>
+                    <p class="empty-subtitle">
+                        {% if search_query or status_filter %}
+                            Try adjusting your search or filters
+                        {% else %}
+                            You haven't placed any orders yet. Start shopping to see your orders here.
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'homepage' %}" class="btn-shop">
+                        <i class="fas fa-shopping-bag me-2"></i>Start Shopping
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Return Order Modals -->
 {% for order in orders %}
 {% if order.can_be_returned %}
 <div class="modal fade" id="returnModal{{ order.id }}" tabindex="-1">
@@ -137,20 +605,20 @@
             <form method="POST" action="{% url 'return_order' order.id %}">
                 {% csrf_token %}
                 <div class="modal-body">
-                    <p>Please provide a reason for returning this order.</p>
+                    <p class="mb-3">Please provide a reason for returning this order.</p>
                     <div class="mb-3">
-                        <label for="returnReason{{ order.id }}" class="form-label">Reason for return <span class="text-danger">*</span>:</label>
+                        <label for="returnReason{{ order.id }}" class="form-label fw-bold">Reason for return <span class="text-danger">*</span>:</label>
                         <textarea class="form-control" id="returnReason{{ order.id }}" name="reason" 
-                                  rows="3" placeholder="Please provide a detailed reason for return..." required></textarea>
+                                  rows="4" placeholder="Please provide a detailed reason for return..." required></textarea>
                     </div>
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i>
-                        The stock will be restored and refund will be processed for this order.
+                    <div class="alert-custom" style="background: #fff3e6; border: 1px solid #ffd9b5; border-radius: 12px; padding: 12px;">
+                        <i class="fas fa-info-circle me-2" style="color: #b85c1a;"></i>
+                        <small>The stock will be restored and refund will be processed for this order.</small>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-warning">Submit Return Request</button>
+                    <button type="button" class="btn-action btn-view" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn-action btn-return">Submit Return Request</button>
                 </div>
             </form>
         </div>
@@ -158,4 +626,22 @@
 </div>
 {% endif %}
 {% endfor %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-dismiss alerts (if any)
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                if (alert.parentNode) {
+                    alert.style.opacity = '0';
+                    alert.style.transition = 'opacity 0.3s ease';
+                    setTimeout(() => {
+                        if (alert.parentNode) alert.remove();
+                    }, 300);
+                }
+            });
+        }, 5000);
+    });
+</script>
 {% endblock %}

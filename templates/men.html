@@ -203,6 +203,38 @@
     border-color: var(--primary-color);
   }
 
+  .btn-wishlist {
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    cursor: pointer;
+    z-index: 10;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+
+.btn-wishlist:hover {
+    background: white;
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.btn-wishlist i {
+    font-size: 1.1rem;
+}
+
+.btn-wishlist i.fas {
+    color: #dc3545;
+}
+
+
   /* Image placeholder styles */
   .image-placeholder {
     height: 180px;
@@ -612,8 +644,12 @@
           </span>
 
           <!-- Wishlist Button -->
-          {% include 'includes/wishlist_button.html' with product=variant.product %}
-          
+          <!-- {% include 'includes/wishlist_button.html' with product=variant.product %}
+           -->
+
+           <!-- Wishlist Button -->
+{% include 'includes/wishlist_button.html' with product=variant.product is_in_wishlist=variant.product.is_in_wishlist %}
+
           <figure class="text-center mb-2">
             <a href="{% url 'product_detail' variant.product.id %}" title="{{ variant.product.name }}">
               {% if variant.variant_image %}
@@ -1066,5 +1102,303 @@
 
   // Initial cart badge update
   updateCartBadge({{ cart_item_count|default:0 }});
+
+
+  // Wishlist Functions for Men/Women/Unisex pages
+function initializeWishlist() {
+    document.querySelectorAll('.btn-wishlist').forEach(button => {
+        button.removeEventListener('click', handleWishlistClick);
+        button.addEventListener('click', handleWishlistClick);
+    });
+}
+
+async function handleWishlistClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const button = this;
+    const productId = button.getAttribute('data-product-id');
+    
+    if (!productId) return;
+    
+    const icon = button.querySelector('i');
+    const isInWishlist = icon.classList.contains('fas');
+    const csrfToken = getCookie('csrftoken');
+    
+    // Show loading
+    const originalIcon = icon.className;
+    icon.className = 'fas fa-spinner fa-spin';
+    button.disabled = true;
+    
+    try {
+        const url = isInWishlist ? `/wishlist/remove/${productId}/` : `/wishlist/add/${productId}/`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            if (isInWishlist) {
+                icon.className = 'far fa-heart';
+                updateWishlistCount(-1);
+                showNotification('Removed from wishlist', 'success');
+            } else {
+                icon.className = 'fas fa-heart';
+                updateWishlistCount(1);
+                showNotification('Added to wishlist', 'success');
+            }
+        } else {
+            icon.className = originalIcon;
+            showNotification(data.message || 'Error updating wishlist', 'error');
+        }
+    } catch (error) {
+        console.error('Wishlist error:', error);
+        icon.className = originalIcon;
+        showNotification('Please login to use wishlist', 'error');
+    } finally {
+        button.disabled = false;
+    }
+}
+
+function updateWishlistCount(change) {
+    const badge = document.querySelector('.wishlist-count');
+    if (badge) {
+        let currentCount = parseInt(badge.textContent) || 0;
+        currentCount += change;
+        if (currentCount < 0) currentCount = 0;
+        badge.textContent = currentCount;
+        badge.style.display = currentCount > 0 ? 'flex' : 'none';
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showNotification(message, type) {
+    let notification = document.getElementById('notification');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'notification';
+        notification.style.cssText = `
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            z-index: 9999;
+            max-width: 300px;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        `;
+        document.body.appendChild(notification);
+    }
+    
+    notification.textContent = message;
+    notification.style.backgroundColor = type === 'success' ? '#28a745' : '#dc3545';
+    notification.classList.add('show');
+    notification.style.transform = 'translateX(0)';
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(400px)';
+        setTimeout(() => notification.classList.remove('show'), 300);
+    }, 3000);
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initializeWishlist();
+    
+    // Update initial wishlist count
+    fetch('/wishlist/count/', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const badge = document.querySelector('.wishlist-count');
+        if (badge) {
+            badge.textContent = data.count || 0;
+            badge.style.display = data.count > 0 ? 'flex' : 'none';
+        }
+    })
+    .catch(error => console.log('Could not fetch wishlist count'));
+});
+
+// ==================== UNIFIED WISHLIST FUNCTIONS ====================
+function initializeWishlistButtons() {
+    console.log('Initializing wishlist buttons...');
+    
+    // Remove any existing event listeners and add new ones
+    document.querySelectorAll('.add-to-wishlist-btn').forEach(button => {
+        button.removeEventListener('click', handleWishlistClick);
+        button.addEventListener('click', handleWishlistClick);
+    });
+}
+
+async function handleWishlistClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const button = this;
+    const productId = button.getAttribute('data-product-id');
+    
+    if (!productId) {
+        console.error('No product ID found');
+        return;
+    }
+    
+    const icon = button.querySelector('i');
+    const isInWishlist = icon.classList.contains('fas');
+    const csrfToken = getCookie('csrftoken');
+    
+    // Show loading state
+    const originalIcon = icon.className;
+    icon.className = 'fas fa-spinner fa-spin';
+    button.disabled = true;
+    
+    try {
+        const url = isInWishlist ? `/wishlist/remove/${productId}/` : `/wishlist/add/${productId}/`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            if (isInWishlist) {
+                icon.className = 'far fa-heart';
+                localStorage.removeItem(`wishlist_${productId}`);
+                updateWishlistCount(-1);
+                showNotification('Removed from wishlist', 'success');
+            } else {
+                icon.className = 'fas fa-heart';
+                localStorage.setItem(`wishlist_${productId}`, 'true');
+                updateWishlistCount(1);
+                showNotification('Added to wishlist', 'success');
+            }
+        } else {
+            icon.className = originalIcon;
+            showNotification(data.message || 'Error updating wishlist', 'error');
+        }
+    } catch (error) {
+        console.error('Wishlist error:', error);
+        icon.className = originalIcon;
+        
+        if (error.status === 403 || error.status === 401) {
+            showNotification('Please login to use wishlist', 'error');
+            setTimeout(() => {
+                window.location.href = '/user-login/?next=' + encodeURIComponent(window.location.pathname);
+            }, 1500);
+        } else {
+            showNotification('Error updating wishlist', 'error');
+        }
+    } finally {
+        button.disabled = false;
+    }
+}
+
+function updateWishlistCount(change) {
+    const badge = document.querySelector('.wishlist-count');
+    if (badge) {
+        let currentCount = parseInt(badge.textContent) || 0;
+        currentCount += change;
+        if (currentCount < 0) currentCount = 0;
+        badge.textContent = currentCount;
+        badge.style.display = currentCount > 0 ? 'flex' : 'none';
+        
+        // Update localStorage
+        localStorage.setItem('wishlist_count', currentCount);
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initializeWishlistButtons();
+    
+    // Fetch initial wishlist count if needed
+    const badge = document.querySelector('.wishlist-count');
+    if (badge && (!badge.textContent || badge.textContent === '0')) {
+        fetch('/wishlist/count/', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.count > 0) {
+                badge.textContent = data.count;
+                badge.style.display = 'flex';
+            }
+        })
+        .catch(error => console.log('Could not fetch wishlist count'));
+    }
+});
+
+// Helper function to get cookie
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Show notification function
+function showNotification(message, type = 'info') {
+    let notification = document.getElementById('global-notification');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'global-notification';
+        notification.style.cssText = `
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            z-index: 9999;
+            max-width: 300px;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        `;
+        document.body.appendChild(notification);
+    }
+    
+    notification.textContent = message;
+    notification.style.backgroundColor = type === 'success' ? '#28a745' : 
+                                        type === 'error' ? '#dc3545' : '#17a2b8';
+    notification.style.transform = 'translateX(0)';
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(400px)';
+    }, 3000);
+}
+
 </script>
 {% endblock %}

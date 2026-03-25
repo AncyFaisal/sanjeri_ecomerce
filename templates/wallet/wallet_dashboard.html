@@ -1,130 +1,567 @@
-<!-- templates/wallet/wallet_dashboard.html -->
 {% extends 'base.html' %}
 {% load static %}
 
 {% block title %}My Wallet - Sanjeri{% endblock %}
 
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #431405;
+        --secondary-color: #5a2a1a;
+        --accent-color: #c7a17a;
+        --light-bg: #fff8f5;
+        --dark-text: #2c2c2c;
+        --border-light: #e9e2dc;
+        --success-color: #28a745;
+        --warning-color: #ffc107;
+        --danger-color: #dc3545;
+    }
+
+    /* Hero Section */
+    .wallet-hero {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        padding: 50px 0;
+        margin-bottom: 40px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .wallet-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
+        background-size: 30px 30px;
+        animation: shimmer 20s linear infinite;
+    }
+    
+    @keyframes shimmer {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(30px, 30px); }
+    }
+    
+    .wallet-hero h1 {
+        font-family: 'Playfair Display', serif;
+        font-size: 2.5rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .wallet-hero p {
+        font-size: 1rem;
+        opacity: 0.9;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Wallet Balance Card */
+    .balance-card {
+        background: linear-gradient(135deg, #faf7f4 0%, #f5f0ea 100%);
+        border: 1px solid var(--border-light);
+        border-radius: 24px;
+        overflow: hidden;
+        margin-bottom: 30px;
+        position: relative;
+    }
+    
+    .balance-card::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 150%;
+        height: 150%;
+        background: radial-gradient(circle, rgba(199, 161, 122, 0.03) 1px, transparent 1px);
+        background-size: 20px 20px;
+        pointer-events: none;
+    }
+    
+    .balance-content {
+        padding: 40px;
+        text-align: center;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .wallet-icon {
+        width: 80px;
+        height: 80px;
+        background: white;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 20px rgba(67, 20, 5, 0.1);
+    }
+    
+    .wallet-icon i {
+        font-size: 2.5rem;
+        color: var(--accent-color);
+    }
+    
+    .balance-amount {
+        font-size: 3rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 10px;
+        letter-spacing: -0.5px;
+    }
+    
+    .balance-label {
+        color: #7a6a5c;
+        font-size: 0.9rem;
+        margin-bottom: 0;
+    }
+    
+    /* Info Cards */
+    .info-card {
+        background: white;
+        border: 1px solid var(--border-light);
+        border-radius: 20px;
+        padding: 20px;
+        margin-bottom: 25px;
+        transition: all 0.3s;
+    }
+    
+    .info-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(67, 20, 5, 0.08);
+    }
+    
+    .info-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .info-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, #faf7f4, #f5f0ea);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .info-icon i {
+        font-size: 1.5rem;
+        color: var(--accent-color);
+    }
+    
+    .info-title {
+        font-weight: 600;
+        color: var(--primary-color);
+        margin: 0;
+        font-size: 1rem;
+    }
+    
+    .info-text {
+        color: #7a6a5c;
+        font-size: 0.85rem;
+        margin-bottom: 0;
+        line-height: 1.4;
+    }
+
+    /* Transactions Card */
+    .transactions-card {
+        background: white;
+        border: 1px solid var(--border-light);
+        border-radius: 20px;
+        overflow: hidden;
+    }
+    
+    .transactions-header {
+        background: linear-gradient(135deg, #faf7f4, #f5f0ea);
+        padding: 20px 25px;
+        border-bottom: 1px solid var(--border-light);
+    }
+    
+    .transactions-header h5 {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .transactions-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    
+    .transactions-table thead th {
+        background: #faf7f4;
+        padding: 15px 20px;
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid var(--border-light);
+    }
+    
+    .transactions-table tbody tr {
+        transition: all 0.3s;
+    }
+    
+    .transactions-table tbody tr:hover {
+        background: #faf7f4;
+    }
+    
+    .transactions-table td {
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--border-light);
+        vertical-align: middle;
+    }
+    
+    .transaction-date {
+        font-size: 0.85rem;
+        color: #7a6a5c;
+    }
+    
+    .transaction-type {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 30px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .transaction-type.refund {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .transaction-type.deposit {
+        background: #cce5ff;
+        color: #004085;
+    }
+    
+    .transaction-type.withdrawal {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .transaction-type.other {
+        background: #e2e3e5;
+        color: #383d41;
+    }
+    
+    .transaction-amount {
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .transaction-amount.positive {
+        color: var(--success-color);
+    }
+    
+    .transaction-amount.negative {
+        color: var(--danger-color);
+    }
+    
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 30px;
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+    
+    .status-badge.completed {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-badge.pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-badge.cancelled {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .btn-view-all {
+        background: transparent;
+        border: 1px solid var(--border-light);
+        border-radius: 30px;
+        padding: 8px 25px;
+        color: var(--primary-color);
+        font-size: 0.85rem;
+        transition: all 0.3s;
+    }
+    
+    .btn-view-all:hover {
+        background: #f8f5f2;
+        border-color: var(--accent-color);
+    }
+    
+    /* Empty State */
+    .empty-transactions {
+        text-align: center;
+        padding: 60px 20px;
+    }
+    
+    .empty-icon {
+        font-size: 4rem;
+        color: var(--border-light);
+        margin-bottom: 20px;
+    }
+    
+    .empty-icon i {
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .empty-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 10px;
+    }
+    
+    .empty-subtitle {
+        color: #7a6a5c;
+        font-size: 0.85rem;
+        margin-bottom: 0;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .wallet-hero h1 {
+            font-size: 1.8rem;
+        }
+        
+        .balance-amount {
+            font-size: 2rem;
+        }
+        
+        .balance-content {
+            padding: 30px;
+        }
+        
+        .wallet-icon {
+            width: 60px;
+            height: 60px;
+        }
+        
+        .wallet-icon i {
+            font-size: 2rem;
+        }
+        
+        .transactions-table {
+            display: block;
+            overflow-x: auto;
+        }
+        
+        .info-card {
+            margin-bottom: 15px;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .wallet-hero h1 {
+            font-size: 1.5rem;
+        }
+        
+        .balance-amount {
+            font-size: 1.8rem;
+        }
+        
+        .transactions-header h5 {
+            font-size: 1.1rem;
+        }
+        
+        .transaction-date,
+        .transaction-description {
+            font-size: 0.75rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container py-5">
-    <div class="row">
-        <div class="col-lg-8 mx-auto">
-            <!-- Wallet Balance Card -->
-            <div class="card shadow-lg border-0 mb-4">
-                <div class="card-body text-center py-5">
-                    <i class="fas fa-wallet fa-4x text-amber-900 mb-4"></i>
-                    <h1 class="display-4 fw-bold text-amber-900 mb-3">
-                        ₹{{ wallet.balance|floatformat:2 }}
-                    </h1>
-                    <p class="text-muted mb-4">Available Balance</p>
-                    
-                    <!-- <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Wallet balance can be used during checkout. Refunds from cancelled/returned orders are added here.
-                    </div> -->
+<!-- Hero Section -->
+<div class="wallet-hero">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="text-white">My Wallet</h1>
+                <p class="text-white-50">Manage your wallet balance and track transactions</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <div class="balance-badge text-white d-inline-block">
+                    <i class="fas fa-coins me-2"></i>
+                    Available Balance
                 </div>
             </div>
-
-            <!-- How it works -->
-            <!-- <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>How Wallet Works</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <div class="d-flex align-items-start">
-                                <div class="me-3">
-                                    <i class="fas fa-undo text-success fa-2x"></i>
-                                </div>
-                                <div>
-                                    <h6>Refunds</h6>
-                                    <p class="text-muted small">When you cancel or return an order, the refund amount is added to your wallet.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="d-flex align-items-start">
-                                <div class="me-3">
-                                    <i class="fas fa-shopping-cart text-primary fa-2x"></i>
-                                </div>
-                                <div>
-                                    <h6>Checkout</h6>
-                                    <p class="text-muted small">Use your wallet balance to pay during checkout.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div> -->
-
-            <!-- Recent Transactions -->
-            <!-- Recent Transactions - FIXED: Only show COMPLETED transactions -->
-<div class="card shadow-sm border-0">
-    <div class="card-header bg-white">
-        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Transactions</h5>
-    </div>
-    <div class="card-body">
-        {% if recent_transactions %}
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Type</th>
-                            <th>Description</th>
-                            <th class="text-end">Amount</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for transaction in recent_transactions %}
-                        <tr>
-                            <td>{{ transaction.created_at|date:"d M Y" }}</td>
-                            <td>
-                                <span class="badge 
-                                    {% if transaction.transaction_type == 'REFUND' %}bg-success
-                                    {% elif transaction.transaction_type == 'DEPOSIT' %}bg-primary
-                                    {% elif transaction.transaction_type == 'WITHDRAWAL' %}bg-danger
-                                    {% else %}bg-info{% endif %}">
-                                    {{ transaction.get_transaction_type_display }}
-                                </span>
-                            </td>
-                            <td>{{ transaction.reason|truncatechars:40 }}</td>
-                            <td class="text-end fw-bold 
-                                {% if transaction.transaction_type == 'REFUND' or transaction.transaction_type == 'DEPOSIT' %}text-success
-                                {% else %}text-danger{% endif %}">
-                                {{ transaction.display_amount }}
-                            </td>
-                            <td>
-                                <!-- ===== FIX: Show status badge with appropriate color ===== -->
-                                <span class="badge 
-                                    {% if transaction.status == 'COMPLETED' %}bg-success
-                                    {% elif transaction.status == 'PENDING' %}bg-warning text-dark
-                                    {% elif transaction.status == 'CANCELLED' %}bg-secondary
-                                    {% else %}bg-danger{% endif %}">
-                                    {{ transaction.get_status_display }}
-                                </span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            <div class="text-center mt-3">
-                <a href="{% url 'wallet_transactions' %}" class="btn btn-outline-amber-900">
-                    View All Transactions
-                </a>
-            </div>
-        {% else %}
-            <div class="text-center py-4">
-                <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
-                <p class="text-muted">No transactions yet</p>
-                <p class="text-muted small">Your refunds from cancelled/returned orders will appear here.</p>
-            </div>
-        {% endif %}
-    </div>
-</div>
         </div>
     </div>
 </div>
+
+<div class="container pb-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Wallet Balance Card -->
+            <div class="balance-card">
+                <div class="balance-content">
+                    <div class="wallet-icon">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="balance-amount">₹{{ wallet.balance|floatformat:2 }}</div>
+                    <p class="balance-label">Available Balance</p>
+                </div>
+            </div>
+
+            <!-- How Wallet Works Section -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-6">
+                    <div class="info-card">
+                        <div class="info-header">
+                            <div class="info-icon">
+                                <i class="fas fa-undo-alt"></i>
+                            </div>
+                            <div>
+                                <h6 class="info-title">Refunds</h6>
+                            </div>
+                        </div>
+                        <p class="info-text">When you cancel or return an order, the refund amount is automatically added to your wallet.</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-card">
+                        <div class="info-header">
+                            <div class="info-icon">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <div>
+                                <h6 class="info-title">Checkout</h6>
+                            </div>
+                        </div>
+                        <p class="info-text">Use your wallet balance to pay during checkout. Wallet payments are instant and secure.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="transactions-card">
+                <div class="transactions-header">
+                    <h5>
+                        <i class="fas fa-history"></i>
+                        Recent Transactions
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_transactions %}
+                        <div class="table-responsive">
+                            <table class="transactions-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Description</th>
+                                        <th class="text-end">Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in recent_transactions %}
+                                    <tr>
+                                        <td>
+                                            <div class="transaction-date">
+                                                <i class="far fa-calendar-alt me-1"></i>
+                                                {{ transaction.created_at|date:"d M Y" }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="transaction-type {{ transaction.transaction_type|lower }}">
+                                                <i class="fas fa-{% if transaction.transaction_type == 'REFUND' %}undo-alt{% elif transaction.transaction_type == 'DEPOSIT' %}plus-circle{% elif transaction.transaction_type == 'WITHDRAWAL' %}minus-circle{% else %}exchange-alt{% endif %}"></i>
+                                                {{ transaction.get_transaction_type_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="transaction-description">
+                                                {{ transaction.reason|truncatechars:40 }}
+                                            </div>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="transaction-amount {% if transaction.transaction_type == 'REFUND' or transaction.transaction_type == 'DEPOSIT' %}positive{% else %}negative{% endif %}">
+                                                {{ transaction.display_amount }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="status-badge {{ transaction.status|lower }}">
+                                                <i class="fas fa-{% if transaction.status == 'COMPLETED' %}check-circle{% elif transaction.status == 'PENDING' %}clock{% elif transaction.status == 'CANCELLED' %}times-circle{% else %}exclamation-circle{% endif %}"></i>
+                                                {{ transaction.get_status_display }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-center py-4">
+                            <a href="{% url 'wallet_transactions' %}" class="btn-view-all">
+                                <i class="fas fa-arrow-right me-2"></i>View All Transactions
+                            </a>
+                        </div>
+                    {% else %}
+                        <!-- Empty State -->
+                        <div class="empty-transactions">
+                            <div class="empty-icon">
+                                <i class="fas fa-receipt"></i>
+                            </div>
+                            <h3 class="empty-title">No Transactions Yet</h3>
+                            <p class="empty-subtitle">Your refunds from cancelled or returned orders will appear here.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-refresh wallet balance (optional)
+        function refreshWalletBalance() {
+            fetch('/wallet/balance/', {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.balance !== undefined) {
+                    const balanceElement = document.querySelector('.balance-amount');
+                    if (balanceElement) {
+                        balanceElement.textContent = `₹${parseFloat(data.balance).toFixed(2)}`;
+                    }
+                }
+            })
+            .catch(error => console.log('Could not refresh wallet balance'));
+        }
+        
+        // Refresh balance every 30 seconds (optional)
+        // setInterval(refreshWalletBalance, 30000);
+    });
+</script>
 {% endblock %}

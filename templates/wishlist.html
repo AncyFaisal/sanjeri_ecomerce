@@ -1,4 +1,3 @@
-<!-- templates/wishlist.html -->
 {% extends 'base.html' %}
 {% load static %}
 {% load offer_tags %}
@@ -7,90 +6,202 @@
 
 {% block extra_css %}
 <style>
+    :root {
+        --primary-color: #431405;
+        --secondary-color: #5a2a1a;
+        --accent-color: #c7a17a;
+        --light-bg: #fff8f5;
+        --dark-text: #2c2c2c;
+        --border-light: #e9e2dc;
+    }
+
+    /* Hero Section */
+    .wishlist-hero {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        padding: 60px 0;
+        margin-bottom: 40px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .wishlist-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
+        background-size: 30px 30px;
+        animation: shimmer 20s linear infinite;
+    }
+    
+    @keyframes shimmer {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(30px, 30px); }
+    }
+    
+    .wishlist-hero h1 {
+        font-family: 'Playfair Display', serif;
+        font-size: 3rem;
+        font-weight: 600;
+        margin-bottom: 15px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .wishlist-hero p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .wishlist-count-badge {
+        background: rgba(255,255,255,0.2);
+        backdrop-filter: blur(10px);
+        border-radius: 50px;
+        padding: 8px 20px;
+        font-size: 1rem;
+        font-weight: 500;
+    }
+
+    /* Filter Section */
     .wishlist-filters {
-        background: #f8f9fa;
-        border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 30px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        margin-bottom: 35px;
+        box-shadow: 0 5px 20px rgba(67, 20, 5, 0.05);
+        border: 1px solid var(--border-light);
     }
     
     .filter-group {
-        margin-bottom: 15px;
+        margin-bottom: 0;
     }
     
     .filter-label {
         font-weight: 600;
         margin-bottom: 8px;
-        color: #495057;
+        color: var(--primary-color);
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .filter-group .form-control,
+    .filter-group .form-select {
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        padding: 10px 15px;
+        font-size: 0.9rem;
+        transition: all 0.3s;
+        background: white;
+    }
+    
+    .filter-group .form-control:focus,
+    .filter-group .form-select:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(199, 161, 122, 0.1);
+        outline: none;
     }
     
     .filter-results {
-        color: #6c757d;
+        color: var(--primary-color);
         font-size: 0.9rem;
-        margin-top: 10px;
+        background: #f8f5f2;
+        padding: 8px 16px;
+        border-radius: 20px;
     }
     
-    .clear-filters {
-        margin-top: 20px;
+    .btn-filter {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 10px 24px;
+        font-weight: 500;
+        transition: all 0.3s;
     }
     
+    .btn-filter:hover {
+        background: var(--secondary-color);
+        transform: translateY(-2px);
+    }
+    
+    .btn-clear {
+        background: transparent;
+        color: var(--primary-color);
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        padding: 10px 24px;
+        transition: all 0.3s;
+    }
+    
+    .btn-clear:hover {
+        background: #f8f5f2;
+        border-color: var(--primary-color);
+    }
+
+    /* Wishlist Cards */
     .wishlist-card {
-        border: 1px solid #eaeaea;
-        border-radius: 10px;
+        background: white;
+        border-radius: 20px;
         overflow: hidden;
-        transition: transform 0.3s, box-shadow 0.3s;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
         height: 100%;
+        position: relative;
     }
     
     .wishlist-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transform: translateY(-8px);
+        box-shadow: 0 20px 35px rgba(67, 20, 5, 0.12);
     }
     
     .product-image-container {
-        height: 250px;
-        overflow: hidden;
         position: relative;
-        background: #f8f9fa;
+        height: 260px;
+        overflow: hidden;
+        background: linear-gradient(135deg, #faf7f4 0%, #f5f0ea 100%);
     }
     
     .product-image {
         width: 100%;
         height: 100%;
         object-fit: contain;
-        padding: 15px;
+        padding: 20px;
+        transition: transform 0.5s ease;
     }
     
-    .no-image-placeholder {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    }
-    
-    .no-image-placeholder i {
-        font-size: 3rem;
-        color: #6c757d;
+    .wishlist-card:hover .product-image {
+        transform: scale(1.05);
     }
     
     .remove-wishlist-btn {
         position: absolute;
-        top: 10px;
-        right: 10px;
+        top: 15px;
+        right: 15px;
         width: 36px;
         height: 36px;
         border-radius: 50%;
         background: white;
-        border: 1px solid #dee2e6;
+        border: none;
         display: flex;
         align-items: center;
         justify-content: center;
         color: #dc3545;
         transition: all 0.3s;
         z-index: 10;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    
+    .wishlist-card:hover .remove-wishlist-btn {
+        opacity: 1;
+        transform: scale(1);
     }
     
     .remove-wishlist-btn:hover {
@@ -99,32 +210,279 @@
         transform: scale(1.1);
     }
     
-    .empty-wishlist {
-        padding: 80px 20px;
-        text-align: center;
+    .product-badge {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        background: var(--accent-color);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        z-index: 10;
     }
     
-    .empty-wishlist-icon {
-        font-size: 4rem;
-        color: #e9ecef;
-        margin-bottom: 20px;
+    .card-content {
+        padding: 20px;
     }
     
-    .product-price {
-        font-size: 1.25rem;
+    .product-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 8px;
+        line-height: 1.4;
+    }
+    
+    .product-title a {
+        color: inherit;
+        text-decoration: none;
+        transition: color 0.3s;
+    }
+    
+    .product-title a:hover {
+        color: var(--accent-color);
+    }
+    
+    .product-meta {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 12px;
+        font-size: 0.8rem;
+        color: #7a6a5c;
+    }
+    
+    .product-meta i {
+        width: 16px;
+        margin-right: 4px;
+        color: var(--accent-color);
+    }
+    
+    .price-section {
+        margin: 15px 0;
+        padding: 12px 0;
+        border-top: 1px solid var(--border-light);
+        border-bottom: 1px solid var(--border-light);
+    }
+    
+    .current-price {
+        font-size: 1.3rem;
         font-weight: 700;
         color: var(--primary-color);
     }
     
+    .original-price {
+        font-size: 0.9rem;
+        color: #9b8b7c;
+        text-decoration: line-through;
+        margin-left: 8px;
+    }
+    
+    .discount-badge {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        margin-left: 8px;
+    }
+    
+    .stock-badge {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .stock-badge.in-stock {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .stock-badge.low-stock {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .stock-badge.out-stock {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
     .product-actions {
         display: flex;
-        gap: 10px;
+        gap: 12px;
         margin-top: 15px;
     }
     
+    .btn-add-cart-wishlist {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 10px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.3s;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    
+    .btn-add-cart-wishlist:hover {
+        background: var(--secondary-color);
+        transform: translateY(-2px);
+    }
+    
+    .btn-view-wishlist {
+        background: transparent;
+        color: var(--primary-color);
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        padding: 10px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.3s;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        text-decoration: none;
+    }
+    
+    .btn-view-wishlist:hover {
+        background: #f8f5f2;
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+    
+    .btn-add-all {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        border: none;
+        border-radius: 50px;
+        padding: 14px 35px;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.3s;
+        margin-top: 30px;
+    }
+    
+    .btn-add-all:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(67, 20, 5, 0.2);
+    }
+    
+    /* Empty State */
+    .empty-wishlist {
+        text-align: center;
+        padding: 80px 20px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+    }
+    
+    .empty-icon {
+        font-size: 5rem;
+        color: var(--border-light);
+        margin-bottom: 20px;
+    }
+    
+    .empty-icon i {
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .empty-title {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 15px;
+    }
+    
+    .empty-subtitle {
+        color: #7a6a5c;
+        margin-bottom: 30px;
+    }
+    
+    .btn-browse {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 30px;
+        margin: 0 8px;
+        transition: all 0.3s;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-browse:hover {
+        background: var(--secondary-color);
+        transform: translateY(-2px);
+        color: white;
+    }
+    
+    .btn-browse-outline {
+        background: transparent;
+        color: var(--primary-color);
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        padding: 12px 30px;
+        margin: 0 8px;
+        transition: all 0.3s;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-browse-outline:hover {
+        background: #f8f5f2;
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+    
+    /* Notification */
+    .global-notification {
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 12px;
+        color: white;
+        z-index: 9999;
+        max-width: 300px;
+        animation: slideIn 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    /* Responsive */
     @media (max-width: 768px) {
-        .filter-row {
-            flex-direction: column;
+        .wishlist-hero h1 {
+            font-size: 2rem;
+        }
+        
+        .wishlist-hero p {
+            font-size: 0.9rem;
         }
         
         .product-image-container {
@@ -135,43 +493,78 @@
             flex-direction: column;
         }
         
-        .product-actions .btn {
-            width: 100%;
+        .filter-group {
+            margin-bottom: 15px;
+        }
+        
+        .btn-browse,
+        .btn-browse-outline {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 0.9rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .wishlist-hero {
+            padding: 40px 0;
+        }
+        
+        .wishlist-hero h1 {
+            font-size: 1.5rem;
+        }
+        
+        .product-title {
+            font-size: 1rem;
+        }
+        
+        .current-price {
+            font-size: 1.1rem;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-0">My Wishlist</h1>
-        <span class="badge bg-primary" style="font-size: 1rem;" id="wishlist-count">
-            {{ wishlist_items|length }} item{{ wishlist_items|length|pluralize }}
-        </span>
+<!-- Hero Section -->
+<div class="wishlist-hero">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="text-white">My Wishlist</h1>
+                <p class="text-white-50">Save your favorite fragrances for later</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <div class="wishlist-count-badge text-white d-inline-block">
+                    <i class="fas fa-heart me-2"></i>
+                    <span id="wishlist-count">{{ wishlist_items|length }}</span> 
+                    item{{ wishlist_items|length|pluralize }}
+                </div>
+            </div>
+        </div>
     </div>
-    
-    <!-- FILTER SECTION -->
+</div>
+
+<div class="container pb-5">
+    <!-- Filter Section -->
     <div class="wishlist-filters">
         <form method="GET" action="{% url 'wishlist' %}" id="filter-form">
-            <div class="row filter-row">
-                <!-- Search -->
-                <div class="col-md-4 mb-3">
+            <div class="row align-items-end">
+                <div class="col-md-4 mb-3 mb-md-0">
                     <div class="filter-group">
                         <label class="filter-label">Search Products</label>
                         <input type="text" 
                                name="search" 
                                class="form-control" 
-                               placeholder="Search by name, brand, fragrance..."
+                               placeholder="Search by name, brand..."
                                value="{{ search_query }}"
                                id="search-input">
                     </div>
                 </div>
                 
-                <!-- Category Filter -->
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3 mb-md-0">
                     <div class="filter-group">
-                        <label class="filter-label">Filter by Category</label>
+                        <label class="filter-label">Category</label>
                         <select name="category" class="form-select" id="category-select">
                             <option value="">All Categories</option>
                             {% for category in all_categories %}
@@ -184,10 +577,9 @@
                     </div>
                 </div>
                 
-                <!-- Gender Filter -->
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3 mb-md-0">
                     <div class="filter-group">
-                        <label class="filter-label">Filter by Gender</label>
+                        <label class="filter-label">Gender</label>
                         <select name="gender" class="form-select" id="gender-select">
                             <option value="">All Genders</option>
                             {% for gender in available_genders %}
@@ -199,51 +591,56 @@
                         </select>
                     </div>
                 </div>
+                
+                <div class="col-md-2">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn-filter w-100">
+                            <i class="fas fa-filter me-2"></i>Filter
+                        </button>
+                        {% if search_query or selected_category or selected_gender %}
+                        <a href="{% url 'wishlist' %}" class="btn-clear">
+                            <i class="fas fa-times"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
             
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="filter-results">
-                    {% if search_query or selected_category or selected_gender %}
-                        Showing {{ wishlist_items|length }} filtered item{{ wishlist_items|length|pluralize }}
-                    {% endif %}
-                </div>
-                
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-filter me-1"></i> Apply Filters
-                    </button>
-                    
-                    {% if search_query or selected_category or selected_gender %}
-                    <a href="{% url 'wishlist' %}" class="btn btn-outline-secondary clear-filters">
-                        <i class="fas fa-times me-1"></i> Clear Filters
-                    </a>
-                    {% endif %}
+            {% if search_query or selected_category or selected_gender %}
+            <div class="mt-3">
+                <div class="filter-results d-inline-block">
+                    <i class="fas fa-search me-2"></i>
+                    Showing {{ wishlist_items|length }} filtered result{{ wishlist_items|length|pluralize }}
                 </div>
             </div>
+            {% endif %}
         </form>
     </div>
     
-
-    <!-- WISHLIST ITEMS -->
+    <!-- Wishlist Items -->
     {% if wishlist_items %}
     <div class="row" id="wishlist-items-container">
         {% for item in wishlist_items %}
         {% with product=item.product %}
         <div class="col-xl-3 col-lg-4 col-md-6 mb-4 wishlist-item" 
              data-item-id="{{ item.id }}"
-             data-category="{{ product.category.id }}"
-             data-genders="{{ product.available_genders|join:',' }}">
+             data-product-id="{{ product.id }}"
+             data-category="{{ product.category.id }}">
             <div class="wishlist-card">
-                <div class="product-image-container position-relative">
-                    <!-- Remove button -->
+                <div class="product-image-container">
                     <button class="remove-wishlist-btn remove-from-wishlist" 
-                            data-item-id="{{ item.id }}"
+                            data-product-id="{{ product.id }}"
                             data-csrf="{{ csrf_token }}"
                             title="Remove from wishlist">
                         <i class="fas fa-times"></i>
                     </button>
                     
-                    <!-- Product Image -->
+                    {% if product.variants.first.discount_price and product.variants.first.discount_price < product.variants.first.price %}
+                    <div class="product-badge">
+                        <i class="fas fa-tag me-1"></i>SALE
+                    </div>
+                    {% endif %}
+                    
                     {% if product.images.exists %}
                         <img src="{{ product.images.first.image.url }}" 
                              class="product-image" 
@@ -256,88 +653,86 @@
                              loading="lazy">
                     {% else %}
                         <div class="no-image-placeholder">
-                            <i class="fas fa-perfume-bottle"></i>
+                            <i class="fas fa-perfume-bottle fa-3x text-muted"></i>
                         </div>
                     {% endif %}
-                    
-                    <!-- Discount badge if any -->
-                    <!-- {% with variant=product.variants.first %}
-                        {% if variant.discount_price and variant.discount_price < variant.price %}
-                        <span class="badge bg-success position-absolute top-0 start-0 m-2">
-                            {{ variant.get_discount_percentage }}% OFF
-                        </span>
-                        {% endif %}
-                    {% endwith %} -->
                 </div>
                 
-                <div class="p-3">
-                    <h5 class="product-title mb-2">
-                        <a href="{% url 'product_detail' product.id %}" class="text-decoration-none text-dark">
-                            {{ product.name|truncatechars:40 }}
-                        </a>
+                <div class="card-content">
+                    <h5 class="product-title">
+                        <a href="{% url 'product_detail' product.id %}">{{ product.name|truncatechars:45 }}</a>
                     </h5>
                     
-                    <div class="mb-2">
-                        <small class="text-muted">
-                            <i class="fas fa-tag me-1"></i>
-                            {{ product.brand|default:"No Brand" }}
-                        </small>
+                    <div class="product-meta">
+                        <span><i class="fas fa-tag"></i> {{ product.brand|default:"Sanjeri" }}</span>
+                        <span><i class="fas fa-layer-group"></i> {{ product.category.name }}</span>
                     </div>
                     
-                    <div class="mb-2">
-                        <small class="text-muted">
-                            <i class="fas fa-layer-group me-1"></i>
-                            {{ product.category.name }}
-                        </small>
+                    <div class="price-section">
+                        {% with best_offer=product|get_best_offer %}
+                            {% if best_offer %}
+                                {% with variant=product.variants.first %}
+                                    {% with discount=variant.price|get_offer_discount:product %}
+                                        {% with discounted_price=variant.price|subtract:discount %}
+                                            <div>
+                                                <span class="current-price">₹{{ discounted_price|floatformat:0 }}</span>
+                                                <span class="original-price">₹{{ variant.price|floatformat:0 }}</span>
+                                                <span class="discount-badge">{{ best_offer.discount_percentage }}% OFF</span>
+                                            </div>
+                                        {% endwith %}
+                                    {% endwith %}
+                                {% endwith %}
+                            {% else %}
+                                {% with variant=product.variants.first %}
+                                    {% if variant.discount_price and variant.discount_price < variant.price %}
+                                        <div>
+                                            <span class="current-price">₹{{ variant.discount_price|floatformat:0 }}</span>
+                                            <span class="original-price">₹{{ variant.price|floatformat:0 }}</span>
+                                        </div>
+                                    {% else %}
+                                        <span class="current-price">₹{{ variant.price|floatformat:0 }}</span>
+                                    {% endif %}
+                                {% endwith %}
+                            {% endif %}
+                        {% endwith %}
                     </div>
                     
-                    <!-- Price -->
-                   {% for item in wishlist_items %}
-  <div class="wishlist-item">
-    <h4>{{ item.product.name }}</h4>
-    <div class="price">
-      {% with best_offer=item.product|get_best_offer %}
-        {% if best_offer %}
-          {% with variant=item.product.variants.first %}
-            {% with discount=variant.price|get_offer_discount:item.product %}
-              {% with discounted_price=variant.price|subtract:discount %}
-                <span class="text-danger">₹{{ discounted_price|floatformat:0 }}</span>
-                <small class="text-muted text-decoration-line-through ms-2">₹{{ variant.price|floatformat:0 }}</small>
-                <span class="badge bg-danger ms-2">{{ best_offer.discount_percentage }}% OFF</span>
-              {% endwith %}
-            {% endwith %}
-          {% endwith %}
-        {% else %}
-          {% with variant=item.product.variants.first %}
-            <span>₹{{ variant.price|floatformat:0 }}</span>
-          {% endwith %}
-        {% endif %}
-      {% endwith %}
-    </div>
-  </div>
-{% endfor %}
+                    <div class="mb-3">
+                        {% with variant=product.variants.first %}
+                            {% if variant.stock > 10 %}
+                                <span class="stock-badge in-stock">
+                                    <i class="fas fa-check-circle"></i> In Stock
+                                </span>
+                            {% elif variant.stock > 0 %}
+                                <span class="stock-badge low-stock">
+                                    <i class="fas fa-exclamation-triangle"></i> Only {{ variant.stock }} left
+                                </span>
+                            {% else %}
+                                <span class="stock-badge out-stock">
+                                    <i class="fas fa-times-circle"></i> Out of Stock
+                                </span>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
                     
-                    <!-- Actions -->
                     <div class="product-actions">
                         {% with variant=product.variants.first %}
                             {% if variant and variant.stock > 0 %}
-                            <button class="btn btn-primary btn-sm add-to-cart-from-wishlist" 
+                            <button class="btn-add-cart-wishlist add-to-cart-from-wishlist" 
                                     data-variant-id="{{ variant.id }}"
-                                    data-product-id="{{ product.id }}"
-                                    style="flex: 1;">
-                                <i class="fas fa-shopping-cart me-1"></i> Add to Cart
+                                    data-product-id="{{ product.id }}">
+                                <i class="fas fa-shopping-cart"></i> Add to Cart
                             </button>
                             {% else %}
-                            <button class="btn btn-secondary btn-sm" disabled style="flex: 1;">
-                                <i class="fas fa-times me-1"></i> Out of Stock
+                            <button class="btn-add-cart-wishlist" disabled style="opacity: 0.5; cursor: not-allowed;">
+                                <i class="fas fa-times-circle"></i> Out of Stock
                             </button>
                             {% endif %}
                         {% endwith %}
                         
                         <a href="{% url 'product_detail' product.id %}" 
-                           class="btn btn-outline-dark btn-sm" 
-                           style="flex: 1;">
-                            <i class="fas fa-eye me-1"></i> View
+                           class="btn-view-wishlist">
+                            <i class="fas fa-eye"></i> View
                         </a>
                     </div>
                 </div>
@@ -347,45 +742,48 @@
         {% endfor %}
     </div>
     
-    <!-- Move to cart all button -->
-    <div class="text-center mt-4">
-        <button class="btn btn-success" id="add-all-to-cart">
+    <!-- Add All Button -->
+    <div class="text-center mt-5">
+        <button class="btn-add-all" id="add-all-to-cart">
             <i class="fas fa-cart-plus me-2"></i> Add All Available to Cart
         </button>
     </div>
     
     {% else %}
-    <div class="text-center py-5">
-        <div class="empty-wishlist-icon mb-4">
-            {% if search_query or selected_category or selected_gender %}
-                <i class="fas fa-search fa-3x text-muted"></i>
-            {% else %}
-                <i class="far fa-heart fa-3x text-muted"></i>
-            {% endif %}
+    <!-- Empty State -->
+    <div class="empty-wishlist">
+        <div class="empty-icon">
+            <i class="fas fa-heart-broken"></i>
         </div>
-        <h3 class="mb-3">
+        <h3 class="empty-title">
             {% if search_query or selected_category or selected_gender %}
                 No matching items found
             {% else %}
                 Your wishlist is empty
             {% endif %}
         </h3>
-        <p class="text-muted mb-4">
+        <p class="empty-subtitle">
             {% if search_query or selected_category or selected_gender %}
                 Try adjusting your filters or search terms
             {% else %}
-                Looks like you haven't added any products to your wishlist yet.
+                Discover our exquisite fragrances and add your favorites to your wishlist
             {% endif %}
         </p>
-        <div class="d-flex justify-content-center gap-3">
+        <div class="mt-4">
             {% if search_query or selected_category or selected_gender %}
-            <a href="{% url 'wishlist' %}" class="btn btn-primary">
-                <i class="fas fa-times me-1"></i> Clear All Filters
-            </a>
+                <a href="{% url 'wishlist' %}" class="btn-browse">
+                    <i class="fas fa-times me-2"></i> Clear Filters
+                </a>
             {% else %}
-            <a href="{% url 'men' %}" class="btn btn-outline-primary">Browse Men's</a>
-            <a href="{% url 'women' %}" class="btn btn-outline-primary">Browse Women's</a>
-            <a href="{% url 'unisex' %}" class="btn btn-outline-primary">Browse Unisex</a>
+                <a href="{% url 'men' %}" class="btn-browse">
+                    <i class="fas fa-tshirt me-2"></i> Men's Collection
+                </a>
+                <a href="{% url 'women' %}" class="btn-browse-outline">
+                    <i class="fas fa-female me-2"></i> Women's Collection
+                </a>
+                <a href="{% url 'unisex' %}" class="btn-browse-outline">
+                    <i class="fas fa-venus-mars me-2"></i> Unisex Collection
+                </a>
             {% endif %}
         </div>
     </div>
@@ -400,11 +798,12 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.remove-from-wishlist').forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
-            const itemId = this.getAttribute('data-item-id');
+            e.stopPropagation();
+            const productId = this.getAttribute('data-product-id');
             const csrfToken = this.getAttribute('data-csrf');
             
             if (confirm('Remove this item from your wishlist?')) {
-                removeFromWishlist(itemId, csrfToken, this);
+                removeFromWishlist(productId, csrfToken, this);
             }
         });
     });
@@ -427,13 +826,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Functions
-    async function removeFromWishlist(itemId, csrfToken, buttonElement) {
+    async function removeFromWishlist(productId, csrfToken, buttonElement) {
         const originalHtml = buttonElement.innerHTML;
         buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         buttonElement.disabled = true;
         
         try {
-            const response = await fetch(`/wishlist/remove/${itemId}/`, {
+            const response = await fetch(`/wishlist/remove/${productId}/`, {
                 method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -444,7 +843,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             
             if (data.success) {
-                // Remove the card
                 const card = buttonElement.closest('.wishlist-item');
                 card.style.opacity = '0.5';
                 card.style.transition = 'opacity 0.3s';
@@ -452,21 +850,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => {
                     card.remove();
                     
-                    // Update wishlist count badge
+                    // Update wishlist count
                     const countElement = document.getElementById('wishlist-count');
                     if (countElement) {
-                        const currentCount = parseInt(countElement.textContent.match(/\d+/)[0]) || 0;
-                        countElement.textContent = `${currentCount - 1} item${currentCount - 1 !== 1 ? 's' : ''}`;
+                        const currentCount = parseInt(countElement.textContent) || 0;
+                        const newCount = currentCount - 1;
+                        countElement.textContent = newCount;
                     }
                     
-                    // Show notification
-                    showNotification(data.message || 'Removed from wishlist', 'success');
+                    // Update header badge
+                    const headerBadge = document.querySelector('.wishlist-count');
+                    if (headerBadge) {
+                        let headerCount = parseInt(headerBadge.textContent) || 0;
+                        headerBadge.textContent = headerCount - 1;
+                        if (headerCount - 1 <= 0) {
+                            headerBadge.style.display = 'none';
+                        }
+                    }
                     
-                    // If no items left, reload page
+                    showNotification('Removed from wishlist', 'success');
+                    
                     if (document.querySelectorAll('.wishlist-item').length === 0) {
                         setTimeout(() => location.reload(), 1000);
                     }
                 }, 300);
+            } else {
+                buttonElement.innerHTML = originalHtml;
+                buttonElement.disabled = false;
+                showNotification(data.message || 'Error removing item', 'error');
             }
         } catch (error) {
             console.error('Error removing from wishlist:', error);
@@ -477,6 +888,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     async function addToCartFromWishlist(productId, variantId, buttonElement) {
+        const originalHtml = buttonElement.innerHTML;
+        buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+        buttonElement.disabled = true;
+        
         try {
             const response = await fetch(`/wishlist/move-to-cart/${productId}/`, {
                 method: 'POST',
@@ -489,23 +904,48 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             
             if (data.success) {
-                // Remove the wishlist item from DOM
                 const wishlistItem = buttonElement.closest('.wishlist-item');
-                wishlistItem.remove();
+                wishlistItem.style.opacity = '0.5';
                 
-                // Update wishlist count badge
-                const countElement = document.getElementById('wishlist-count');
-                if (countElement) {
-                    const currentCount = parseInt(countElement.textContent.match(/\d+/)[0]) || 0;
-                    countElement.textContent = `${currentCount - 1} item${currentCount - 1 !== 1 ? 's' : ''}`;
+                // Update cart count
+                const cartBadge = document.querySelector('.cart-count');
+                if (cartBadge) {
+                    let cartCount = parseInt(cartBadge.textContent) || 0;
+                    cartBadge.textContent = cartCount + 1;
+                    cartBadge.style.display = 'flex';
                 }
                 
-                showNotification('Added to cart and removed from wishlist!', 'success');
+                setTimeout(() => {
+                    wishlistItem.remove();
+                    
+                    // Update wishlist count
+                    const countElement = document.getElementById('wishlist-count');
+                    if (countElement) {
+                        const currentCount = parseInt(countElement.textContent) || 0;
+                        countElement.textContent = currentCount - 1;
+                    }
+                    
+                    // Update header badge
+                    const headerBadge = document.querySelector('.wishlist-count');
+                    if (headerBadge) {
+                        let headerCount = parseInt(headerBadge.textContent) || 0;
+                        headerBadge.textContent = headerCount - 1;
+                        if (headerCount - 1 <= 0) {
+                            headerBadge.style.display = 'none';
+                        }
+                    }
+                    
+                    showNotification('Added to cart!', 'success');
+                }, 300);
             } else {
+                buttonElement.innerHTML = originalHtml;
+                buttonElement.disabled = false;
                 showNotification(data.message || 'Error adding to cart', 'error');
             }
         } catch (error) {
             console.error('Error adding to cart:', error);
+            buttonElement.innerHTML = originalHtml;
+            buttonElement.disabled = false;
             showNotification('Error adding to cart', 'error');
         }
     }
@@ -514,6 +954,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const buttons = document.querySelectorAll('.add-to-cart-from-wishlist:not(:disabled)');
         const addAllBtn = document.getElementById('add-all-to-cart');
         const originalText = addAllBtn.innerHTML;
+        
+        if (buttons.length === 0) {
+            showNotification('No items available to add', 'info');
+            return;
+        }
         
         addAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Adding...';
         addAllBtn.disabled = true;
@@ -538,11 +983,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.success) {
                         addedCount++;
                         button.innerHTML = '<i class="fas fa-check me-1"></i> Added';
-                        button.classList.remove('btn-primary');
+                        button.classList.remove('btn-add-cart-wishlist');
                         button.classList.add('btn-success');
                         button.disabled = true;
                         
-                        // Remove from DOM after a delay
                         setTimeout(() => {
                             const wishlistItem = button.closest('.wishlist-item');
                             if (wishlistItem) {
@@ -558,15 +1002,30 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Update wishlist count
         setTimeout(() => {
             const remainingItems = document.querySelectorAll('.wishlist-item').length;
             const countElement = document.getElementById('wishlist-count');
             if (countElement) {
-                countElement.textContent = `${remainingItems} item${remainingItems !== 1 ? 's' : ''}`;
+                countElement.textContent = remainingItems;
             }
             
-            // Show result
+            // Update header badge
+            const headerBadge = document.querySelector('.wishlist-count');
+            if (headerBadge) {
+                headerBadge.textContent = remainingItems;
+                if (remainingItems <= 0) {
+                    headerBadge.style.display = 'none';
+                }
+            }
+            
+            // Update cart count
+            const cartBadge = document.querySelector('.cart-count');
+            if (cartBadge && addedCount > 0) {
+                let cartCount = parseInt(cartBadge.textContent) || 0;
+                cartBadge.textContent = cartCount + addedCount;
+                cartBadge.style.display = 'flex';
+            }
+            
             let message = '';
             if (addedCount > 0 && errorCount === 0) {
                 message = `Successfully added ${addedCount} item${addedCount > 1 ? 's' : ''} to cart!`;
@@ -582,7 +1041,6 @@ document.addEventListener('DOMContentLoaded', function() {
             addAllBtn.innerHTML = originalText;
             addAllBtn.disabled = false;
             
-            // If no items left, reload page
             if (remainingItems === 0) {
                 setTimeout(() => location.reload(), 1000);
             }
@@ -605,35 +1063,17 @@ document.addEventListener('DOMContentLoaded', function() {
         return cookieValue;
     }
     
-    function showNotification(message, type = 'info') {
-        // Create notification if it doesn't exist
+    function showNotification(message, type) {
         let notification = document.getElementById('global-notification');
         if (!notification) {
             notification = document.createElement('div');
             notification.id = 'global-notification';
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 15px 20px;
-                border-radius: 5px;
-                color: white;
-                z-index: 9999;
-                display: none;
-                max-width: 300px;
-            `;
+            notification.className = 'global-notification';
             document.body.appendChild(notification);
         }
         
-        // Set type-specific styles
-        if (type === 'success') {
-            notification.style.backgroundColor = '#28a745';
-        } else if (type === 'error') {
-            notification.style.backgroundColor = '#dc3545';
-        } else if (type === 'info') {
-            notification.style.backgroundColor = '#17a2b8';
-        }
-        
+        const bgColor = type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#17a2b8';
+        notification.style.backgroundColor = bgColor;
         notification.textContent = message;
         notification.style.display = 'block';
         
@@ -641,110 +1081,6 @@ document.addEventListener('DOMContentLoaded', function() {
             notification.style.display = 'none';
         }, 3000);
     }
-    
-    // AJAX Filtering (optional enhancement)
-    function initAjaxFiltering() {
-        const searchInput = document.getElementById('search-input');
-        const categorySelect = document.getElementById('category-select');
-        const genderSelect = document.getElementById('gender-select');
-        const filterForm = document.getElementById('filter-form');
-        
-        if (!filterForm) return;
-        
-        // Debounce function to prevent too many requests
-        let debounceTimer;
-        function debounce(func, delay) {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(func, delay);
-        }
-        
-        // Function to update filters via AJAX
-        function updateFilters() {
-            const formData = new FormData(filterForm);
-            const params = new URLSearchParams(formData);
-            
-            // Show loading indicator
-            const container = document.getElementById('wishlist-items-container');
-            if (container) {
-                container.innerHTML = `
-                    <div class="col-12 text-center py-5">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="mt-2">Loading filtered items...</p>
-                    </div>
-                `;
-            }
-            
-            // Update URL without reloading page
-            const newUrl = `${window.location.pathname}?${params.toString()}`;
-            window.history.pushState({}, '', newUrl);
-            
-            // Fetch filtered results
-            fetch(`${window.location.pathname}?${params.toString()}&ajax=1`, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.html) {
-                    document.getElementById('wishlist-items-container').innerHTML = data.html;
-                    document.getElementById('wishlist-count').textContent = 
-                        `${data.count} item${data.count !== 1 ? 's' : ''}`;
-                    
-                    // Reattach event listeners to new elements
-                    attachWishlistEventListeners();
-                }
-            })
-            .catch(error => {
-                console.error('Error filtering wishlist:', error);
-                // Fallback to regular form submission
-                filterForm.submit();
-            });
-        }
-        
-        // Event listeners for real-time filtering
-        if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                debounce(updateFilters, 500);
-            });
-        }
-        
-        if (categorySelect) {
-            categorySelect.addEventListener('change', updateFilters);
-        }
-        
-        if (genderSelect) {
-            genderSelect.addEventListener('change', updateFilters);
-        }
-        
-        // Function to reattach event listeners
-        function attachWishlistEventListeners() {
-            document.querySelectorAll('.remove-from-wishlist').forEach(button => {
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const itemId = this.getAttribute('data-item-id');
-                    const csrfToken = this.getAttribute('data-csrf');
-                    
-                    if (confirm('Remove this item from your wishlist?')) {
-                        removeFromWishlist(itemId, csrfToken, this);
-                    }
-                });
-            });
-            
-            document.querySelectorAll('.add-to-cart-from-wishlist').forEach(button => {
-                button.addEventListener('click', function() {
-                    const productId = this.getAttribute('data-product-id');
-                    const variantId = this.getAttribute('data-variant-id');
-                    addToCartFromWishlist(productId, variantId, this);
-                });
-            });
-        }
-    }
-    
-    // Initialize AJAX filtering
-    initAjaxFiltering();
 });
 </script>
 {% endblock %}

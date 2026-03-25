@@ -1,48 +1,414 @@
-
-
 <!-- Footer -->
-  <footer class="footer">
+<footer class="footer">
     <div class="container">
-      <div class="row">
-        <div class="col-lg-3 col-md-6 mb-4">
-          <h2 class="logo text-white">SANJERI</h2>
-          <p class="logotag text-white-50">A Scent Beyond the Soul</p>
-          <div class="social-links mt-3">
-            <a href="#" class="btn btn-outline-light me-2"><i class="fab fa-facebook-f"></i></a>
-            <a href="#" class="btn btn-outline-light me-2"><i class="fab fa-twitter"></i></a>
-            <a href="#" class="btn btn-outline-light me-2"><i class="fab fa-instagram"></i></a>
-            <a href="#" class="btn btn-outline-light"><i class="fab fa-pinterest"></i></a>
-          </div>
+        <div class="row">
+            <!-- Brand Section -->
+            <div class="col-lg-4 col-md-6 mb-5 mb-lg-0">
+                <div class="footer-brand">
+                    <h2 class="footer-logo">SANJERI</h2>
+                    <p class="footer-tagline">A Scent Beyond the Soul</p>
+                    <p class="footer-description mt-3">
+                        Discover exquisite fragrances crafted with passion and precision. 
+                        Each scent tells a unique story, created to elevate your presence 
+                        and leave a lasting impression.
+                    </p>
+                    <div class="social-links mt-4">
+                        <a href="#" class="social-link" aria-label="Facebook">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="social-link" aria-label="Twitter">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="social-link" aria-label="Instagram">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="social-link" aria-label="Pinterest">
+                            <i class="fab fa-pinterest"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Links -->
+            <div class="col-lg-2 col-md-6 mb-5 mb-lg-0">
+                <div class="footer-section">
+                    <h5 class="footer-title">Quick Links</h5>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fas fa-chevron-right me-2"></i>About Us</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right me-2"></i>Contact</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right me-2"></i>FAQs</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right me-2"></i>Shipping & Returns</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right me-2"></i>Privacy Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Customer Service -->
+            <div class="col-lg-2 col-md-6 mb-5 mb-lg-0">
+                <div class="footer-section">
+                    <h5 class="footer-title">Customer Service</h5>
+                    <ul class="footer-links">
+                        <li><a href="{% url 'user_profile' %}"><i class="fas fa-chevron-right me-2"></i>My Account</a></li>
+                        <li><a href="{% url 'order_list' %}"><i class="fas fa-chevron-right me-2"></i>Order Tracking</a></li>
+                        <li><a href="{% url 'wishlist' %}"><i class="fas fa-chevron-right me-2"></i>Wishlist</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right me-2"></i>Terms & Conditions</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right me-2"></i>Size Guide</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Newsletter -->
+            <div class="col-lg-4 col-md-6 mb-5 mb-lg-0">
+                <div class="footer-section">
+                    <h5 class="footer-title">Newsletter</h5>
+                    <p class="newsletter-text">Subscribe to receive exclusive offers, new arrivals, and fragrance tips.</p>
+                    <form class="newsletter-form mt-3">
+                        <div class="input-group">
+                            <input type="email" class="newsletter-input" placeholder="Your email address" required>
+                            <button class="newsletter-btn" type="submit">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </form>
+                    <p class="newsletter-note mt-3">
+                        <i class="fas fa-shield-alt me-1"></i>
+                        We respect your privacy. Unsubscribe anytime.
+                    </p>
+                </div>
+            </div>
         </div>
-        <div class="col-md-3 col-sm-6 mb-4">
-          <h5>Quick Links</h5>
-          <ul>
-            <li><a href="#">About Us</a></li>
-            <li><a href="#">Contact</a></li>
-            <li><a href="#">FAQs</a></li>
-            <li><a href="#">Shipping & Returns</a></li>
-          </ul>
+        
+        <!-- Footer Bottom -->
+        <div class="footer-bottom">
+            <div class="row align-items-center">
+                <div class="col-md-6 text-center text-md-start">
+                    <p class="mb-0">&copy; 2024 Sanjeri Perfumes. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-center text-md-end mt-3 mt-md-0">
+                    <div class="payment-methods">
+                        <i class="fab fa-cc-visa"></i>
+                        <i class="fab fa-cc-mastercard"></i>
+                        <i class="fab fa-cc-amex"></i>
+                        <i class="fab fa-cc-paypal"></i>
+                        <i class="fab fa-razorpay"></i>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="col-md-3 col-sm-6 mb-4">
-          <h5>Customer Service</h5>
-          <ul>
-            <li><a href="#">My Account</a></li>
-            <li><a href="#">Order Tracking</a></li>
-            <li><a href="#">Wishlist</a></li>
-            <li><a href="#">Terms & Conditions</a></li>
-          </ul>
-        </div>
-        <div class="col-lg-3 col-md-6 mb-4">
-          <h5>Newsletter</h5>
-          <p class="small">Subscribe to get updates on new arrivals and special offers.</p>
-          <form class="d-flex mt-2">
-            <input class="form-control me-2" type="email" placeholder="Email Address">
-            <button class="btn btn-light" type="submit">Subscribe</button>
-          </form>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <p>&copy; 2023 Sanjeri Perfumes. All rights reserved.</p>
-      </div>
     </div>
-  </footer>
+</footer>
+
+<style>
+    /* Footer Styles - Preserving original color */
+    .footer {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 60px 0 20px;
+        position: relative;
+    }
+    
+    .footer::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--accent-color);
+    }
+    
+    /* Brand Section */
+    .footer-brand {
+        position: relative;
+    }
+    
+    .footer-logo {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+        color: white;
+        letter-spacing: 1px;
+    }
+    
+    .footer-tagline {
+        font-style: italic;
+        font-size: 0.8rem;
+        opacity: 0.8;
+        margin-bottom: 15px;
+        letter-spacing: 0.5px;
+        color: rgba(255,255,255,0.8);
+    }
+    
+    .footer-description {
+        font-size: 0.85rem;
+        line-height: 1.6;
+        opacity: 0.8;
+        margin-bottom: 0;
+        max-width: 300px;
+        color: rgba(255,255,255,0.8);
+    }
+    
+    /* Social Links */
+    .social-links {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .social-link {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .social-link:hover {
+        background: var(--accent-color);
+        transform: translateY(-3px);
+        color: white;
+        border-color: var(--accent-color);
+    }
+    
+    /* Footer Sections */
+    .footer-section {
+        position: relative;
+    }
+    
+    .footer-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 20px;
+        position: relative;
+        padding-bottom: 10px;
+        color: white;
+        letter-spacing: 0.5px;
+    }
+    
+    .footer-title::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 40px;
+        height: 2px;
+        background: var(--accent-color);
+    }
+    
+    .footer-links {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .footer-links li {
+        margin-bottom: 10px;
+    }
+    
+    .footer-links a {
+        color: rgba(255, 255, 255, 0.7);
+        text-decoration: none;
+        transition: all 0.3s ease;
+        font-size: 0.85rem;
+        display: inline-block;
+    }
+    
+    .footer-links a i {
+        font-size: 0.7rem;
+        transition: transform 0.3s ease;
+        color: var(--accent-color);
+    }
+    
+    .footer-links a:hover {
+        color: var(--accent-color);
+        transform: translateX(5px);
+    }
+    
+    .footer-links a:hover i {
+        transform: translateX(3px);
+    }
+    
+    /* Newsletter */
+    .newsletter-text {
+        font-size: 0.85rem;
+        opacity: 0.8;
+        margin-bottom: 15px;
+        line-height: 1.5;
+        color: rgba(255,255,255,0.8);
+    }
+    
+    .newsletter-form {
+        width: 100%;
+    }
+    
+    .input-group {
+        display: flex;
+        gap: 0;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+    }
+    
+    .input-group:focus-within {
+        border-color: var(--accent-color);
+        background: rgba(255, 255, 255, 0.15);
+    }
+    
+    .newsletter-input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        padding: 12px 20px;
+        color: white;
+        font-size: 0.85rem;
+        outline: none;
+    }
+    
+    .newsletter-input::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .newsletter-btn {
+        background: var(--accent-color);
+        border: none;
+        padding: 0 20px;
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .newsletter-btn:hover {
+        background: #b88b5a;
+        transform: translateX(-2px);
+    }
+    
+    .newsletter-note {
+        font-size: 0.7rem;
+        opacity: 0.6;
+        margin-bottom: 0;
+        color: rgba(255,255,255,0.7);
+    }
+    
+    /* Footer Bottom */
+    .footer-bottom {
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding-top: 20px;
+        margin-top: 40px;
+    }
+    
+    .footer-bottom p {
+        font-size: 0.8rem;
+        opacity: 0.7;
+        color: rgba(255,255,255,0.7);
+    }
+    
+    .payment-methods {
+        display: flex;
+        gap: 15px;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+    
+    .payment-methods i {
+        font-size: 1.5rem;
+        opacity: 0.7;
+        transition: all 0.3s ease;
+        color: white;
+    }
+    
+    .payment-methods i:hover {
+        opacity: 1;
+        transform: translateY(-2px);
+        color: var(--accent-color);
+    }
+    
+    /* Responsive */
+    @media (max-width: 992px) {
+        .footer {
+            padding: 50px 0 20px;
+        }
+        
+        .footer-description {
+            max-width: 100%;
+        }
+        
+        .payment-methods {
+            justify-content: center;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .footer {
+            padding: 40px 0 20px;
+        }
+        
+        .footer-logo {
+            font-size: 1.5rem;
+        }
+        
+        .footer-title {
+            margin-top: 20px;
+        }
+        
+        .footer-title::after {
+            left: 0;
+            right: auto;
+        }
+        
+        .footer-section {
+            text-align: center;
+        }
+        
+        .footer-title::after {
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .social-links {
+            justify-content: center;
+        }
+        
+        .footer-links a:hover {
+            transform: none;
+        }
+        
+        .payment-methods {
+            justify-content: center;
+            margin-top: 15px;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .footer-logo {
+            font-size: 1.3rem;
+        }
+        
+        .footer-description {
+            font-size: 0.8rem;
+        }
+        
+        .newsletter-input {
+            padding: 10px 15px;
+        }
+        
+        .newsletter-btn {
+            padding: 0 15px;
+        }
+        
+        .payment-methods i {
+            font-size: 1.2rem;
+        }
+    }
+</style>

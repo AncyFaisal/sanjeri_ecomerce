@@ -9,28 +9,24 @@ def homepage(request):
     """Home page view with actual products and search functionality"""
     query = request.GET.get('q', '')
     
-    # Get all active products
+     # Get all active products
     all_products = Product.objects.filter(is_active=True, is_deleted=False)
     cart_item_count = 0
+    
+    # Get wishlist product IDs for authenticated user
+    wishlist_product_ids = []
     if request.user.is_authenticated:
         try:
             cart = Cart.objects.get(user=request.user)
             cart_item_count = cart.total_items
         except Cart.DoesNotExist:
             pass
-    
-     # Get wishlist items for authenticated user
-    # Get wishlist items for authenticated user
-    # wishlist_product_ids = []
-    # if request.user.is_authenticated:
-    #     try:
-    #         # Get user's wishlist
-    #         wishlist = Wishlist.objects.filter(user=request.user).first()
-    #         if wishlist:
-    #             # Get product IDs from the wishlist
-    #             wishlist_product_ids = list(wishlist.products.values_list('id', flat=True))
-    #     except Wishlist.DoesNotExist:
-    #         pass
+        
+        try:
+            wishlist = Wishlist.objects.get(user=request.user)
+            wishlist_product_ids = list(wishlist.products.values_list('id', flat=True))
+        except Wishlist.DoesNotExist:
+            pass
     
     # Apply search filter if query exists
     if query:
@@ -69,6 +65,19 @@ def homepage(request):
         variants__is_active=True
     ).distinct()[:4]
 
+    # Add is_in_wishlist attribute to each product
+    for product in featured_products:
+        product.is_in_wishlist = product.id in wishlist_product_ids
+    
+    for product in mens_products:
+        product.is_in_wishlist = product.id in wishlist_product_ids
+    
+    for product in womens_products:
+        product.is_in_wishlist = product.id in wishlist_product_ids
+    
+    for product in unisex_products:
+        product.is_in_wishlist = product.id in wishlist_product_ids
+
     context = {
         'title': 'Home - Sanjeri',
         'featured_products': featured_products,
@@ -81,6 +90,7 @@ def homepage(request):
         'search_results_count': search_results_count,
         'search_products': search_products,
         'cart_item_count': cart_item_count,
+        'wishlist_product_ids': wishlist_product_ids, 
         # 'wishlist_product_ids': list(wishlist_items),
     }
     return render(request, 'homepage.html', context)

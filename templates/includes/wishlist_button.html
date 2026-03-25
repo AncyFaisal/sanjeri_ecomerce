@@ -1,5 +1,5 @@
 <!-- templates/includes/wishlist_button.html -->
-<button class="btn-wishlist add-to-wishlist-btn {% if is_in_wishlist %}in-wishlist{% endif %}" 
+<button class="btn-wishlist add-to-wishlist-btn " 
     data-product-id="{{ product.id }}"
     data-csrf="{{ csrf_token }}"
     title="{% if is_in_wishlist %}Remove from Wishlist{% else %}Add to Wishlist{% endif %}">
