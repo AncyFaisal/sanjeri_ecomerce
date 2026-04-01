@@ -27,7 +27,7 @@ SECURE_PROXY_SSL_HEADER = None
 # Allow all origins for testing
 CORS_ALLOW_ALL_ORIGINS = True  # If you have django-cors-headers
 # For localhost HTTPS
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '56.228.28.4']
 # CSRF_TRUSTED_ORIGINS = [
 #     'http://localhost:8000',
 #     'https://localhost:8000',
@@ -129,7 +129,7 @@ USE_TZ = True
 # Static files
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -204,6 +204,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
     'https://localhost:8000',
     'https://127.0.0.1:8000',
+    'http://209.38.123.149'
 ]
 
 
